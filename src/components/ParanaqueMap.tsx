@@ -44,9 +44,9 @@ interface ParanaqueMapProps {
   onOpenAddModal?: (locationId?: string) => void;
   onDeployKit?: (locationId: string) => void;
   onDeployAllKits?: () => void;
-  onQuickRelocate?: (assetId: string, toLocationId: string) => void;
-  onPrintA5ForAsset?: (asset: AssetItem) => void;
-  onPrintA5ForBarangay?: (locationId: string) => void;
+  onQuickRelocate?: (assetId: string, toLocationId: string, customEventTitle?: string) => void;
+  onPrintA5ForAsset?: (asset: AssetItem, customEventTitle?: string) => void;
+  onPrintA5ForBarangay?: (locationId: string, customEventTitle?: string) => void;
   onDeleteBorrow?: (assetId: string) => void;
 }
 
@@ -97,6 +97,9 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
   const [depotSearch, setDepotSearch] = useState('');
   const [depotCategoryFilter, setDepotCategoryFilter] = useState<'ALL' | AssetCategory>('ALL');
   
+  // Configurable Profiling Event Title for Map Borrows (Defaults to PhilHealth YAKAP)
+  const [activeProfilingTitle, setActiveProfilingTitle] = useState('PHILHEALTH YAKAP PROFILING');
+
   // Drag-and-Drop Tracking State
   const [draggingAsset, setDraggingAsset] = useState<AssetItem | null>(null);
   const [hoveredDropLocationId, setHoveredDropLocationId] = useState<string | null>(null);
@@ -593,7 +596,7 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
     }
 
     if (assetId && targetLocId && onQuickRelocate) {
-      onQuickRelocate(assetId, targetLocId);
+      onQuickRelocate(assetId, targetLocId, activeProfilingTitle);
       const targetLoc = locations.find((l) => l.id === targetLocId);
       const droppedItem = assets.find((a) => a.id === assetId);
 
@@ -618,7 +621,7 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
   // Quick 1-Click Relocate from select dropdown
   const handleQuickDeployDropdown = (assetId: string, toLocationId: string) => {
     if (!toLocationId || !onQuickRelocate) return;
-    onQuickRelocate(assetId, toLocationId);
+    onQuickRelocate(assetId, toLocationId, activeProfilingTitle);
     const targetLoc = locations.find((l) => l.id === toLocationId);
     const item = assets.find((a) => a.id === assetId);
     setLastDeployedNotice({
@@ -811,7 +814,7 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
                   type="button"
                   onClick={() => {
                     const item = assets.find((a) => a.id === lastDeployedNotice.assetId);
-                    if (item) onPrintA5ForAsset(item);
+                    if (item) onPrintA5ForAsset(item, activeProfilingTitle);
                   }}
                   className="inline-flex items-center gap-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 text-[11px] font-bold shadow transition active:scale-95 cursor-pointer"
                   title="Print official A5 Checklist Slip"
@@ -914,6 +917,53 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
                   {selectedLocAssets.length}
                 </span>
               </button>
+            </div>
+
+            {/* Active Event / Profiling Title Input Configuration */}
+            <div className="mt-2.5 pt-2 border-t border-black/[0.06]">
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-[10px] font-extrabold uppercase tracking-wide text-neutral-600 flex items-center gap-1">
+                  <span>Profiling Event / Activity Title:</span>
+                </label>
+                <span className="text-[9px] text-emerald-700 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                  Prints on A5 Checklist
+                </span>
+              </div>
+              <input
+                type="text"
+                value={activeProfilingTitle}
+                onChange={(e) => setActiveProfilingTitle(e.target.value)}
+                placeholder="e.g. PHILHEALTH YAKAP PROFILING"
+                className="w-full rounded-xl border border-neutral-300 bg-white px-2.5 py-1.5 text-xs font-bold text-neutral-900 shadow-2xs focus:border-emerald-500 focus:outline-none uppercase"
+                title="Type custom profiling or event title here"
+              />
+              <div className="flex items-center gap-1 mt-1.5 overflow-x-auto no-scrollbar">
+                {[
+                  'PHILHEALTH YAKAP PROFILING',
+                  'HEALTH CENTER EMR OPS',
+                  'NATIONAL IMMUNIZATION',
+                  'MEDICAL MISSION',
+                ].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => setActiveProfilingTitle(preset)}
+                    className={`shrink-0 rounded-lg px-2 py-0.5 text-[9px] font-bold transition ${
+                      activeProfilingTitle === preset
+                        ? 'bg-neutral-900 text-white'
+                        : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-600'
+                    }`}
+                  >
+                    {preset === 'PHILHEALTH YAKAP PROFILING'
+                      ? 'YAKAP'
+                      : preset === 'HEALTH CENTER EMR OPS'
+                      ? 'EMR Ops'
+                      : preset === 'NATIONAL IMMUNIZATION'
+                      ? 'Vaccination'
+                      : 'Medical Mission'}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -1150,7 +1200,7 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
                       {onPrintA5ForBarangay && selectedLocAssets.length > 0 && (
                         <button
                           type="button"
-                          onClick={() => onPrintA5ForBarangay(selectedLocation.id)}
+                          onClick={() => onPrintA5ForBarangay(selectedLocation.id, activeProfilingTitle)}
                           className="inline-flex items-center gap-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 text-[11px] font-bold shadow-xs transition active:scale-95 cursor-pointer"
                           title="Print official consolidated A5 Borrow Slip for this Barangay"
                         >
@@ -1317,7 +1367,7 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
                                         type="button"
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          onPrintA5ForAsset(asset);
+                                          onPrintA5ForAsset(asset, activeProfilingTitle);
                                         }}
                                         className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 px-2 py-0.5 text-[10px] font-bold transition active:scale-95 cursor-pointer"
                                         title="Print official A5 borrow checklist slip for this item"
@@ -1373,7 +1423,7 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
                     {onPrintA5ForBarangay && selectedLocAssets.length > 0 && (
                       <button
                         type="button"
-                        onClick={() => onPrintA5ForBarangay(selectedLocation.id)}
+                        onClick={() => onPrintA5ForBarangay(selectedLocation.id, activeProfilingTitle)}
                         className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 px-3 py-2 text-xs font-bold text-white shadow-xs transition active:scale-95 cursor-pointer"
                         title="Print official consolidated A5 Borrow Slip for this entire Barangay event"
                       >

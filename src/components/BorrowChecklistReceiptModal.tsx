@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import type { AssetTransferRecord, AssetItem, BarangayLocation } from '../types/inventory';
 import { X, Printer } from './HugeIcons';
 
@@ -20,6 +20,30 @@ export const BorrowChecklistReceiptModal: React.FC<BorrowChecklistReceiptModalPr
   onMarkReturned,
 }) => {
   const printContentRef = useRef<HTMLDivElement>(null);
+
+  // Editable metadata fields (can be typed directly into the document preview before printing)
+  const [editableEvent, setEditableEvent] = useState('');
+  const [editableOffice, setEditableOffice] = useState('');
+  const [editableBorrower, setEditableBorrower] = useState('');
+
+  useEffect(() => {
+    if (record) {
+      setEditableEvent(
+        record.eventName ||
+        record.purpose ||
+        `PHILHEALTH YAKAP PROFILING ${location?.name?.replace(/^Barangay\s+/i, '') || record.toLocationName || 'HEALTH CENTER'}`.toUpperCase()
+      );
+      setEditableOffice(
+        record.requestingOffice ||
+        `${location?.name || record.toLocationName || 'BARANGAY'} HEALTH CENTER`.toUpperCase()
+      );
+      setEditableBorrower(
+        record.borrowerName ||
+        record.receivedBy ||
+        `${location?.name || 'BARANGAY'} HEALTH CENTER STAFF`.toUpperCase()
+      );
+    }
+  }, [record, location]);
 
   if (!isOpen || !record) return null;
 
@@ -49,21 +73,6 @@ export const BorrowChecklistReceiptModal: React.FC<BorrowChecklistReceiptModalPr
       return isoString;
     }
   };
-
-  // Derive Event / Activity, Requesting Office, Borrower
-  const eventActivity =
-    record.eventName ||
-    record.purpose ||
-    `PHILHEALTH YAKAP PROFILING ${location?.name?.replace(/^Barangay\s+/i, '') || record.toLocationName || 'HEALTH CENTER'}`.toUpperCase();
-
-  const requestingOffice =
-    record.requestingOffice ||
-    `${location?.name || record.toLocationName || 'BARANGAY'} HEALTH CENTER`.toUpperCase();
-
-  const borrower =
-    record.borrowerName ||
-    record.receivedBy ||
-    `${location?.name || 'BARANGAY'} HEALTH CENTER STAFF`.toUpperCase();
 
   // Synthesize table rows if not explicitly recorded in record.borrowedItemsList
   const items = record.borrowedItemsList && record.borrowedItemsList.length > 0
@@ -125,6 +134,11 @@ export const BorrowChecklistReceiptModal: React.FC<BorrowChecklistReceiptModalPr
               <X size={18} />
             </button>
           </div>
+        </div>
+
+        {/* Quick Helper Banner */}
+        <div className="no-print mb-2.5 rounded-xl bg-white/10 px-3 py-1.5 text-[11px] text-neutral-300 flex items-center justify-between">
+          <span>✏️ <strong>Live Input:</strong> Click directly on <u>Event/Activity</u>, <u>Office</u>, or <u>Borrower</u> below to customize or type any title before printing.</span>
         </div>
 
         {/* ========================================================================= */}
@@ -194,25 +208,40 @@ export const BorrowChecklistReceiptModal: React.FC<BorrowChecklistReceiptModalPr
             </h1>
           </div>
 
-          {/* 4. Metadata Block */}
+          {/* 4. Metadata Block (Directly Editable on Screen, Underlined on Print) */}
           <div className="space-y-1.5 text-[11.5px] sm:text-[12px] font-bold text-neutral-900 mt-2">
-            <div className="flex items-baseline">
+            <div className="flex items-baseline gap-1">
               <span className="shrink-0 font-bold">Event/Activity:</span>
-              <span className="ml-1.5 font-bold uppercase underline flex-1 tracking-tight">
-                {eventActivity}
-              </span>
+              <input
+                type="text"
+                value={editableEvent}
+                onChange={(e) => setEditableEvent(e.target.value)}
+                className="font-bold uppercase underline tracking-tight flex-1 bg-transparent border-none outline-none focus:bg-emerald-50 focus:ring-1 focus:ring-emerald-500 rounded px-1 text-neutral-950 p-0 m-0"
+                placeholder="TYPE EVENT / PROFILING TITLE..."
+                title="Click to edit event title directly"
+              />
             </div>
-            <div className="flex items-baseline">
+            <div className="flex items-baseline gap-1">
               <span className="shrink-0 font-bold">Requesting Office/Unit:</span>
-              <span className="ml-1.5 font-bold uppercase underline flex-1 tracking-tight">
-                {requestingOffice}
-              </span>
+              <input
+                type="text"
+                value={editableOffice}
+                onChange={(e) => setEditableOffice(e.target.value)}
+                className="font-bold uppercase underline tracking-tight flex-1 bg-transparent border-none outline-none focus:bg-emerald-50 focus:ring-1 focus:ring-emerald-500 rounded px-1 text-neutral-950 p-0 m-0"
+                placeholder="TYPE REQUESTING OFFICE..."
+                title="Click to edit requesting office"
+              />
             </div>
-            <div className="flex items-baseline">
+            <div className="flex items-baseline gap-1">
               <span className="shrink-0 font-bold">Borrower/Person Responsible:</span>
-              <span className="ml-1.5 font-bold uppercase underline flex-1 tracking-tight">
-                {borrower}
-              </span>
+              <input
+                type="text"
+                value={editableBorrower}
+                onChange={(e) => setEditableBorrower(e.target.value)}
+                className="font-bold uppercase underline tracking-tight flex-1 bg-transparent border-none outline-none focus:bg-emerald-50 focus:ring-1 focus:ring-emerald-500 rounded px-1 text-neutral-950 p-0 m-0"
+                placeholder="TYPE BORROWER NAME..."
+                title="Click to edit borrower name"
+              />
             </div>
           </div>
 
@@ -281,7 +310,7 @@ export const BorrowChecklistReceiptModal: React.FC<BorrowChecklistReceiptModalPr
               <p className="font-bold">Borrowed/Received by:</p>
               <div className="mt-2 space-y-1 font-medium">
                 <div>
-                  Name: <span className="font-bold underline uppercase">{borrower}</span>
+                  Name: <span className="font-bold underline uppercase">{editableBorrower || 'HEALTH CENTER STAFF'}</span>
                 </div>
                 <div>
                   Signature: <span className="inline-block border-b border-black w-28 sm:w-36">&nbsp;</span>

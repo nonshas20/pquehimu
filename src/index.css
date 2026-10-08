@@ -149,5 +149,17 @@
     background: #FFFFFF !important;
     color: #000000 !important;
   }
+
+  .a5-printable-document input {
+    border: none !important;
+    background: transparent !important;
+    outline: none !important;
+    text-decoration: underline !important;
+    font-weight: 700 !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
 }
 

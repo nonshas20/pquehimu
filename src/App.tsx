@@ -356,7 +356,7 @@ export function App() {
   };
 
   // Quick Drag-and-Drop Relocation Handler (every drag to a barangay is a borrow!)
-  const handleQuickRelocateAsset = (assetId: string, toLocationId: string) => {
+  const handleQuickRelocateAsset = (assetId: string, toLocationId: string, customEventTitle?: string) => {
     const asset = assets.find((a) => a.id === assetId);
     if (!asset || asset.currentLocationId === toLocationId) return;
 
@@ -364,7 +364,8 @@ export function App() {
     const toLoc = locations.find((l) => l.id === toLocationId);
     const isReturningToHq = toLocationId === 'loc-himu-hq';
     const locCleanName = toLoc?.name.replace(/^Barangay\s+/i, '').toUpperCase() || 'HEALTH STATION';
-    const profilingEventName = `PHILHEALTH YAKAP PROFILING ${locCleanName}`;
+    const baseEventTitle = customEventTitle?.trim() || 'PHILHEALTH YAKAP PROFILING';
+    const profilingEventName = `${baseEventTitle} ${locCleanName}`.toUpperCase();
     const requestingOffice = `${toLoc?.name.toUpperCase() || 'BARANGAY'} HEALTH CENTER`;
     const borrowerName = `${toLoc?.name.toUpperCase() || 'BARANGAY'} HEALTH CUSTODIAN`;
 
@@ -443,47 +444,56 @@ export function App() {
   };
 
   // Print official A5 Borrow Slip for a single asset directly from the map
-  const handlePrintA5ForAsset = (asset: AssetItem) => {
+  const handlePrintA5ForAsset = (asset: AssetItem, customEventTitle?: string) => {
     const targetLoc = locations.find((l) => l.id === asset.currentLocationId);
     const locCleanName = targetLoc?.name.replace(/^Barangay\s+/i, '').toUpperCase() || 'HEALTH STATION';
+    const baseEventTitle = customEventTitle?.trim() || 'PHILHEALTH YAKAP PROFILING';
+    const profilingEventName = `${baseEventTitle} ${locCleanName}`.toUpperCase();
     const latestRecord = asset.history.find((h) => h.toLocationId === asset.currentLocationId) || asset.history[0];
 
-    const record: AssetTransferRecord = latestRecord || {
-      id: `tr-${Date.now()}`,
-      referenceNo: `TR-PQUE-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
-      assetId: asset.id,
-      fromLocationId: 'loc-himu-hq',
-      toLocationId: asset.currentLocationId,
-      fromLocationName: 'HIMU Central IT Office (Parañaque City Hall)',
-      toLocationName: targetLoc?.name || 'Assigned Barangay',
-      dispatchedBy: currentUser.name,
-      dispatchedAt: new Date().toISOString(),
-      receivedBy: `${targetLoc?.name || 'BARANGAY'} HEALTH CUSTODIAN`,
-      status: 'in_transit',
-      purpose: `PHILHEALTH YAKAP PROFILING ${locCleanName}`,
-      eventName: `PHILHEALTH YAKAP PROFILING ${locCleanName}`,
-      requestingOffice: `${targetLoc?.name.toUpperCase() || 'BARANGAY'} HEALTH CENTER`,
-      borrowerName: `${targetLoc?.name.toUpperCase() || 'BARANGAY'} HEALTH CUSTODIAN`,
-      borrowedItemsList: [
-        {
-          itemEquipment: asset.name.toUpperCase(),
-          serialNo: asset.serialNumber,
-          quantity: 1,
-          remarks: asset.category === 'Printer' ? 'WITH POWER AND CABLE' : 'WITH POWER',
-        },
-      ],
-    };
+    const record: AssetTransferRecord = latestRecord
+      ? {
+          ...latestRecord,
+          eventName: customEventTitle ? profilingEventName : (latestRecord.eventName || profilingEventName),
+        }
+      : {
+          id: `tr-${Date.now()}`,
+          referenceNo: `TR-PQUE-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+          assetId: asset.id,
+          fromLocationId: 'loc-himu-hq',
+          toLocationId: asset.currentLocationId,
+          fromLocationName: 'HIMU Central IT Office (Parañaque City Hall)',
+          toLocationName: targetLoc?.name || 'Assigned Barangay',
+          dispatchedBy: currentUser.name,
+          dispatchedAt: new Date().toISOString(),
+          receivedBy: `${targetLoc?.name || 'BARANGAY'} HEALTH CUSTODIAN`,
+          status: 'in_transit',
+          purpose: profilingEventName,
+          eventName: profilingEventName,
+          requestingOffice: `${targetLoc?.name.toUpperCase() || 'BARANGAY'} HEALTH CENTER`,
+          borrowerName: `${targetLoc?.name.toUpperCase() || 'BARANGAY'} HEALTH CUSTODIAN`,
+          borrowedItemsList: [
+            {
+              itemEquipment: asset.name.toUpperCase(),
+              serialNo: asset.serialNumber,
+              quantity: 1,
+              remarks: asset.category === 'Printer' ? 'WITH POWER AND CABLE' : 'WITH POWER',
+            },
+          ],
+        };
 
     setActiveChecklistRecord(record);
     setIsReceiptOpen(true);
   };
 
   // Print consolidated official A5 Borrow Slip for all equipment borrowed by a Barangay
-  const handlePrintA5ForBarangay = (locationId: string) => {
+  const handlePrintA5ForBarangay = (locationId: string, customEventTitle?: string) => {
     const targetLoc = locations.find((l) => l.id === locationId);
     if (!targetLoc) return;
 
     const locCleanName = targetLoc.name.replace(/^Barangay\s+/i, '').toUpperCase();
+    const baseEventTitle = customEventTitle?.trim() || 'PHILHEALTH YAKAP PROFILING';
+    const profilingEventName = `${baseEventTitle} ${locCleanName}`.toUpperCase();
     const locAssets = assets.filter((a) => a.currentLocationId === locationId);
 
     const itemsList: BorrowChecklistItem[] = locAssets.length > 0
@@ -526,8 +536,8 @@ export function App() {
       dispatchedAt: new Date().toISOString(),
       receivedBy: `${targetLoc.name.toUpperCase()} HEALTH CUSTODIAN`,
       status: 'in_transit',
-      purpose: `PHILHEALTH YAKAP PROFILING ${locCleanName}`,
-      eventName: `PHILHEALTH YAKAP PROFILING ${locCleanName}`,
+      purpose: profilingEventName,
+      eventName: profilingEventName,
       requestingOffice: `${targetLoc.name.toUpperCase()} HEALTH CENTER`,
       borrowerName: `${targetLoc.name.toUpperCase()} HEALTH CUSTODIAN`,
       borrowedItemsList: itemsList,
