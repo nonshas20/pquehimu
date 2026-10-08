@@ -62,7 +62,7 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
     const norm = normalizeName(featureName);
     return locations.find((l) => {
       const normLoc = normalizeName(l.name);
-      return normLoc === norm || normLoc.includes(norm) || norm.includes(normLoc);
+      return normLoc === norm || normLoc.includes(norm) || normLoc.includes(normLoc);
     });
   };
 
@@ -125,20 +125,20 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
         const stats = loc ? locationStats.get(loc.id) : null;
         const count = stats?.count || 0;
 
-        let fillColor = 'rgba(226, 232, 240, 0.55)'; // default neutral slate
-        let strokeColor = 'rgba(148, 163, 184, 0.7)';
-        let fillOpacity = 0.6;
+        let fillColor = 'rgba(241, 245, 249, 0.7)'; // plain neutral slate
+        let strokeColor = 'rgba(148, 163, 184, 0.8)';
+        let fillOpacity = 0.7;
 
         if (count > 0) {
           fillColor = 'rgba(16, 185, 129, 0.45)'; // System Emerald for deployed equipment
           strokeColor = 'rgba(5, 150, 105, 0.9)';
-          fillOpacity = 0.75;
+          fillOpacity = 0.8;
         }
 
         if (isSelected) {
-          fillColor = 'rgba(30, 41, 59, 0.85)';
+          fillColor = 'rgba(30, 41, 59, 0.9)';
           strokeColor = '#0F172A';
-          fillOpacity = 0.9;
+          fillOpacity = 0.95;
         }
 
         return {
@@ -156,9 +156,9 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
         const count = stats?.count || 0;
         const district = loc?.district || (feature.properties?.district ?? 1);
 
-        // Tooltip / Popup content in Liquid Glass style
+        // Plain solid white tooltip popup
         const popupContent = `
-          <div class="p-3 text-xs min-w-[170px]">
+          <div class="p-3 text-xs min-w-[170px] bg-white text-neutral-900 rounded-xl">
             <div class="flex items-center justify-between gap-2 border-b border-neutral-100 pb-1.5 mb-2">
               <span class="font-bold text-neutral-900 text-sm">${featureName}</span>
               <span class="text-[10px] font-semibold bg-neutral-100 text-neutral-600 px-1.5 py-0.5 rounded">
@@ -180,7 +180,7 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
         layer.bindTooltip(popupContent, {
           sticky: true,
           direction: 'auto',
-          className: 'liquid-glass-popup',
+          className: 'plain-white-popup',
         });
 
         layer.on({
@@ -194,7 +194,7 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
             if (loc?.id !== selectedLocationId) {
               l.setStyle({
                 weight: 2.5,
-                fillOpacity: 0.85,
+                fillOpacity: 0.9,
                 color: '#1E293B',
               });
             }
@@ -221,21 +221,21 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
 
   return (
     <div
-      className={`relative overflow-hidden transition-all duration-300 rounded-3xl border border-neutral-200/80 bg-white shadow-sm ${
+      className={`isolate relative z-0 overflow-hidden transition-all duration-300 rounded-3xl border border-neutral-200/90 bg-white shadow-xs ${
         isExpanded
-          ? 'fixed inset-4 z-50 rounded-2xl shadow-2xl h-[calc(100vh-2rem)]'
+          ? 'fixed inset-4 z-[2000] rounded-2xl shadow-2xl h-[calc(100vh-2rem)]'
           : 'h-[290px] sm:h-[400px] w-full'
       }`}
     >
-      {/* Top Floating Glass Bar for Map Context */}
-      <div className="absolute top-3 left-3 right-3 z-[400] flex items-center justify-between pointer-events-none">
-        <div className="pointer-events-auto flex items-center gap-2 rounded-2xl liquid-glass px-3.5 py-2 text-xs shadow-sm">
+      {/* Top Floating Solid White Bar for Map Context */}
+      <div className="absolute top-3 left-3 right-3 z-10 flex items-center justify-between pointer-events-none">
+        <div className="pointer-events-auto flex items-center gap-2 rounded-2xl bg-white border border-neutral-200/90 px-3.5 py-2 text-xs shadow-xs">
           <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="font-semibold text-neutral-900">
+          <span className="font-bold text-neutral-900">
             Parañaque City • 16 Barangays Map
           </span>
-          <span className="hidden sm:inline text-neutral-400">|</span>
-          <span className="hidden sm:inline text-[11px] text-neutral-600">
+          <span className="hidden sm:inline text-neutral-300">|</span>
+          <span className="hidden sm:inline text-[11px] text-neutral-600 font-medium">
             {assets.length} items logged
           </span>
         </div>
@@ -245,7 +245,7 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
           <button
             onClick={handleRecenter}
             title="Recenter Parañaque Map"
-            className="flex h-8 w-8 items-center justify-center rounded-xl liquid-glass text-neutral-700 hover:text-neutral-950 transition active:scale-95 shadow-sm"
+            className="flex h-8 w-8 items-center justify-center rounded-xl bg-white border border-neutral-200/90 text-neutral-700 hover:text-neutral-950 transition active:scale-95 shadow-xs"
           >
             <RotateCcw className="h-4 w-4" />
           </button>
@@ -253,7 +253,7 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
           <button
             onClick={() => setIsExpanded(!isExpanded)}
             title={isExpanded ? 'Minimize Map' : 'Full Screen Map'}
-            className="flex h-8 w-8 items-center justify-center rounded-xl liquid-glass text-neutral-700 hover:text-neutral-950 transition active:scale-95 shadow-sm"
+            className="flex h-8 w-8 items-center justify-center rounded-xl bg-white border border-neutral-200/90 text-neutral-700 hover:text-neutral-950 transition active:scale-95 shadow-xs"
           >
             {isExpanded ? (
               <Minimize2 className="h-4 w-4" />
@@ -268,14 +268,14 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
       <div ref={mapContainerRef} className="h-full w-full" />
 
       {/* Floating Bottom Legend */}
-      <div className="absolute bottom-3 left-3 z-[400] pointer-events-none hidden sm:flex items-center gap-3 rounded-xl liquid-glass px-3 py-1.5 text-[11px] text-neutral-600 shadow-xs">
+      <div className="absolute bottom-3 left-3 z-10 pointer-events-none hidden sm:flex items-center gap-3 rounded-xl bg-white border border-neutral-200/90 px-3 py-1.5 text-[11px] text-neutral-600 shadow-xs">
         <div className="flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-full bg-emerald-500/80 border border-emerald-600" />
-          <span>Deployed Assets</span>
+          <span className="font-medium">Deployed Assets</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-full bg-slate-200 border border-slate-400" />
-          <span>Empty / No IT Hardware</span>
+          <span className="font-medium">Empty / No IT Hardware</span>
         </div>
       </div>
     </div>

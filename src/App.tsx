@@ -250,7 +250,7 @@ export function App() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowMap(!showMap)}
-              className="inline-flex items-center gap-1.5 rounded-2xl liquid-glass px-3.5 py-2 text-xs font-semibold text-neutral-700 hover:text-neutral-950 transition active:scale-95 shadow-2xs"
+              className="inline-flex items-center gap-1.5 rounded-2xl bg-white border border-neutral-200/90 px-3.5 py-2 text-xs font-semibold text-neutral-700 hover:text-neutral-950 transition active:scale-95 shadow-2xs"
             >
               <MapIcon className="h-4 w-4 text-emerald-600" />
               <span>{showMap ? 'Hide Map' : 'Show Map'}</span>
@@ -296,7 +296,7 @@ export function App() {
         />
 
         {/* Infrastructure & Security Info */}
-        <div className="rounded-3xl liquid-glass p-5 shadow-xs text-xs text-neutral-600">
+        <div className="rounded-3xl bg-white border border-neutral-200/90 p-5 shadow-xs text-xs text-neutral-600">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-black/[0.05] pb-3">
             <div className="flex items-center gap-2 font-bold text-neutral-900">
               <Database className="h-4 w-4 text-emerald-600" />
@@ -314,9 +314,9 @@ export function App() {
         </div>
       </main>
 
-      {/* Mobile Floating Liquid Glass Bottom Navigation Bar */}
+      {/* Mobile Floating Plain White Bottom Navigation Bar */}
       <div className="fixed bottom-3 inset-x-3 z-40 sm:hidden">
-        <div className="rounded-3xl liquid-glass p-2 shadow-xl border border-white/60">
+        <div className="rounded-3xl bg-white p-2 shadow-lg border border-neutral-200">
           <div className="flex items-center justify-around text-xs">
             <button
               onClick={() => {

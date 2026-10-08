@@ -41,7 +41,7 @@ export const QuickScanModal: React.FC<QuickScanModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md rounded-3xl liquid-glass p-6 shadow-2xl transition-all">
+      <div className="relative w-full max-w-md rounded-3xl bg-white border border-neutral-200/90 p-6 shadow-2xl transition-all">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-black/[0.06]">
           <div className="flex items-center gap-2.5">

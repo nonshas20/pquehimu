@@ -29,13 +29,13 @@ export const Header: React.FC<HeaderProps> = ({
   totalAssetsCount,
 }) => {
   return (
-    <header className="sticky top-0 z-30 liquid-glass border-b border-black/[0.06] transition-all">
-      <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8">
+    <div className="sticky top-0 z-[1000] px-3 sm:px-6 lg:px-8 pt-2.5 sm:pt-3 pb-1">
+      <header className="mx-auto max-w-7xl rounded-2xl sm:rounded-3xl bg-white border border-neutral-200/90 shadow-sm px-3.5 sm:px-6 transition-all">
         <div className="flex h-18 sm:h-20 items-center justify-between gap-3 sm:gap-4">
           
-          {/* Official Logos & Brand */}
+          {/* Official Dual Logos & Title */}
           <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
-            {/* Dual Logos */}
+            {/* Logos */}
             <div className="flex items-center gap-1.5 shrink-0">
               <img
                 src="/logo-himu.jpg"
@@ -65,7 +65,7 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* Search bar - Apple liquid glass input styling */}
+          {/* Search bar - Plain white input styling */}
           <div className="hidden lg:flex flex-1 max-w-sm mx-2">
             <div className="relative w-full">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -76,10 +76,10 @@ export const Header: React.FC<HeaderProps> = ({
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
                 placeholder="Search serial, tag, item, or barangay..."
-                className="w-full rounded-2xl border border-neutral-200/80 bg-white/70 py-2 pl-9 pr-10 text-xs sm:text-sm text-neutral-900 placeholder-neutral-400 transition-all focus:border-neutral-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-neutral-900/5 shadow-2xs"
+                className="w-full rounded-2xl border border-neutral-200 bg-neutral-50/80 py-2 pl-9 pr-10 text-xs sm:text-sm text-neutral-900 placeholder-neutral-400 transition-all focus:border-neutral-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-neutral-900/5 shadow-2xs"
               />
               <div className="absolute inset-y-0 right-0 flex items-center pr-2.5">
-                <kbd className="inline-flex items-center rounded-md border border-neutral-200 bg-neutral-100/80 px-1.5 text-[10px] font-medium text-neutral-400">
+                <kbd className="inline-flex items-center rounded-md border border-neutral-200 bg-white px-1.5 text-[10px] font-medium text-neutral-400">
                   ⌘K
                 </kbd>
               </div>
@@ -92,13 +92,13 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={onOpenScanModal}
               title="Quick Scan QR / Barcode"
-              className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-neutral-200/90 bg-white/80 px-2.5 sm:px-3 py-2 text-xs font-semibold text-neutral-700 shadow-2xs hover:bg-white hover:text-neutral-900 active:scale-95 transition"
+              className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-neutral-200 bg-white px-2.5 sm:px-3 py-2 text-xs font-semibold text-neutral-700 shadow-2xs hover:bg-neutral-50 hover:text-neutral-900 active:scale-95 transition"
             >
               <QrCode className="h-4 w-4 text-neutral-600" />
               <span className="hidden sm:inline">Scan Tag</span>
             </button>
 
-            {/* New Asset Button (Only for ADMIN or IT OFFICER) */}
+            {/* New Asset Button */}
             <button
               onClick={onOpenAddModal}
               className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-neutral-900 px-3 sm:px-3.5 py-2 text-xs font-semibold text-white shadow-xs hover:bg-neutral-800 active:scale-95 transition"
@@ -111,7 +111,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={onOpenAuthModal}
               title="Switch User Role (ADMIN / IT OFFICER)"
-              className="flex items-center gap-1.5 rounded-xl border border-black/[0.08] bg-white/90 p-1.5 sm:px-2.5 sm:py-1.5 text-left shadow-2xs hover:bg-white transition active:scale-95"
+              className="flex items-center gap-1.5 rounded-xl border border-neutral-200 bg-neutral-50/70 p-1.5 sm:px-2.5 sm:py-1.5 text-left shadow-2xs hover:bg-neutral-100 transition active:scale-95"
             >
               <div className={`flex h-6 w-6 items-center justify-center rounded-lg ${
                 currentUser.role === 'ADMIN' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
@@ -146,11 +146,11 @@ export const Header: React.FC<HeaderProps> = ({
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="Search serial, tag, or barangay..."
-              className="w-full rounded-xl border border-neutral-200/80 bg-white/80 py-2 pl-9 pr-3 text-xs text-neutral-900 placeholder-neutral-400 focus:border-neutral-400 focus:bg-white focus:outline-none"
+              className="w-full rounded-xl border border-neutral-200 bg-neutral-50/80 py-2 pl-9 pr-3 text-xs text-neutral-900 placeholder-neutral-400 focus:border-neutral-400 focus:bg-white focus:outline-none"
             />
           </div>
         </div>
-      </div>
-    </header>
+      </header>
+    </div>
   );
 };

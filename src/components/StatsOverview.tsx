@@ -59,7 +59,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
         return (
           <div
             key={idx}
-            className={`group relative overflow-hidden rounded-3xl liquid-glass p-4 sm:p-5 transition-all hover:shadow-md ${
+            className={`group relative overflow-hidden rounded-3xl bg-white border border-neutral-200/90 shadow-xs p-4 sm:p-5 transition-all hover:shadow-md ${
               stat.highlight
                 ? 'ring-2 ring-blue-500/30'
                 : ''

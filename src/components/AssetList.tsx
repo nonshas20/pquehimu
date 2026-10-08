@@ -201,7 +201,7 @@ export const AssetList: React.FC<AssetListProps> = ({
 
       {/* Empty State */}
       {assets.length === 0 ? (
-        <div className="rounded-3xl liquid-glass p-12 text-center shadow-xs">
+        <div className="rounded-3xl bg-white border border-neutral-200/90 p-12 text-center shadow-xs">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-neutral-100 text-neutral-400 shadow-2xs">
             <Archive className="h-7 w-7" />
           </div>
@@ -224,7 +224,7 @@ export const AssetList: React.FC<AssetListProps> = ({
       ) : (
         <>
           {/* Table View (Default Desktop) */}
-          <div className={`${viewMode === 'table' ? 'hidden md:block' : 'hidden'} overflow-hidden rounded-3xl liquid-glass shadow-xs`}>
+          <div className={`${viewMode === 'table' ? 'hidden md:block' : 'hidden'} overflow-hidden rounded-3xl bg-white border border-neutral-200/90 shadow-xs`}>
             <table className="min-w-full divide-y divide-black/[0.04] text-left text-xs">
               <thead className="bg-white/60 text-[11px] font-bold text-neutral-500 uppercase tracking-wider">
                 <tr>
@@ -345,7 +345,7 @@ export const AssetList: React.FC<AssetListProps> = ({
                 <div
                   key={asset.id}
                   onClick={() => onOpenDetail(asset)}
-                  className="cursor-pointer rounded-3xl liquid-glass p-4 sm:p-5 shadow-xs transition-all hover:shadow-md active:scale-[0.99]"
+                  className="cursor-pointer rounded-3xl bg-white border border-neutral-200/90 p-4 sm:p-5 shadow-xs transition-all hover:shadow-md active:scale-[0.99]"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-2.5">

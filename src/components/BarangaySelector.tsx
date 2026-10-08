@@ -29,7 +29,7 @@ export const BarangaySelector: React.FC<BarangaySelectorProps> = ({
   });
 
   return (
-    <div className="rounded-3xl liquid-glass p-4 sm:p-5 shadow-sm">
+    <div className="rounded-3xl bg-white border border-neutral-200/90 p-4 sm:p-5 shadow-xs">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-black/[0.06]">
         <div className="flex items-center gap-2">
           <MapPin className="h-4 w-4 text-emerald-600" />
