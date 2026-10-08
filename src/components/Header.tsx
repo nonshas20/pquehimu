@@ -16,7 +16,7 @@ interface HeaderProps {
   onOpenScanModal: () => void;
   onOpenAuthModal: () => void;
   currentUser: AppUser;
-  totalAssetsCount: number;
+  isScrolled?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -26,11 +26,37 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenScanModal,
   onOpenAuthModal,
   currentUser,
-  totalAssetsCount,
+  isScrolled: externalIsScrolled,
 }) => {
+  const [internalScrolled, setInternalScrolled] = React.useState(false);
+
+  React.useEffect(() => {
+    if (externalIsScrolled !== undefined) return;
+    const handleScroll = () => {
+      setInternalScrolled(window.scrollY > 30);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [externalIsScrolled]);
+
+  const isScrolled = externalIsScrolled !== undefined ? externalIsScrolled : internalScrolled;
+
   return (
-    <header className="sticky top-0 z-[1000] w-full bg-white border-b border-neutral-200/90 shadow-xs">
-      <div className="mx-auto max-w-7xl px-3.5 sm:px-6 lg:px-8">
+    <header
+      className={`fixed top-0 inset-x-0 z-[1000] transition-all duration-300 ease-out ${
+        isScrolled
+          ? 'px-3 sm:px-6 lg:px-8 pt-2.5 sm:pt-3 pb-1'
+          : 'px-3.5 sm:px-6 lg:px-8 pt-3 sm:pt-4 pb-2'
+      }`}
+    >
+      <div
+        className={`mx-auto max-w-7xl transition-all duration-300 ease-out ${
+          isScrolled
+            ? 'rounded-2xl sm:rounded-3xl bg-white border border-neutral-200/90 shadow-lg px-3.5 sm:px-6'
+            : 'rounded-none bg-transparent border-transparent shadow-none px-0'
+        }`}
+      >
         <div className="flex h-18 sm:h-20 items-center justify-between gap-3 sm:gap-4">
           
           {/* Official Dual Logos & Title */}
@@ -40,46 +66,63 @@ export const Header: React.FC<HeaderProps> = ({
               <img
                 src="/logo-himu.jpg"
                 alt="Health Information Management Unit"
-                className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl object-contain shadow-xs border border-black/5 bg-white p-0.5"
+                className={`h-10 w-10 sm:h-12 sm:w-12 rounded-xl object-contain shadow-xs border p-0.5 transition-all ${
+                  isScrolled
+                    ? 'border-black/5 bg-white'
+                    : 'border-white/20 bg-white/95 backdrop-blur-sm'
+                }`}
               />
               <img
                 src="/logo-uhc.png"
                 alt="UHC Alagang Parañaque"
-                className="h-9 sm:h-11 object-contain max-w-[90px] sm:max-w-[120px]"
+                className="h-9 sm:h-11 object-contain max-w-[90px] sm:max-w-[120px] drop-shadow-xs"
               />
             </div>
 
-            {/* Title & Hierarchy */}
-            <div className="min-w-0 pl-1 border-l border-neutral-200/80">
+            {/* Title & Hierarchy (removed Parañaque • 16 Barangays count badge) */}
+            <div className={`min-w-0 pl-1 border-l transition-colors duration-300 ${
+              isScrolled ? 'border-neutral-200/80' : 'border-white/20'
+            }`}>
               <div className="flex items-center gap-2">
-                <span className="text-sm sm:text-base font-bold tracking-tight text-neutral-900 truncate">
+                <span className={`text-sm sm:text-base font-bold tracking-tight truncate transition-colors duration-300 ${
+                  isScrolled ? 'text-neutral-900' : 'text-white drop-shadow-md'
+                }`}>
                   HIMU IT Tracker
                 </span>
-                <span className="hidden md:inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 border border-emerald-200">
-                  Parañaque • 16 Barangays ({totalAssetsCount})
-                </span>
               </div>
-              <p className="truncate text-[11px] sm:text-xs text-neutral-500 font-medium">
+              <p className={`truncate text-[11px] sm:text-xs font-medium transition-colors duration-300 ${
+                isScrolled ? 'text-neutral-500' : 'text-white/80 drop-shadow-xs'
+              }`}>
                 Health Information Management Unit • Asset Custody
               </p>
             </div>
           </div>
 
-          {/* Search bar - Plain white input styling */}
+          {/* Search bar */}
           <div className="hidden lg:flex flex-1 max-w-sm mx-2">
             <div className="relative w-full">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                <Search className="h-4 w-4 text-neutral-400" />
+                <Search className={`h-4 w-4 transition-colors duration-300 ${
+                  isScrolled ? 'text-neutral-400' : 'text-white/70'
+                }`} />
               </div>
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
                 placeholder="Search serial, tag, item, or barangay..."
-                className="w-full rounded-2xl border border-neutral-200 bg-neutral-50/80 py-2 pl-9 pr-10 text-xs sm:text-sm text-neutral-900 placeholder-neutral-400 transition-all focus:border-neutral-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-neutral-900/5 shadow-2xs"
+                className={`w-full rounded-2xl py-2 pl-9 pr-10 text-xs sm:text-sm transition-all focus:outline-none focus:ring-4 shadow-2xs ${
+                  isScrolled
+                    ? 'border border-neutral-200 bg-neutral-50/80 text-neutral-900 placeholder-neutral-400 focus:border-neutral-400 focus:bg-white focus:ring-neutral-900/5'
+                    : 'border border-white/25 bg-black/40 backdrop-blur-md text-white placeholder-white/60 focus:border-white/50 focus:bg-black/60 focus:ring-white/10'
+                }`}
               />
               <div className="absolute inset-y-0 right-0 flex items-center pr-2.5">
-                <kbd className="inline-flex items-center rounded-md border border-neutral-200 bg-white px-1.5 text-[10px] font-medium text-neutral-400">
+                <kbd className={`inline-flex items-center rounded-md border px-1.5 text-[10px] font-medium transition-colors duration-300 ${
+                  isScrolled
+                    ? 'border-neutral-200 bg-white text-neutral-400'
+                    : 'border-white/25 bg-white/15 text-white/80'
+                }`}>
                   ⌘K
                 </kbd>
               </div>
@@ -92,16 +135,26 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={onOpenScanModal}
               title="Quick Scan QR / Barcode"
-              className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-neutral-200 bg-white px-2.5 sm:px-3 py-2 text-xs font-semibold text-neutral-700 shadow-2xs hover:bg-neutral-50 hover:text-neutral-900 active:scale-95 transition"
+              className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-2 text-xs font-semibold shadow-2xs active:scale-95 transition-all ${
+                isScrolled
+                  ? 'border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900'
+                  : 'border border-white/25 bg-black/40 backdrop-blur-md text-white hover:bg-black/60'
+              }`}
             >
-              <QrCode className="h-4 w-4 text-neutral-600" />
+              <QrCode className={`h-4 w-4 transition-colors duration-300 ${
+                isScrolled ? 'text-neutral-600' : 'text-white/90'
+              }`} />
               <span className="hidden sm:inline">Scan Tag</span>
             </button>
 
             {/* New Asset Button */}
             <button
               onClick={onOpenAddModal}
-              className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-neutral-900 px-3 sm:px-3.5 py-2 text-xs font-semibold text-white shadow-xs hover:bg-neutral-800 active:scale-95 transition"
+              className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-3 sm:px-3.5 py-2 text-xs font-semibold shadow-xs active:scale-95 transition-all ${
+                isScrolled
+                  ? 'bg-neutral-900 text-white hover:bg-neutral-800'
+                  : 'bg-white text-neutral-900 hover:bg-white/90 shadow-md'
+              }`}
             >
               <Plus className="h-4 w-4" />
               <span className="hidden xs:inline">New Asset</span>
@@ -111,10 +164,16 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={onOpenAuthModal}
               title="Switch User Role (ADMIN / IT OFFICER)"
-              className="flex items-center gap-1.5 rounded-xl border border-neutral-200 bg-neutral-50/70 p-1.5 sm:px-2.5 sm:py-1.5 text-left shadow-2xs hover:bg-neutral-100 transition active:scale-95"
+              className={`flex items-center gap-1.5 rounded-xl p-1.5 sm:px-2.5 sm:py-1.5 text-left shadow-2xs active:scale-95 transition-all ${
+                isScrolled
+                  ? 'border border-neutral-200 bg-neutral-50/70 text-neutral-800 hover:bg-neutral-100'
+                  : 'border border-white/25 bg-black/40 backdrop-blur-md text-white hover:bg-black/60'
+              }`}
             >
-              <div className={`flex h-6 w-6 items-center justify-center rounded-lg ${
-                currentUser.role === 'ADMIN' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+              <div className={`flex h-6 w-6 items-center justify-center rounded-lg transition-colors ${
+                currentUser.role === 'ADMIN'
+                  ? isScrolled ? 'bg-purple-100 text-purple-700' : 'bg-purple-500/40 text-purple-200 border border-purple-400/30'
+                  : isScrolled ? 'bg-blue-100 text-blue-700' : 'bg-blue-500/40 text-blue-200 border border-blue-400/30'
               }`}>
                 {currentUser.role === 'ADMIN' ? (
                   <ShieldCheck className="h-3.5 w-3.5" />
@@ -123,14 +182,20 @@ export const Header: React.FC<HeaderProps> = ({
                 )}
               </div>
               <div className="hidden xl:block min-w-0">
-                <div className="truncate text-[11px] font-bold text-neutral-800 max-w-[120px]">
+                <div className={`truncate text-[11px] font-bold max-w-[120px] transition-colors duration-300 ${
+                  isScrolled ? 'text-neutral-800' : 'text-white'
+                }`}>
                   {currentUser.name}
                 </div>
-                <div className="text-[10px] text-neutral-400 font-semibold uppercase">
+                <div className={`text-[10px] font-semibold uppercase transition-colors duration-300 ${
+                  isScrolled ? 'text-neutral-400' : 'text-white/70'
+                }`}>
                   {currentUser.role === 'ADMIN' ? 'ADMIN' : 'IT OFFICER'}
                 </div>
               </div>
-              <ChevronDown className="h-3.5 w-3.5 text-neutral-400" />
+              <ChevronDown className={`h-3.5 w-3.5 transition-colors duration-300 ${
+                isScrolled ? 'text-neutral-400' : 'text-white/70'
+              }`} />
             </button>
           </div>
         </div>
@@ -139,14 +204,20 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="pb-3 lg:hidden">
           <div className="relative w-full">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-              <Search className="h-4 w-4 text-neutral-400" />
+              <Search className={`h-4 w-4 transition-colors duration-300 ${
+                isScrolled ? 'text-neutral-400' : 'text-white/70'
+              }`} />
             </div>
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="Search serial, tag, or barangay..."
-              className="w-full rounded-xl border border-neutral-200 bg-neutral-50/80 py-2 pl-9 pr-3 text-xs text-neutral-900 placeholder-neutral-400 focus:border-neutral-400 focus:bg-white focus:outline-none"
+              className={`w-full rounded-xl py-2 pl-9 pr-3 text-xs transition-all focus:outline-none ${
+                isScrolled
+                  ? 'border border-neutral-200 bg-neutral-50/80 text-neutral-900 placeholder-neutral-400 focus:border-neutral-400 focus:bg-white'
+                  : 'border border-white/25 bg-black/40 backdrop-blur-md text-white placeholder-white/60 focus:border-white/50 focus:bg-black/60'
+              }`}
             />
           </div>
         </div>

@@ -218,9 +218,27 @@ export function App() {
     setAssets((prev) => [newAsset, ...prev]);
   };
 
+  // Track scroll position for dynamic floating header and 3D parallax
+  const [scrollY, setScrollY] = useState(0);
+
+  useEffect(() => {
+    let ticking = false;
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setScrollY(window.scrollY);
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#F8F9FA] pb-28 text-neutral-900 selection:bg-neutral-900 selection:text-white">
-      {/* Top Flat White Header with Logos */}
+      {/* Dynamic Header: Transparent over hero at first, smoothly transforms into floating rounded white header on scroll */}
       <Header
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
@@ -228,15 +246,19 @@ export function App() {
         onOpenScanModal={() => setIsScanOpen(true)}
         onOpenAuthModal={() => setIsAuthOpen(true)}
         currentUser={currentUser}
-        totalAssetsCount={assets.length}
+        isScrolled={scrollY > 30}
       />
 
-      {/* Full-Width 21:9 HIMU Team Background Header - Pure Image, Flush Below Header */}
-      <div className="relative w-full overflow-hidden bg-neutral-900 aspect-[21/9] min-h-[190px] sm:min-h-[260px] max-h-[420px] shadow-xs">
+      {/* Full-Width 21:9 HIMU Team Background Header with 3D Parallax Effect */}
+      <div className="relative w-full overflow-hidden bg-neutral-950 aspect-[21/9] min-h-[260px] sm:min-h-[380px] lg:min-h-[480px] max-h-[580px] shadow-xs">
         <img
           src="/himu-team-banner.jpg"
           alt="HIMU IT Operations Team"
-          className="h-full w-full object-cover object-[center_35%]"
+          style={{
+            transform: `translate3d(0, ${scrollY * 0.38}px, 0) scale(${1.06 + Math.min(scrollY * 0.0002, 0.04)})`,
+            willChange: 'transform',
+          }}
+          className="absolute inset-0 h-[125%] -top-[12%] w-full object-cover object-[center_28%] select-none pointer-events-none transition-transform duration-75 ease-out"
         />
       </div>
 
