@@ -64,7 +64,7 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Logos */}
             <div className="flex items-center gap-1.5 shrink-0">
               <img
-                src="/logo-himu.jpg"
+                src="/himu-logo-transparent.png"
                 alt="Health Information Management Unit"
                 className={`h-10 w-10 sm:h-12 sm:w-12 rounded-xl object-contain shadow-xs border p-0.5 transition-all ${
                   isScrolled
