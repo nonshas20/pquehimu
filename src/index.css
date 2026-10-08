@@ -113,3 +113,41 @@
   margin: 0 !important;
   pointer-events: auto;
 }
+
+/* A5 Equipment Borrowing Checklist Print Styling */
+@media print {
+  @page {
+    size: A5 portrait;
+    margin: 8mm;
+  }
+
+  body {
+    background-color: #FFFFFF !important;
+    color: #000000 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Hide app UI when printing */
+  header,
+  main,
+  nav,
+  .no-print,
+  button {
+    display: none !important;
+  }
+
+  /* Print A5 Document cleanly */
+  .a5-printable-document {
+    position: static !important;
+    width: 100% !important;
+    max-width: none !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #FFFFFF !important;
+    color: #000000 !important;
+  }
+}
+

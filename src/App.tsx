@@ -18,6 +18,8 @@ import { AssetDetailModal } from './components/AssetDetailModal';
 import { AddAssetModal } from './components/AddAssetModal';
 import { QuickScanModal } from './components/QuickScanModal';
 import { AuthModal } from './components/AuthModal';
+import { BorrowChecklistReceiptModal } from './components/BorrowChecklistReceiptModal';
+import type { BorrowChecklistItem } from './types/inventory';
 import { 
   Layers, 
   QrCode, 
@@ -95,6 +97,10 @@ export function App() {
   const [isScanOpen, setIsScanOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
 
+  // Official A5 Borrow Checklist Receipt Modal state
+  const [activeChecklistRecord, setActiveChecklistRecord] = useState<AssetTransferRecord | null>(null);
+  const [isReceiptOpen, setIsReceiptOpen] = useState(false);
+
   // Filtered Assets
   const filteredAssets = useMemo(() => {
     return assets.filter((asset) => {
@@ -141,7 +147,14 @@ export function App() {
     purpose: string,
     dispatchedBy: string,
     receivedBy: string,
-    notes: string
+    notes: string,
+    checklistData?: {
+      eventName: string;
+      requestingOffice: string;
+      borrowerName: string;
+      borrowedAt: string;
+      borrowedItemsList: BorrowChecklistItem[];
+    }
   ) => {
     const originLoc = locations.find((l) => l.id === activeAsset?.currentLocationId);
     const destLoc = locations.find((l) => l.id === toLocationId);
@@ -155,11 +168,15 @@ export function App() {
       fromLocationName: originLoc?.name || 'Origin',
       toLocationName: destLoc?.name || 'Destination',
       dispatchedBy,
-      dispatchedAt: new Date().toISOString(),
+      dispatchedAt: checklistData?.borrowedAt || new Date().toISOString(),
       receivedBy: receivedBy || undefined,
       status: 'in_transit',
       purpose,
       notes,
+      eventName: checklistData?.eventName,
+      requestingOffice: checklistData?.requestingOffice,
+      borrowerName: checklistData?.borrowerName || receivedBy,
+      borrowedItemsList: checklistData?.borrowedItemsList,
     };
 
     setAssets((prev) =>
@@ -175,7 +192,144 @@ export function App() {
         return item;
       })
     );
+
+    // Auto-open official A5 checklist receipt upon borrow confirmation
+    setActiveChecklistRecord(newTransfer);
+    setIsReceiptOpen(true);
   };
+
+  // Open A5 Receipt modal for a specific history record
+  const handleOpenReceiptForRecord = (record: AssetTransferRecord) => {
+    setActiveChecklistRecord(record);
+    setIsReceiptOpen(true);
+  };
+
+  // Open A5 Receipt modal from Header (shows most recent borrow checklist, or prefilled official sample)
+  const handleOpenQuickChecklist = () => {
+    let foundRecord: AssetTransferRecord | null = null;
+
+    // 1. Prioritize any record that already has checklist items
+    for (const item of assets) {
+      const match = item.history.find((h) => h.borrowedItemsList && h.borrowedItemsList.length > 0);
+      if (match) {
+        foundRecord = match;
+        break;
+      }
+    }
+
+    // 2. Or the latest transfer across all items
+    if (!foundRecord) {
+      for (const item of assets) {
+        if (item.history.length > 0) {
+          foundRecord = item.history[0];
+          break;
+        }
+      }
+    }
+
+    // 3. Fallback: Generate authentic official record matching the user's paper photo 1-to-1
+    if (!foundRecord) {
+      const targetLoc = locations.find((l) => l.id === 'loc-marcelo-green') || locations[1];
+      const targetAsset = assets.find((a) => a.category === 'Printer') || assets[0];
+      const now = new Date();
+      foundRecord = {
+        id: `tr-sample-${Date.now()}`,
+        referenceNo: `TR-PQUE-${now.getFullYear()}-1042`,
+        assetId: targetAsset?.id || 'ast-sample',
+        fromLocationId: 'loc-himu-hq',
+        toLocationId: targetLoc.id,
+        fromLocationName: 'HIMU Central IT Office (Parañaque City Hall)',
+        toLocationName: targetLoc.name,
+        dispatchedBy: currentUser.name,
+        dispatchedAt: now.toISOString(),
+        receivedBy: 'MARICEL SANTOS (MIDWIFE II)',
+        status: 'in_transit',
+        purpose: 'PhilHealth YAKAP Profiling Event Deployment',
+        notes: 'Handled with care; returned within 24 hours after profiling completion.',
+        eventName: `PHILHEALTH YAKAP PROFILING ${targetLoc.name.replace(/^Barangay\s+/i, '').toUpperCase()}`,
+        requestingOffice: `${targetLoc.name.toUpperCase()} HEALTH CENTER`,
+        borrowerName: 'MARICEL SANTOS',
+        borrowedItemsList: [
+          {
+            itemEquipment: targetAsset?.name || 'EPSON L5190 ALL-IN-ONE PRINTER',
+            serialNo: targetAsset?.serialNumber || 'SN-EPS-2026-8812',
+            quantity: 1,
+            remarks: 'WITH POWER AND USB CABLE',
+          },
+          {
+            itemEquipment: 'EXTENSIONS (HEAVY DUTY 3M)',
+            serialNo: 'N/A',
+            quantity: 2,
+            remarks: 'COMPLETE 3-PRONG',
+          },
+          {
+            itemEquipment: 'D-LINK / TP-LINK WIFI ROUTER',
+            serialNo: 'SN-RTR-PQUE-5512',
+            quantity: 1,
+            remarks: 'WITH POWER ADAPTER',
+          },
+        ],
+      };
+    }
+
+    setActiveChecklistRecord(foundRecord);
+    setIsReceiptOpen(true);
+  };
+
+  // Mark items as returned to HIMU depot
+  const handleMarkChecklistReturned = (recordId: string, officerName: string) => {
+    const returnTime = new Date().toISOString();
+    setAssets((prev) =>
+      prev.map((asset) => {
+        const hasRecord = asset.history.some((h) => h.id === recordId);
+        if (!hasRecord) return asset;
+
+        const updatedHistory = asset.history.map((h) => {
+          if (h.id === recordId) {
+            return {
+              ...h,
+              status: 'returned' as const,
+              returnedAt: returnTime,
+              returnedCheckedBy: officerName,
+            };
+          }
+          return h;
+        });
+
+        return {
+          ...asset,
+          status: 'in_service' as const,
+          currentLocationId: 'loc-himu-hq',
+          custodianName: `HIMU Central Depot (${officerName})`,
+          history: updatedHistory,
+        };
+      })
+    );
+
+    if (activeChecklistRecord && activeChecklistRecord.id === recordId) {
+      setActiveChecklistRecord((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: 'returned',
+              returnedAt: returnTime,
+              returnedCheckedBy: officerName,
+            }
+          : null
+      );
+    }
+  };
+
+  // Derive asset & location for the active checklist receipt
+  const activeChecklistAsset = useMemo(() => {
+    if (!activeChecklistRecord) return null;
+    return assets.find((a) => a.id === activeChecklistRecord.assetId) || activeAsset || null;
+  }, [activeChecklistRecord, assets, activeAsset]);
+
+  const activeChecklistLocation = useMemo(() => {
+    if (!activeChecklistRecord) return null;
+    return locations.find((l) => l.id === activeChecklistRecord.toLocationId) || null;
+  }, [activeChecklistRecord, locations]);
 
   const handleAcknowledgeReceipt = (assetId: string) => {
     setAssets((prev) =>
@@ -566,6 +720,7 @@ export function App() {
         onOpenAddModal={() => setIsAddOpen(true)}
         onOpenScanModal={() => setIsScanOpen(true)}
         onOpenAuthModal={() => setIsAuthOpen(true)}
+        onOpenChecklistModal={handleOpenQuickChecklist}
         currentUser={currentUser}
         isScrolled={scrollY > 30}
       />
@@ -750,6 +905,7 @@ export function App() {
         locations={locations}
         onOpenTransfer={handleOpenTransfer}
         onAcknowledgeReceipt={handleAcknowledgeReceipt}
+        onViewChecklist={handleOpenReceiptForRecord}
       />
 
       <AddAssetModal
@@ -778,6 +934,16 @@ export function App() {
         onClose={() => setIsAuthOpen(false)}
         currentUser={currentUser}
         onSwitchUser={setCurrentUser}
+      />
+
+      {/* 1:1 Physical A5 Borrow Checklist Receipt Modal */}
+      <BorrowChecklistReceiptModal
+        isOpen={isReceiptOpen}
+        onClose={() => setIsReceiptOpen(false)}
+        record={activeChecklistRecord}
+        asset={activeChecklistAsset}
+        location={activeChecklistLocation}
+        onMarkReturned={handleMarkChecklistReturned}
       />
     </div>
   );

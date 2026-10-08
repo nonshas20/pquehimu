@@ -35,6 +35,13 @@ export interface BarangayLocation {
   address: string;
 }
 
+export interface BorrowChecklistItem {
+  itemEquipment: string;
+  serialNo?: string;
+  quantity: number | string;
+  remarks?: string;
+}
+
 export interface AssetTransferRecord {
   id: string;
   referenceNo: string;
@@ -47,9 +54,17 @@ export interface AssetTransferRecord {
   dispatchedAt: string;
   receivedBy?: string;
   receivedAt?: string;
-  status: 'pending_dispatch' | 'in_transit' | 'received' | 'cancelled';
+  status: 'pending_dispatch' | 'in_transit' | 'received' | 'returned' | 'cancelled';
   purpose: string;
   notes?: string;
+
+  // Official A5 Event Equipment Borrowing Checklist Fields
+  eventName?: string;
+  requestingOffice?: string;
+  borrowerName?: string;
+  borrowedItemsList?: BorrowChecklistItem[];
+  returnedAt?: string;
+  returnedCheckedBy?: string;
 }
 
 export interface AssetItem {

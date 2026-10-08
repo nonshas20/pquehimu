@@ -6,7 +6,8 @@ import {
   QrCode, 
   ShieldCheck, 
   UserCheck, 
-  ChevronDown 
+  ChevronDown,
+  Printer 
 } from './HugeIcons';
 
 interface HeaderProps {
@@ -15,6 +16,7 @@ interface HeaderProps {
   onOpenAddModal: () => void;
   onOpenScanModal: () => void;
   onOpenAuthModal: () => void;
+  onOpenChecklistModal?: () => void;
   currentUser: AppUser;
   isScrolled?: boolean;
 }
@@ -25,6 +27,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAddModal,
   onOpenScanModal,
   onOpenAuthModal,
+  onOpenChecklistModal,
   currentUser,
   isScrolled: externalIsScrolled,
 }) => {
@@ -146,6 +149,22 @@ export const Header: React.FC<HeaderProps> = ({
               }`} />
               <span className="hidden sm:inline">Scan Tag</span>
             </button>
+
+            {/* Official A5 Equipment Borrowing Slip */}
+            {onOpenChecklistModal && (
+              <button
+                onClick={onOpenChecklistModal}
+                title="View / Print Official A5 Event Borrowing Checklist Slip"
+                className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-2 text-xs font-semibold shadow-2xs active:scale-95 transition-all ${
+                  isScrolled
+                    ? 'border border-emerald-200 bg-emerald-50/70 text-emerald-800 hover:bg-emerald-100'
+                    : 'border border-white/25 bg-black/40 backdrop-blur-md text-emerald-300 hover:bg-black/60'
+                }`}
+              >
+                <Printer className="h-4 w-4" />
+                <span className="hidden md:inline">A5 Borrow Slip</span>
+              </button>
+            )}
 
             {/* New Asset Button */}
             <button

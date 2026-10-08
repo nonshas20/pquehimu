@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import type { AssetItem, BarangayLocation } from '../types/inventory';
+import React, { useState, useEffect } from 'react';
+import type { AssetItem, BarangayLocation, BorrowChecklistItem } from '../types/inventory';
 import { DISPATCH_OFFICERS } from '../types/inventory';
-import { X, ArrowRight, Truck } from './HugeIcons';
+import { X, ArrowRight, Printer, Plus } from './HugeIcons';
 
 interface TransferModalProps {
   isOpen: boolean;
@@ -15,7 +15,14 @@ interface TransferModalProps {
     purpose: string,
     dispatchedBy: string,
     receivedBy: string,
-    notes: string
+    notes: string,
+    checklistData?: {
+      eventName: string;
+      requestingOffice: string;
+      borrowerName: string;
+      borrowedAt: string;
+      borrowedItemsList: BorrowChecklistItem[];
+    }
   ) => void;
 }
 
@@ -35,50 +42,142 @@ export const TransferModal: React.FC<TransferModalProps> = ({
   const [toLocationId, setToLocationId] = useState<string>(
     eligibleDestinations[0]?.id || ''
   );
-  const [purpose, setPurpose] = useState<string>('Official deployment to Barangay Health Center / Office');
-  
-  // Use defaultDispatcherName or first in DISPATCH_OFFICERS
+
+  const selectedDestination = locations.find((l) => l.id === toLocationId);
+  const destinationCleanName = selectedDestination?.name?.replace(/^Barangay\s+/i, '') || 'BARANGAY';
+
+  // Event & Profiling Activity
+  const [selectedEventPreset, setSelectedEventPreset] = useState<string>('PhilHealth YAKAP Profiling');
+  const [eventName, setEventName] = useState<string>('');
+  const [requestingOffice, setRequestingOffice] = useState<string>('');
+  const [borrowerName, setBorrowerName] = useState<string>('');
+
+  // Auto-update event title and requesting office when destination or event preset changes
+  useEffect(() => {
+    if (selectedDestination) {
+      setEventName(`${selectedEventPreset} ${destinationCleanName}`.toUpperCase());
+      setRequestingOffice(`${selectedDestination.name} HEALTH CENTER`.toUpperCase());
+    }
+  }, [selectedDestination, selectedEventPreset, destinationCleanName]);
+
+  // Officer & Datetime
   const [dispatchedBy, setDispatchedBy] = useState<string>(() => {
     if (defaultDispatcherName && (DISPATCH_OFFICERS as readonly string[]).includes(defaultDispatcherName)) {
       return defaultDispatcherName;
     }
     return DISPATCH_OFFICERS[0];
   });
-  
-  const [receivedBy, setReceivedBy] = useState<string>('');
-  const [notes, setNotes] = useState<string>('Complete power cord, cables, and hardware components verified in working condition.');
+
+  const [borrowedAt, setBorrowedAt] = useState<string>(() => {
+    const now = new Date();
+    return now.toISOString().slice(0, 16); // YYYY-MM-DDTHH:MM
+  });
+
+  // Items Borrowed Checklist Rows (Matching 1-to-1 with A5 table)
+  const [itemsList, setItemsList] = useState<BorrowChecklistItem[]>([
+    {
+      itemEquipment: (asset.name || asset.brandModel || 'IT EQUIPMENT').toUpperCase(),
+      serialNo: asset.serialNumber || 'N/A',
+      quantity: 1,
+      remarks: asset.category === 'Printer' ? 'WITH POWER AND CABLE' : 'WITH POWER',
+    },
+  ]);
+
+  // Standard Accessories Quick Add Toggles
+  const [includeExtensions, setIncludeExtensions] = useState(asset.category === 'Printer');
+  const [includeRouter, setIncludeRouter] = useState(false);
+
+  useEffect(() => {
+    const list: BorrowChecklistItem[] = [
+      {
+        itemEquipment: (asset.name || asset.brandModel || 'IT EQUIPMENT').toUpperCase(),
+        serialNo: asset.serialNumber || 'N/A',
+        quantity: 1,
+        remarks: asset.category === 'Printer' ? 'WITH POWER AND CABLE' : 'WITH POWER',
+      },
+    ];
+
+    if (includeExtensions) {
+      list.push({
+        itemEquipment: '2 EXTENSIONS',
+        serialNo: 'N/A',
+        quantity: 2,
+        remarks: '',
+      });
+    }
+
+    if (includeRouter) {
+      list.push({
+        itemEquipment: 'D-LINK WIFI ROUTER',
+        serialNo: '',
+        quantity: 1,
+        remarks: 'WITH POWER',
+      });
+    }
+
+    setItemsList(list);
+  }, [includeExtensions, includeRouter, asset]);
+
+  const handleAddItemRow = () => {
+    setItemsList((prev) => [
+      ...prev,
+      { itemEquipment: '', serialNo: '', quantity: 1, remarks: '' },
+    ]);
+  };
+
+  const handleUpdateItemRow = (index: number, field: keyof BorrowChecklistItem, value: any) => {
+    setItemsList((prev) =>
+      prev.map((item, i) => (i === index ? { ...item, [field]: value } : item))
+    );
+  };
+
+  const handleRemoveItemRow = (index: number) => {
+    if (itemsList.length <= 1) return;
+    setItemsList((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!toLocationId || !purpose.trim() || !dispatchedBy.trim()) return;
+    if (!toLocationId || !dispatchedBy.trim()) return;
+
+    const finalEventName = eventName.trim() || `${selectedEventPreset} ${destinationCleanName}`.toUpperCase();
+    const finalOffice = requestingOffice.trim() || `${selectedDestination?.name || 'BARANGAY'} HEALTH CENTER`.toUpperCase();
+    const finalBorrower = borrowerName.trim() || `${selectedDestination?.name || 'BARANGAY'} HEALTH CENTER STAFF`.toUpperCase();
+
     onConfirmTransfer(
       asset.id,
       toLocationId,
-      purpose,
+      finalEventName,
       dispatchedBy,
-      receivedBy,
-      notes
+      finalBorrower,
+      `A5 Borrowing Checklist generated for ${finalEventName}`,
+      {
+        eventName: finalEventName,
+        requestingOffice: finalOffice,
+        borrowerName: finalBorrower,
+        borrowedAt: new Date(borrowedAt).toISOString(),
+        borrowedItemsList: itemsList.filter((item) => item.itemEquipment.trim() !== ''),
+      }
     );
     onClose();
   };
 
-  const selectedDestination = locations.find((l) => l.id === toLocationId);
-
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-lg rounded-3xl bg-white border border-neutral-200/90 p-6 shadow-2xl transition-all">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200">
+      <div className="relative w-full max-w-xl rounded-3xl bg-white border border-neutral-200/90 p-5 sm:p-6 shadow-2xl transition-all my-auto max-h-[92vh] flex flex-col">
+        
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-black/[0.06]">
+        <div className="flex items-center justify-between pb-3.5 border-b border-black/[0.06] shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-sm">
-              <Truck className="h-5 w-5" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-sm">
+              <Printer className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-base font-semibold tracking-tight text-neutral-900">
-                Initiate Custody Transfer
+              <h3 className="text-base font-extrabold tracking-tight text-neutral-900">
+                Event Equipment Borrowing & Dispatch
               </h3>
-              <p className="text-xs text-neutral-500">
-                Official Property Movement • City of Parañaque
+              <p className="text-xs text-neutral-500 font-medium">
+                Generates 1:1 Official A5 Borrowing Checklist Slip
               </p>
             </div>
           </div>
@@ -90,50 +189,38 @@ export const TransferModal: React.FC<TransferModalProps> = ({
           </button>
         </div>
 
-        {/* Item Summary Card */}
-        <div className="my-4 rounded-2xl bg-white/70 p-3.5 border border-white/60 shadow-xs">
-          <div className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">
-            Hardware Selected for Transfer
-          </div>
-          <div className="mt-1 font-semibold text-sm text-neutral-900">
-            {asset.name}
-          </div>
-          <div className="mt-1 flex items-center justify-between text-xs text-neutral-500 font-mono">
-            <span>Serial: {asset.serialNumber}</span>
-            <span className="bg-neutral-200/70 text-neutral-700 px-1.5 py-0.5 rounded text-[10px]">
-              {asset.assetTag}
-            </span>
-          </div>
-
-          {/* Visual Route */}
-          <div className="mt-3 flex items-center justify-between rounded-xl bg-neutral-50/80 p-2.5 border border-neutral-200/60 text-xs">
-            <div className="truncate max-w-[170px]">
-              <span className="text-[10px] text-neutral-400 block font-medium">Origin Location</span>
-              <span className="font-semibold text-neutral-800 truncate block">
-                {currentLocation?.name}
-              </span>
-            </div>
-            <ArrowRight className="h-4 w-4 text-blue-500 shrink-0 mx-2" />
-            <div className="truncate max-w-[170px] text-right">
-              <span className="text-[10px] text-neutral-400 block font-medium">Destination Barangay</span>
-              <span className="font-bold text-blue-600 truncate block">
-                {selectedDestination?.name || 'Select destination'}
-              </span>
+        {/* Scrollable Form Body */}
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto pr-1 py-3 space-y-4 text-xs">
+          
+          {/* Visual Route Card */}
+          <div className="rounded-2xl bg-neutral-50 p-3 border border-neutral-200/70 text-xs">
+            <div className="flex items-center justify-between">
+              <div className="truncate max-w-[190px]">
+                <span className="text-[10px] text-neutral-400 block font-semibold uppercase">Origin</span>
+                <span className="font-bold text-neutral-800 truncate block">
+                  {currentLocation?.name}
+                </span>
+              </div>
+              <ArrowRight className="h-4 w-4 text-emerald-600 shrink-0 mx-2" />
+              <div className="truncate max-w-[190px] text-right">
+                <span className="text-[10px] text-neutral-400 block font-semibold uppercase">Destination Barangay</span>
+                <span className="font-extrabold text-emerald-700 truncate block">
+                  {selectedDestination?.name || 'Select destination'}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Transfer Form */}
-        <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
+          {/* Destination Barangay Selection */}
           <div>
-            <label className="block font-semibold text-neutral-700 mb-1">
+            <label className="block font-bold text-neutral-800 mb-1">
               Destination Barangay / Health Station <span className="text-rose-500">*</span>
             </label>
             <select
               value={toLocationId}
               onChange={(e) => setToLocationId(e.target.value)}
               required
-              className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-medium text-neutral-800 shadow-xs focus:border-neutral-400 focus:outline-none"
+              className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-800 shadow-xs focus:border-emerald-500 focus:outline-none"
             >
               {eligibleDestinations.map((loc) => (
                 <option key={loc.id} value={loc.id}>
@@ -143,30 +230,83 @@ export const TransferModal: React.FC<TransferModalProps> = ({
             </select>
           </div>
 
+          {/* Event / Profiling Activity Preset Pills */}
           <div>
-            <label className="block font-semibold text-neutral-700 mb-1">
-              Purpose / Reason for Relocation <span className="text-rose-500">*</span>
+            <label className="block font-bold text-neutral-800 mb-1">
+              Event / Profiling Activity <span className="text-rose-500">*</span>
             </label>
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {[
+                'PhilHealth YAKAP Profiling',
+                'Health Center EMR Operations',
+                'Community Medical Mission',
+                'National Immunization Day',
+                'Maternal Health Intake',
+              ].map((preset) => (
+                <button
+                  type="button"
+                  key={preset}
+                  onClick={() => setSelectedEventPreset(preset)}
+                  className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition ${
+                    selectedEventPreset === preset
+                      ? 'bg-neutral-900 text-white shadow-xs'
+                      : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                  }`}
+                >
+                  {preset}
+                </button>
+              ))}
+            </div>
             <input
               type="text"
-              value={purpose}
-              onChange={(e) => setPurpose(e.target.value)}
-              placeholder="e.g., EMR terminal setup, vaccination campaign, replacement unit..."
+              value={eventName}
+              onChange={(e) => setEventName(e.target.value)}
               required
-              className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs text-neutral-800 shadow-xs focus:border-neutral-400 focus:outline-none"
+              placeholder="e.g. PHILHEALTH YAKAP PROFILING MARCELO GREEN"
+              className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-bold text-neutral-900 shadow-xs focus:border-emerald-500 focus:outline-none uppercase"
             />
           </div>
 
+          {/* Requesting Office & Borrower Information */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block font-semibold text-neutral-700 mb-1">
-                Dispatched By (Authorized IT Officer) <span className="text-rose-500">*</span>
+              <label className="block font-bold text-neutral-800 mb-1">
+                Requesting Office / Unit
+              </label>
+              <input
+                type="text"
+                value={requestingOffice}
+                onChange={(e) => setRequestingOffice(e.target.value)}
+                placeholder="e.g. MARCELO GREEN HEALTH CENTER"
+                className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-800 shadow-xs focus:border-emerald-500 focus:outline-none uppercase"
+              />
+            </div>
+
+            <div>
+              <label className="block font-bold text-neutral-800 mb-1">
+                Borrower / Person Responsible
+              </label>
+              <input
+                type="text"
+                value={borrowerName}
+                onChange={(e) => setBorrowerName(e.target.value)}
+                placeholder="Name of health worker or nurse"
+                className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-800 shadow-xs focus:border-emerald-500 focus:outline-none uppercase"
+              />
+            </div>
+          </div>
+
+          {/* Authorized Officer & Date Time */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block font-bold text-neutral-800 mb-1">
+                Released by HIMU (IT Officer) <span className="text-rose-500">*</span>
               </label>
               <select
                 value={dispatchedBy}
                 onChange={(e) => setDispatchedBy(e.target.value)}
                 required
-                className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-800 shadow-xs focus:border-neutral-400 focus:outline-none"
+                className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-bold text-neutral-900 shadow-xs focus:border-emerald-500 focus:outline-none"
               >
                 {DISPATCH_OFFICERS.map((name) => (
                   <option key={name} value={name}>
@@ -177,34 +317,134 @@ export const TransferModal: React.FC<TransferModalProps> = ({
             </div>
 
             <div>
-              <label className="block font-semibold text-neutral-700 mb-1">
-                Barangay Recipient / Custodian
+              <label className="block font-bold text-neutral-800 mb-1">
+                Date & Time Borrowed <span className="text-rose-500">*</span>
               </label>
               <input
-                type="text"
-                value={receivedBy}
-                onChange={(e) => setReceivedBy(e.target.value)}
-                placeholder="Name of health staff or liaison"
-                className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs text-neutral-800 shadow-xs focus:border-neutral-400 focus:outline-none"
+                type="datetime-local"
+                value={borrowedAt}
+                onChange={(e) => setBorrowedAt(e.target.value)}
+                required
+                className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-800 shadow-xs focus:border-emerald-500 focus:outline-none font-mono"
               />
             </div>
           </div>
 
-          <div>
-            <label className="block font-semibold text-neutral-700 mb-1">
-              Waybill Notes & Accessories Included
-            </label>
-            <textarea
-              rows={2}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="List cables, power adapter, current physical condition..."
-              className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs text-neutral-800 shadow-xs focus:border-neutral-400 focus:outline-none resize-none"
-            />
+          {/* Quick Accessories Bundles Checkboxes */}
+          <div className="rounded-2xl bg-emerald-50/60 border border-emerald-200/80 p-3 space-y-2">
+            <span className="text-[11px] font-extrabold uppercase text-emerald-950 block">
+              Quick Accessories Check:
+            </span>
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="inline-flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-neutral-800">
+                <input
+                  type="checkbox"
+                  checked={includeExtensions}
+                  onChange={(e) => setIncludeExtensions(e.target.checked)}
+                  className="rounded text-emerald-600 focus:ring-emerald-500"
+                />
+                <span>Include 2x Extension Cords (Heavy Duty)</span>
+              </label>
+
+              <label className="inline-flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-neutral-800">
+                <input
+                  type="checkbox"
+                  checked={includeRouter}
+                  onChange={(e) => setIncludeRouter(e.target.checked)}
+                  className="rounded text-emerald-600 focus:ring-emerald-500"
+                />
+                <span>Include Wi-Fi 6 Router</span>
+              </label>
+            </div>
           </div>
 
-          {/* Form Actions */}
-          <div className="mt-6 flex items-center justify-end gap-2.5 pt-2 border-t border-black/[0.06]">
+          {/* Items Table Builder */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="font-extrabold text-neutral-900 uppercase tracking-wider text-[11px]">
+                Items Borrowed (A5 Checklist Table):
+              </span>
+              <button
+                type="button"
+                onClick={handleAddItemRow}
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:text-emerald-800"
+              >
+                <Plus size={13} />
+                <span>Add Item Row</span>
+              </button>
+            </div>
+
+            <div className="border border-neutral-300 rounded-xl overflow-hidden shadow-xs">
+              <table className="w-full border-collapse text-[11px]">
+                <thead className="bg-neutral-100 border-b border-neutral-300 font-bold uppercase text-neutral-700">
+                  <tr>
+                    <th className="p-1.5 text-left w-[36%]">Item / Equipment</th>
+                    <th className="p-1.5 text-left w-[24%]">Serial #</th>
+                    <th className="p-1.5 text-center w-[10%]">Qty</th>
+                    <th className="p-1.5 text-left w-[24%]">Remarks</th>
+                    <th className="p-1.5 text-center w-[6%]"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-200 bg-white">
+                  {itemsList.map((row, idx) => (
+                    <tr key={idx}>
+                      <td className="p-1">
+                        <input
+                          type="text"
+                          value={row.itemEquipment}
+                          onChange={(e) => handleUpdateItemRow(idx, 'itemEquipment', e.target.value)}
+                          placeholder="e.g. EPSON L5190"
+                          className="w-full px-1.5 py-1 rounded border border-neutral-200 text-[11px] font-bold uppercase"
+                        />
+                      </td>
+                      <td className="p-1">
+                        <input
+                          type="text"
+                          value={row.serialNo || ''}
+                          onChange={(e) => handleUpdateItemRow(idx, 'serialNo', e.target.value)}
+                          placeholder="SERIAL #"
+                          className="w-full px-1.5 py-1 rounded border border-neutral-200 text-[11px] font-mono uppercase"
+                        />
+                      </td>
+                      <td className="p-1 text-center">
+                        <input
+                          type="number"
+                          min={1}
+                          value={row.quantity}
+                          onChange={(e) => handleUpdateItemRow(idx, 'quantity', parseInt(e.target.value) || 1)}
+                          className="w-12 mx-auto text-center px-1 py-1 rounded border border-neutral-200 text-[11px] font-bold"
+                        />
+                      </td>
+                      <td className="p-1">
+                        <input
+                          type="text"
+                          value={row.remarks || ''}
+                          onChange={(e) => handleUpdateItemRow(idx, 'remarks', e.target.value)}
+                          placeholder="WITH POWER..."
+                          className="w-full px-1.5 py-1 rounded border border-neutral-200 text-[11px] uppercase font-medium"
+                        />
+                      </td>
+                      <td className="p-1 text-center">
+                        {itemsList.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveItemRow(idx)}
+                            className="text-neutral-400 hover:text-rose-600 font-bold px-1 transition"
+                            title="Remove item"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Bottom Form Actions */}
+          <div className="pt-3 border-t border-black/[0.06] flex items-center justify-between gap-2.5">
             <button
               type="button"
               onClick={onClose}
@@ -212,15 +452,17 @@ export const TransferModal: React.FC<TransferModalProps> = ({
             >
               Cancel
             </button>
+
             <button
               type="submit"
-              className="inline-flex items-center gap-1.5 rounded-xl bg-neutral-900 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-neutral-800 transition active:scale-95"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 text-xs font-bold shadow-md transition active:scale-95"
             >
-              <Truck className="h-3.5 w-3.5" />
-              <span>Confirm & Dispatch</span>
+              <Printer className="h-4 w-4" />
+              <span>Confirm & Generate A5 Receipt</span>
             </button>
           </div>
         </form>
+
       </div>
     </div>
   );

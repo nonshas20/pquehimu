@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { AssetItem, BarangayLocation } from '../types/inventory';
+import type { AssetItem, BarangayLocation, AssetTransferRecord } from '../types/inventory';
 import { 
   X, 
   ArrowRightLeft, 
@@ -7,7 +7,8 @@ import {
   FileText, 
   Copy, 
   Check, 
-  MapPin 
+  MapPin,
+  Printer 
 } from './HugeIcons';
 
 interface AssetDetailModalProps {
@@ -17,6 +18,7 @@ interface AssetDetailModalProps {
   locations: BarangayLocation[];
   onOpenTransfer: (asset: AssetItem) => void;
   onAcknowledgeReceipt: (assetId: string) => void;
+  onViewChecklist?: (record: AssetTransferRecord) => void;
 }
 
 export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
@@ -26,6 +28,7 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
   locations,
   onOpenTransfer,
   onAcknowledgeReceipt,
+  onViewChecklist,
 }) => {
   const [copied, setCopied] = useState(false);
 
@@ -229,10 +232,23 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
                         <strong>Purpose:</strong> {record.purpose}
                       </div>
 
-                      <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-neutral-500 border-t border-black/[0.04] pt-2">
-                        <span>Dispatched by: <strong className="text-neutral-800">{record.dispatchedBy}</strong></span>
-                        {record.receivedBy && (
-                          <span>Received by: <strong className="text-neutral-800">{record.receivedBy}</strong></span>
+                      <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-neutral-500 border-t border-black/[0.04] pt-2">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <span>Dispatched by: <strong className="text-neutral-800">{record.dispatchedBy}</strong></span>
+                          {record.receivedBy && (
+                            <span>Received by: <strong className="text-neutral-800">{record.receivedBy}</strong></span>
+                          )}
+                        </div>
+
+                        {onViewChecklist && (
+                          <button
+                            type="button"
+                            onClick={() => onViewChecklist(record)}
+                            className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200 transition active:scale-95"
+                          >
+                            <Printer className="h-3 w-3" />
+                            <span>View A5 Slip</span>
+                          </button>
                         )}
                       </div>
                     </div>
@@ -245,15 +261,31 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
 
         {/* Footer Actions */}
         <div className="p-4 px-6 border-t border-black/[0.06] bg-white/60 flex items-center justify-between">
-          <button
-            onClick={() => {
-              window.print();
-            }}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-neutral-200 bg-white px-3.5 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 transition active:scale-95"
-          >
-            <FileText className="h-3.5 w-3.5" />
-            <span>Print Property Slip (PAR)</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                if (asset.history.length > 0 && onViewChecklist) {
+                  onViewChecklist(asset.history[0]);
+                } else {
+                  window.print();
+                }
+              }}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 px-3.5 py-2 text-xs font-bold hover:bg-emerald-100 transition active:scale-95 shadow-2xs"
+            >
+              <Printer className="h-3.5 w-3.5" />
+              <span>A5 Borrowing Slip</span>
+            </button>
+
+            <button
+              onClick={() => {
+                window.print();
+              }}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-neutral-200 bg-white px-3.5 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 transition active:scale-95"
+            >
+              <FileText className="h-3.5 w-3.5" />
+              <span>Print PAR</span>
+            </button>
+          </div>
 
           <div className="flex items-center gap-2">
             <button
