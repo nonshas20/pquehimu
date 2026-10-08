@@ -29,8 +29,8 @@ export const Header: React.FC<HeaderProps> = ({
   totalAssetsCount,
 }) => {
   return (
-    <div className="sticky top-0 z-[1000] px-3 sm:px-6 lg:px-8 pt-2.5 sm:pt-3 pb-1">
-      <header className="mx-auto max-w-7xl rounded-2xl sm:rounded-3xl bg-white border border-neutral-200/90 shadow-sm px-3.5 sm:px-6 transition-all">
+    <header className="sticky top-0 z-[1000] w-full bg-white border-b border-neutral-200/90 shadow-xs">
+      <div className="mx-auto max-w-7xl px-3.5 sm:px-6 lg:px-8">
         <div className="flex h-18 sm:h-20 items-center justify-between gap-3 sm:gap-4">
           
           {/* Official Dual Logos & Title */}
@@ -150,7 +150,7 @@ export const Header: React.FC<HeaderProps> = ({
             />
           </div>
         </div>
-      </header>
-    </div>
+      </div>
+    </header>
   );
 };

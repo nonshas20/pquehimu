@@ -220,7 +220,7 @@ export function App() {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] pb-28 text-neutral-900 selection:bg-neutral-900 selection:text-white">
-      {/* Top Rounded Plain White Header with Logos */}
+      {/* Top Flat White Header with Logos */}
       <Header
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
@@ -231,8 +231,8 @@ export function App() {
         totalAssetsCount={assets.length}
       />
 
-      {/* Full-Width 21:9 HIMU Team Background Header - Pure Image, No Gradient */}
-      <div className="relative w-full overflow-hidden bg-neutral-900 aspect-[21/9] min-h-[190px] sm:min-h-[260px] max-h-[420px] -mt-6 sm:-mt-8 shadow-xs">
+      {/* Full-Width 21:9 HIMU Team Background Header - Pure Image, Flush Below Header */}
+      <div className="relative w-full overflow-hidden bg-neutral-900 aspect-[21/9] min-h-[190px] sm:min-h-[260px] max-h-[420px] shadow-xs">
         <img
           src="/himu-team-banner.jpg"
           alt="HIMU IT Operations Team"
