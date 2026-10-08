@@ -7,6 +7,7 @@ interface AddAssetModalProps {
   onClose: () => void;
   locations: BarangayLocation[];
   onAddAsset: (newAsset: Omit<AssetItem, 'id' | 'history'>) => void;
+  initialLocationId?: string;
 }
 
 export const AddAssetModal: React.FC<AddAssetModalProps> = ({
@@ -14,6 +15,7 @@ export const AddAssetModal: React.FC<AddAssetModalProps> = ({
   onClose,
   locations,
   onAddAsset,
+  initialLocationId,
 }) => {
   if (!isOpen) return null;
 
@@ -24,7 +26,15 @@ export const AddAssetModal: React.FC<AddAssetModalProps> = ({
   const [assetTag, setAssetTag] = useState(
     `HIMU-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`
   );
-  const [currentLocationId, setCurrentLocationId] = useState(locations[0]?.id || '');
+  const [currentLocationId, setCurrentLocationId] = useState(
+    initialLocationId || locations[0]?.id || ''
+  );
+
+  React.useEffect(() => {
+    if (initialLocationId) {
+      setCurrentLocationId(initialLocationId);
+    }
+  }, [initialLocationId]);
   const [custodianName, setCustodianName] = useState('');
   const [custodianRole, setCustodianRole] = useState('Barangay Health Center Staff / IT Coordinator');
   const [notes, setNotes] = useState('');
@@ -99,6 +109,7 @@ export const AddAssetModal: React.FC<AddAssetModalProps> = ({
               >
                 <option value="Printer">Printer</option>
                 <option value="Network Router">Network Router</option>
+                <option value="Extension Cord / Power">Extension Cord / Power Strip</option>
                 <option value="Network Switch">Network Switch</option>
                 <option value="Workstation / PC">Workstation / PC</option>
                 <option value="Biometric / Scanner">Biometric / Scanner</option>

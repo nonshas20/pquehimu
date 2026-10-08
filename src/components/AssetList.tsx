@@ -12,6 +12,7 @@ import {
   Monitor, 
   Fingerprint, 
   Zap, 
+  Plug,
   ArrowRightLeft, 
   History, 
   Copy, 
@@ -66,6 +67,8 @@ export const AssetList: React.FC<AssetListProps> = ({
         return Printer;
       case 'Network Router':
         return Wifi;
+      case 'Extension Cord / Power':
+        return Plug;
       case 'Network Switch':
         return Network;
       case 'Workstation / PC':
@@ -123,6 +126,7 @@ export const AssetList: React.FC<AssetListProps> = ({
     'ALL',
     'Printer',
     'Network Router',
+    'Extension Cord / Power',
     'Network Switch',
     'Workstation / PC',
     'Biometric / Scanner',

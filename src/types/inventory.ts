@@ -10,6 +10,7 @@ export interface AppUser {
 export type AssetCategory =
   | 'Printer'
   | 'Network Router'
+  | 'Extension Cord / Power'
   | 'Network Switch'
   | 'Workstation / PC'
   | 'Biometric / Scanner'
