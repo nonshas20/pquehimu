@@ -355,7 +355,7 @@ export function App() {
     );
   };
 
-  // Quick Drag-and-Drop Relocation Handler
+  // Quick Drag-and-Drop Relocation Handler (every drag to a barangay is a borrow!)
   const handleQuickRelocateAsset = (assetId: string, toLocationId: string) => {
     const asset = assets.find((a) => a.id === assetId);
     if (!asset || asset.currentLocationId === toLocationId) return;
@@ -363,6 +363,10 @@ export function App() {
     const fromLoc = locations.find((l) => l.id === asset.currentLocationId);
     const toLoc = locations.find((l) => l.id === toLocationId);
     const isReturningToHq = toLocationId === 'loc-himu-hq';
+    const locCleanName = toLoc?.name.replace(/^Barangay\s+/i, '').toUpperCase() || 'HEALTH STATION';
+    const profilingEventName = `PHILHEALTH YAKAP PROFILING ${locCleanName}`;
+    const requestingOffice = `${toLoc?.name.toUpperCase() || 'BARANGAY'} HEALTH CENTER`;
+    const borrowerName = `${toLoc?.name.toUpperCase() || 'BARANGAY'} HEALTH CUSTODIAN`;
 
     const newTransfer: AssetTransferRecord = {
       id: `tr-${Date.now()}`,
@@ -376,11 +380,29 @@ export function App() {
       dispatchedAt: new Date().toISOString(),
       receivedBy: isReturningToHq
         ? 'HIMU Depot Inventory Custodian'
-        : `${toLoc?.name || 'Barangay'} Health Custodian`,
-      status: 'received',
+        : borrowerName,
+      status: isReturningToHq ? 'returned' : 'in_transit',
       purpose: isReturningToHq
         ? 'Returned to Central Depot for warehouse staging & maintenance'
-        : `Direct Map Deployment to ${toLoc?.name || 'Barangay'} Facility`,
+        : profilingEventName,
+      eventName: isReturningToHq ? undefined : profilingEventName,
+      requestingOffice: isReturningToHq ? undefined : requestingOffice,
+      borrowerName: isReturningToHq ? undefined : borrowerName,
+      borrowedItemsList: isReturningToHq
+        ? undefined
+        : [
+            {
+              itemEquipment: asset.name.toUpperCase(),
+              serialNo: asset.serialNumber,
+              quantity: 1,
+              remarks:
+                asset.category === 'Printer'
+                  ? 'WITH POWER AND CABLE'
+                  : asset.category === 'Network Router'
+                  ? 'WITH POWER ADAPTER'
+                  : 'COMPLETE POWER',
+            },
+          ],
     };
 
     setAssets((prev) =>
@@ -399,6 +421,120 @@ export function App() {
         return item;
       })
     );
+  };
+
+  // 1-Click Delete / Cancel Borrow (Restores asset back to HIMU Depot staging)
+  const handleDeleteOrUndoBorrow = (assetId: string) => {
+    setAssets((prev) =>
+      prev.map((item) => {
+        if (item.id === assetId) {
+          const previousHistory = item.history.length > 1 ? item.history.slice(1) : item.history;
+          return {
+            ...item,
+            currentLocationId: 'loc-himu-hq',
+            status: 'in_service',
+            custodianName: 'HIMU Central Depot Staging',
+            history: previousHistory,
+          };
+        }
+        return item;
+      })
+    );
+  };
+
+  // Print official A5 Borrow Slip for a single asset directly from the map
+  const handlePrintA5ForAsset = (asset: AssetItem) => {
+    const targetLoc = locations.find((l) => l.id === asset.currentLocationId);
+    const locCleanName = targetLoc?.name.replace(/^Barangay\s+/i, '').toUpperCase() || 'HEALTH STATION';
+    const latestRecord = asset.history.find((h) => h.toLocationId === asset.currentLocationId) || asset.history[0];
+
+    const record: AssetTransferRecord = latestRecord || {
+      id: `tr-${Date.now()}`,
+      referenceNo: `TR-PQUE-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+      assetId: asset.id,
+      fromLocationId: 'loc-himu-hq',
+      toLocationId: asset.currentLocationId,
+      fromLocationName: 'HIMU Central IT Office (Parañaque City Hall)',
+      toLocationName: targetLoc?.name || 'Assigned Barangay',
+      dispatchedBy: currentUser.name,
+      dispatchedAt: new Date().toISOString(),
+      receivedBy: `${targetLoc?.name || 'BARANGAY'} HEALTH CUSTODIAN`,
+      status: 'in_transit',
+      purpose: `PHILHEALTH YAKAP PROFILING ${locCleanName}`,
+      eventName: `PHILHEALTH YAKAP PROFILING ${locCleanName}`,
+      requestingOffice: `${targetLoc?.name.toUpperCase() || 'BARANGAY'} HEALTH CENTER`,
+      borrowerName: `${targetLoc?.name.toUpperCase() || 'BARANGAY'} HEALTH CUSTODIAN`,
+      borrowedItemsList: [
+        {
+          itemEquipment: asset.name.toUpperCase(),
+          serialNo: asset.serialNumber,
+          quantity: 1,
+          remarks: asset.category === 'Printer' ? 'WITH POWER AND CABLE' : 'WITH POWER',
+        },
+      ],
+    };
+
+    setActiveChecklistRecord(record);
+    setIsReceiptOpen(true);
+  };
+
+  // Print consolidated official A5 Borrow Slip for all equipment borrowed by a Barangay
+  const handlePrintA5ForBarangay = (locationId: string) => {
+    const targetLoc = locations.find((l) => l.id === locationId);
+    if (!targetLoc) return;
+
+    const locCleanName = targetLoc.name.replace(/^Barangay\s+/i, '').toUpperCase();
+    const locAssets = assets.filter((a) => a.currentLocationId === locationId);
+
+    const itemsList: BorrowChecklistItem[] = locAssets.length > 0
+      ? locAssets.map((item) => ({
+          itemEquipment: item.name.toUpperCase(),
+          serialNo: item.serialNumber,
+          quantity: 1,
+          remarks: item.category === 'Printer' ? 'WITH POWER AND CABLE' : item.category === 'Network Router' ? 'WITH POWER ADAPTER' : '3-PRONG COMPLETE',
+        }))
+      : [
+          {
+            itemEquipment: 'EPSON L5190 ALL-IN-ONE PRINTER',
+            serialNo: 'SN-EPS-2026-8812',
+            quantity: 1,
+            remarks: 'WITH POWER AND CABLE',
+          },
+          {
+            itemEquipment: '2 EXTENSIONS (HEAVY DUTY 3M)',
+            serialNo: 'N/A',
+            quantity: 2,
+            remarks: 'COMPLETE 3-PRONG',
+          },
+          {
+            itemEquipment: 'D-LINK WIFI ROUTER',
+            serialNo: 'SN-RTR-5512',
+            quantity: 1,
+            remarks: 'WITH POWER ADAPTER',
+          },
+        ];
+
+    const consolidatedRecord: AssetTransferRecord = {
+      id: `tr-brgy-${Date.now()}`,
+      referenceNo: `TR-PQUE-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+      assetId: locAssets[0]?.id || 'ast-consolidated',
+      fromLocationId: 'loc-himu-hq',
+      toLocationId: locationId,
+      fromLocationName: 'HIMU Central IT Office (Parañaque City Hall)',
+      toLocationName: targetLoc.name,
+      dispatchedBy: currentUser.name,
+      dispatchedAt: new Date().toISOString(),
+      receivedBy: `${targetLoc.name.toUpperCase()} HEALTH CUSTODIAN`,
+      status: 'in_transit',
+      purpose: `PHILHEALTH YAKAP PROFILING ${locCleanName}`,
+      eventName: `PHILHEALTH YAKAP PROFILING ${locCleanName}`,
+      requestingOffice: `${targetLoc.name.toUpperCase()} HEALTH CENTER`,
+      borrowerName: `${targetLoc.name.toUpperCase()} HEALTH CUSTODIAN`,
+      borrowedItemsList: itemsList,
+    };
+
+    setActiveChecklistRecord(consolidatedRecord);
+    setIsReceiptOpen(true);
   };
 
   const handleAddAsset = (newAssetData: Omit<AssetItem, 'id' | 'history'>) => {
@@ -793,6 +929,9 @@ export function App() {
             onDeployKit={handleDeployHealthKit}
             onDeployAllKits={handleDeployAllBarangaysKit}
             onQuickRelocate={handleQuickRelocateAsset}
+            onPrintA5ForAsset={handlePrintA5ForAsset}
+            onPrintA5ForBarangay={handlePrintA5ForBarangay}
+            onDeleteBorrow={handleDeleteOrUndoBorrow}
           />
         )}
 

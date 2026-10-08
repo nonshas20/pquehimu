@@ -20,7 +20,9 @@ import {
   UploadCloud, 
   Search, 
   CheckCircle2, 
-  Send 
+  Send,
+  Printer,
+  Trash
 } from './HugeIcons';
 import {
   PrinterSvg,
@@ -43,6 +45,9 @@ interface ParanaqueMapProps {
   onDeployKit?: (locationId: string) => void;
   onDeployAllKits?: () => void;
   onQuickRelocate?: (assetId: string, toLocationId: string) => void;
+  onPrintA5ForAsset?: (asset: AssetItem) => void;
+  onPrintA5ForBarangay?: (locationId: string) => void;
+  onDeleteBorrow?: (assetId: string) => void;
 }
 
 const ESRI_LIGHT_TILE_URL =
@@ -71,6 +76,9 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
   onDeployKit,
   onDeployAllKits,
   onQuickRelocate,
+  onPrintA5ForAsset,
+  onPrintA5ForBarangay,
+  onDeleteBorrow,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -93,15 +101,17 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
   const [draggingAsset, setDraggingAsset] = useState<AssetItem | null>(null);
   const [hoveredDropLocationId, setHoveredDropLocationId] = useState<string | null>(null);
   const [lastDeployedNotice, setLastDeployedNotice] = useState<{
+    assetId?: string;
     assetName: string;
+    locationId?: string;
     locationName: string;
     time: number;
   } | null>(null);
 
-  // Auto-dismiss notification after 4 seconds
+  // Auto-dismiss notification after 10 seconds
   useEffect(() => {
     if (!lastDeployedNotice) return;
-    const t = setTimeout(() => setLastDeployedNotice(null), 4000);
+    const t = setTimeout(() => setLastDeployedNotice(null), 10000);
     return () => clearTimeout(t);
   }, [lastDeployedNotice]);
 
@@ -588,7 +598,9 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
       const droppedItem = assets.find((a) => a.id === assetId);
 
       setLastDeployedNotice({
+        assetId,
         assetName: droppedItem?.name || 'IT Hardware',
+        locationId: targetLocId,
         locationName: targetLoc?.name || 'Barangay',
         time: Date.now(),
       });
@@ -610,7 +622,9 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
     const targetLoc = locations.find((l) => l.id === toLocationId);
     const item = assets.find((a) => a.id === assetId);
     setLastDeployedNotice({
+      assetId,
       assetName: item?.name || 'IT Hardware',
+      locationId: toLocationId,
       locationName: targetLoc?.name || 'Barangay',
       time: Date.now(),
     });
@@ -777,15 +791,60 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
         </div>
       )}
 
-      {/* Success Relocation Notification Pill */}
+      {/* Interactive Drag & Drop Borrow Success HUD Banner with Direct A5 Print & Delete */}
       {lastDeployedNotice && (
-        <div className="absolute top-16 right-4 sm:right-[430px] z-30 pointer-events-none transition-all animate-in fade-in slide-in-from-top-3 duration-200">
-          <div className="flex items-center gap-2 rounded-2xl bg-emerald-600 text-white px-4 py-2 shadow-xl border border-emerald-400/40">
-            <CheckCircle2 className="h-4 w-4 text-emerald-100" />
-            <div className="text-xs font-bold">
-              <span>{lastDeployedNotice.assetName}</span>
-              <span className="font-normal opacity-90"> stationed at </span>
-              <span className="font-black underline">{lastDeployedNotice.locationName}</span>
+        <div className="absolute top-16 right-4 sm:right-[430px] z-30 transition-all animate-in fade-in slide-in-from-top-3 duration-200">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 rounded-2xl bg-neutral-900/95 backdrop-blur-md text-white p-3 sm:px-4 sm:py-2.5 shadow-2xl border border-white/20">
+            <div className="flex items-center gap-2 min-w-0">
+              <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+              <div className="text-xs">
+                <span className="font-extrabold text-emerald-400">Borrow Recorded: </span>
+                <span className="font-bold text-white">{lastDeployedNotice.assetName}</span>
+                <span className="text-neutral-400"> → </span>
+                <span className="font-extrabold underline text-white">{lastDeployedNotice.locationName}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0 pl-1">
+              {onPrintA5ForAsset && lastDeployedNotice.assetId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const item = assets.find((a) => a.id === lastDeployedNotice.assetId);
+                    if (item) onPrintA5ForAsset(item);
+                  }}
+                  className="inline-flex items-center gap-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 text-[11px] font-bold shadow transition active:scale-95 cursor-pointer"
+                  title="Print official A5 Checklist Slip"
+                >
+                  <Printer size={13} />
+                  <span>Print A5 Slip</span>
+                </button>
+              )}
+
+              {onDeleteBorrow && lastDeployedNotice.assetId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (lastDeployedNotice.assetId) {
+                      onDeleteBorrow(lastDeployedNotice.assetId);
+                      setLastDeployedNotice(null);
+                    }
+                  }}
+                  className="inline-flex items-center gap-1 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 px-2 py-1 text-[11px] font-semibold transition active:scale-95 cursor-pointer"
+                  title="Delete this borrow and return to Depot"
+                >
+                  <Trash size={13} />
+                  <span>Delete / Undo</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setLastDeployedNotice(null)}
+                className="rounded-lg p-1 text-neutral-400 hover:text-white hover:bg-white/10 transition"
+              >
+                <X size={14} />
+              </button>
             </div>
           </div>
         </div>
@@ -1087,12 +1146,26 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
                       </p>
                     </div>
 
-                    <button
-                      onClick={() => onSelectLocation(null)}
-                      className="rounded-xl p-1 text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {onPrintA5ForBarangay && selectedLocAssets.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => onPrintA5ForBarangay(selectedLocation.id)}
+                          className="inline-flex items-center gap-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 text-[11px] font-bold shadow-xs transition active:scale-95 cursor-pointer"
+                          title="Print official consolidated A5 Borrow Slip for this Barangay"
+                        >
+                          <Printer size={13} />
+                          <span>A5 Slip</span>
+                        </button>
+                      )}
+
+                      <button
+                        onClick={() => onSelectLocation(null)}
+                        className="rounded-xl p-1 text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
 
                   {/* 4 Quick Station Counters */}
@@ -1236,27 +1309,56 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
                                   </span>
                                 </div>
 
-                                {/* Relocate / Transfer Actions */}
-                                <div className="mt-2 pt-1.5 border-t border-neutral-100 flex items-center justify-between gap-2">
-                                  {onQuickRelocate && (
-                                    <button
-                                      onClick={() => handleQuickDeployDropdown(asset.id, 'loc-himu-hq')}
-                                      className="inline-flex items-center gap-1 rounded-lg bg-neutral-100 hover:bg-neutral-200 px-2 py-0.5 text-[10px] font-bold text-neutral-700 transition"
-                                    >
-                                      <UploadCloud className="h-3 w-3" />
-                                      <span>Recall to Depot</span>
-                                    </button>
-                                  )}
+                                {/* Borrow Actions: A5 Slip, Delete Borrow & Relocate */}
+                                <div className="mt-2 pt-1.5 border-t border-neutral-100 flex items-center justify-between gap-1.5">
+                                  <div className="flex items-center gap-1">
+                                    {onPrintA5ForAsset && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          onPrintA5ForAsset(asset);
+                                        }}
+                                        className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 px-2 py-0.5 text-[10px] font-bold transition active:scale-95 cursor-pointer"
+                                        title="Print official A5 borrow checklist slip for this item"
+                                      >
+                                        <Printer size={12} />
+                                        <span>A5 Slip</span>
+                                      </button>
+                                    )}
 
-                                  {onOpenTransfer && (
-                                    <button
-                                      onClick={() => onOpenTransfer(asset)}
-                                      className="inline-flex items-center gap-1 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white px-2 py-0.5 text-[10px] font-bold transition"
-                                    >
-                                      <ArrowRightLeft className="h-3 w-3" />
-                                      <span>Relocate</span>
-                                    </button>
-                                  )}
+                                    {onDeleteBorrow && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          onDeleteBorrow(asset.id);
+                                        }}
+                                        className="inline-flex items-center gap-1 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 px-2 py-0.5 text-[10px] font-bold transition active:scale-95 cursor-pointer"
+                                        title="Delete/cancel this borrow and return item to Depot staging"
+                                      >
+                                        <Trash size={12} />
+                                        <span>Delete</span>
+                                      </button>
+                                    )}
+                                  </div>
+
+                                  <div className="flex items-center gap-1">
+                                    {onOpenTransfer && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          onOpenTransfer(asset);
+                                        }}
+                                        className="inline-flex items-center gap-1 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white px-2 py-0.5 text-[10px] font-bold transition active:scale-95 cursor-pointer"
+                                        title="Relocate to another barangay"
+                                      >
+                                        <ArrowRightLeft className="h-3 w-3" />
+                                        <span>Relocate</span>
+                                      </button>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -1268,13 +1370,25 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
 
                   {/* Bay Footer */}
                   <div className="pt-2 border-t border-black/[0.06] flex items-center gap-2">
+                    {onPrintA5ForBarangay && selectedLocAssets.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => onPrintA5ForBarangay(selectedLocation.id)}
+                        className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 px-3 py-2 text-xs font-bold text-white shadow-xs transition active:scale-95 cursor-pointer"
+                        title="Print official consolidated A5 Borrow Slip for this entire Barangay event"
+                      >
+                        <Printer size={14} />
+                        <span>Print A5 Slip</span>
+                      </button>
+                    )}
+
                     {onOpenAddModal && (
                       <button
                         onClick={() => onOpenAddModal(selectedLocation.id)}
                         className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-neutral-900 px-3 py-2 text-xs font-bold text-white shadow-xs hover:bg-neutral-800 transition active:scale-95"
                       >
                         <Plus className="h-3.5 w-3.5" />
-                        <span>Add Item to {selectedLocation.name.replace(/^Barangay\s+/i, '')}</span>
+                        <span>Add Item</span>
                       </button>
                     )}
 
