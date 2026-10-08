@@ -53,7 +53,7 @@ export const Header: React.FC<HeaderProps> = ({
       <div
         className={`mx-auto max-w-7xl transition-all duration-300 ease-out ${
           isScrolled
-            ? 'rounded-2xl sm:rounded-3xl bg-white/75 backdrop-blur-xl backdrop-saturate-150 border border-white/60 shadow-lg shadow-black/[0.04] px-3.5 sm:px-6'
+            ? 'rounded-2xl sm:rounded-3xl bg-white border border-neutral-200/90 shadow-lg px-3.5 sm:px-6'
             : 'rounded-none bg-transparent border-transparent shadow-none px-0'
         }`}
       >
@@ -113,7 +113,7 @@ export const Header: React.FC<HeaderProps> = ({
                 placeholder="Search serial, tag, item, or barangay..."
                 className={`w-full rounded-2xl py-2 pl-9 pr-10 text-xs sm:text-sm transition-all focus:outline-none focus:ring-4 shadow-2xs ${
                   isScrolled
-                    ? 'border border-neutral-200/80 bg-white/70 backdrop-blur-md text-neutral-900 placeholder-neutral-400 focus:border-neutral-400 focus:bg-white focus:ring-neutral-900/5'
+                    ? 'border border-neutral-200 bg-neutral-50/80 text-neutral-900 placeholder-neutral-400 focus:border-neutral-400 focus:bg-white focus:ring-neutral-900/5'
                     : 'border border-white/25 bg-black/40 backdrop-blur-md text-white placeholder-white/60 focus:border-white/50 focus:bg-black/60 focus:ring-white/10'
                 }`}
               />
@@ -137,7 +137,7 @@ export const Header: React.FC<HeaderProps> = ({
               title="Quick Scan QR / Barcode"
               className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-2 text-xs font-semibold shadow-2xs active:scale-95 transition-all ${
                 isScrolled
-                  ? 'border border-neutral-200/80 bg-white/80 backdrop-blur-md text-neutral-700 hover:bg-white hover:text-neutral-900'
+                  ? 'border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900'
                   : 'border border-white/25 bg-black/40 backdrop-blur-md text-white hover:bg-black/60'
               }`}
             >
@@ -166,7 +166,7 @@ export const Header: React.FC<HeaderProps> = ({
               title="Switch User Role (ADMIN / IT OFFICER)"
               className={`flex items-center gap-1.5 rounded-xl p-1.5 sm:px-2.5 sm:py-1.5 text-left shadow-2xs active:scale-95 transition-all ${
                 isScrolled
-                  ? 'border border-neutral-200/80 bg-white/70 backdrop-blur-md text-neutral-800 hover:bg-white'
+                  ? 'border border-neutral-200 bg-neutral-50/70 text-neutral-800 hover:bg-neutral-100'
                   : 'border border-white/25 bg-black/40 backdrop-blur-md text-white hover:bg-black/60'
               }`}
             >
@@ -215,7 +215,7 @@ export const Header: React.FC<HeaderProps> = ({
               placeholder="Search serial, tag, or barangay..."
               className={`w-full rounded-xl py-2 pl-9 pr-3 text-xs transition-all focus:outline-none ${
                 isScrolled
-                  ? 'border border-neutral-200/80 bg-white/70 backdrop-blur-md text-neutral-900 placeholder-neutral-400 focus:border-neutral-400 focus:bg-white'
+                  ? 'border border-neutral-200 bg-neutral-50/80 text-neutral-900 placeholder-neutral-400 focus:border-neutral-400 focus:bg-white'
                   : 'border border-white/25 bg-black/40 backdrop-blur-md text-white placeholder-white/60 focus:border-white/50 focus:bg-black/60'
               }`}
             />
