@@ -30,6 +30,7 @@ interface AssetListProps {
   onOpenTransfer: (asset: AssetItem) => void;
   onOpenDetail: (asset: AssetItem) => void;
   onOpenAddModal: () => void;
+  onPrintA5ForAsset?: (asset: AssetItem) => void;
   selectedCategory: AssetCategory | 'ALL';
   onSelectCategory: (cat: AssetCategory | 'ALL') => void;
   selectedStatus: AssetStatus | 'ALL';
@@ -42,6 +43,7 @@ export const AssetList: React.FC<AssetListProps> = ({
   onOpenTransfer,
   onOpenDetail,
   onOpenAddModal,
+  onPrintA5ForAsset,
   selectedCategory,
   onSelectCategory,
   selectedStatus,
@@ -321,6 +323,16 @@ export const AssetList: React.FC<AssetListProps> = ({
                             <ArrowRightLeft className="h-3.5 w-3.5 text-neutral-500" />
                             <span>Transfer</span>
                           </button>
+                          {onPrintA5ForAsset && (
+                            <button
+                              onClick={() => onPrintA5ForAsset(asset)}
+                              title="Print A5 Borrowing Slip"
+                              className="inline-flex items-center gap-1 rounded-xl border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-800 shadow-2xs hover:bg-emerald-100 active:scale-95"
+                            >
+                              <Printer className="h-3.5 w-3.5 text-emerald-600" />
+                              <span>A5 Slip</span>
+                            </button>
+                          )}
                           <button
                             onClick={() => onOpenDetail(asset)}
                             title="View Audit Trail"
@@ -399,18 +411,27 @@ export const AssetList: React.FC<AssetListProps> = ({
                     </span>
                   </div>
 
-                  {/* Card Action Buttons */}
-                  <div className="mt-4 grid grid-cols-2 gap-2 border-t border-black/[0.04] pt-3" onClick={(e) => e.stopPropagation()}>
+                  {/* Card Action Buttons: Native Touch Grid */}
+                  <div className={`mt-4 grid ${onPrintA5ForAsset ? 'grid-cols-3' : 'grid-cols-2'} gap-1.5 border-t border-black/[0.04] pt-3`} onClick={(e) => e.stopPropagation()}>
                     <button
                       onClick={() => onOpenTransfer(asset)}
-                      className="inline-flex items-center justify-center gap-1.5 rounded-2xl border border-black/5 bg-white/80 py-2.5 text-xs font-semibold text-neutral-700 transition hover:bg-white active:scale-95"
+                      className="inline-flex items-center justify-center gap-1 rounded-2xl border border-neutral-200 bg-white py-2.5 text-xs font-semibold text-neutral-800 transition hover:bg-neutral-50 active:scale-95 shadow-2xs min-h-[42px]"
                     >
                       <ArrowRightLeft className="h-3.5 w-3.5 text-neutral-500" />
                       <span>Transfer</span>
                     </button>
+                    {onPrintA5ForAsset && (
+                      <button
+                        onClick={() => onPrintA5ForAsset(asset)}
+                        className="inline-flex items-center justify-center gap-1 rounded-2xl border border-emerald-200 bg-emerald-50 py-2.5 text-xs font-bold text-emerald-800 transition hover:bg-emerald-100 active:scale-95 shadow-2xs min-h-[42px]"
+                      >
+                        <Printer className="h-3.5 w-3.5 text-emerald-600" />
+                        <span>A5 Slip</span>
+                      </button>
+                    )}
                     <button
                       onClick={() => onOpenDetail(asset)}
-                      className="inline-flex items-center justify-center gap-1.5 rounded-2xl bg-neutral-900 py-2.5 text-xs font-semibold text-white transition hover:bg-neutral-800 active:scale-95"
+                      className="inline-flex items-center justify-center gap-1 rounded-2xl bg-neutral-900 py-2.5 text-xs font-semibold text-white transition hover:bg-neutral-800 active:scale-95 shadow-2xs min-h-[42px]"
                     >
                       <History className="h-3.5 w-3.5" />
                       <span>Details</span>

@@ -74,7 +74,7 @@ export const BarangaySelector: React.FC<BarangaySelectorProps> = ({
       </div>
 
       {/* Pill strip for 16 Barangays with clean overflow scroll */}
-      <div className="mt-3 flex gap-2 overflow-x-auto pb-1 text-xs no-scrollbar">
+      <div className="mt-3 flex gap-2 overflow-x-auto pb-1 text-xs no-scrollbar touch-pan-x">
         <button
           onClick={() => onSelectLocation(null)}
           className={`shrink-0 rounded-2xl px-3.5 py-2 font-semibold transition-all ${

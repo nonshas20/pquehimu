@@ -796,7 +796,7 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
 
       {/* Interactive Drag & Drop Borrow Success HUD Banner with Direct A5 Print & Delete */}
       {lastDeployedNotice && (
-        <div className="absolute top-16 right-4 sm:right-[430px] z-30 transition-all animate-in fade-in slide-in-from-top-3 duration-200">
+        <div className="absolute top-16 left-3 right-3 sm:left-auto sm:right-[430px] z-30 transition-all animate-in fade-in slide-in-from-top-3 duration-200">
           <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 rounded-2xl bg-neutral-900/95 backdrop-blur-md text-white p-3 sm:px-4 sm:py-2.5 shadow-2xl border border-white/20">
             <div className="flex items-center gap-2 min-w-0">
               <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
@@ -871,20 +871,28 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
         <div className="absolute inset-y-0 right-0 z-30 w-full sm:w-[390px] lg:w-[430px] bg-white/95 backdrop-blur-md border-l border-neutral-200/90 shadow-2xl flex flex-col transition-all duration-300 animate-in slide-in-from-right">
           
           {/* Panel Header & Navigation Switcher */}
-          <div className="p-3.5 sm:p-4 border-b border-black/[0.06] bg-neutral-50/70">
+          <div className="p-3 sm:p-4 border-b border-black/[0.06] bg-neutral-50/70">
             <div className="flex items-center justify-between gap-2 mb-2.5">
-              <div className="flex items-center gap-1.5">
-                <Package className="h-4 w-4 text-emerald-600" />
-                <h3 className="text-xs font-extrabold uppercase tracking-wider text-neutral-900">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <button
+                  onClick={() => setIsPanelOpen(false)}
+                  className="sm:hidden inline-flex items-center gap-1 rounded-xl bg-neutral-900 text-white px-2.5 py-1 text-xs font-bold shadow-xs active:scale-95 transition shrink-0 mr-1"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                  <span>Map</span>
+                </button>
+                <Package className="h-4 w-4 text-emerald-600 shrink-0" />
+                <h3 className="text-xs font-extrabold uppercase tracking-wider text-neutral-900 truncate">
                   IT Deployment Control
                 </h3>
               </div>
               <button
                 onClick={() => setIsPanelOpen(false)}
                 title="Collapse Panel"
-                className="rounded-xl p-1 text-neutral-400 hover:text-neutral-700 hover:bg-neutral-200/60 transition"
+                className="rounded-xl p-1.5 text-neutral-400 hover:text-neutral-700 hover:bg-neutral-200/60 transition active:scale-95 shrink-0"
               >
-                <ChevronRight className="h-4 w-4" />
+                <X className="h-4 w-4 sm:hidden" />
+                <ChevronRight className="hidden sm:inline-block h-4 w-4" />
               </button>
             </div>
 
@@ -1111,7 +1119,7 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
 
                             {/* 1-Tap Quick Deploy Dropdown (Touch & Non-Drag Fallback) */}
                             <div className="mt-2 pt-1.5 border-t border-neutral-100 flex items-center gap-1.5">
-                              <Send className="h-3 w-3 text-neutral-400 shrink-0" />
+                              <Send className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
                               <select
                                 defaultValue=""
                                 onChange={(e) => {
@@ -1120,10 +1128,10 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
                                     e.target.value = '';
                                   }
                                 }}
-                                className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-2 py-1 text-[10px] font-bold text-neutral-700 hover:bg-neutral-100 transition cursor-pointer focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-2.5 py-2 sm:py-1 text-xs sm:text-[10px] font-bold text-neutral-800 hover:bg-neutral-100 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 min-h-[38px] sm:min-h-0"
                               >
                                 <option value="" disabled>
-                                  ⚡ 1-Click Deploy To Barangay...
+                                  ⚡ 1-Tap Deploy To Barangay...
                                 </option>
                                 {locations
                                   .filter((l) => l.type === 'barangay')

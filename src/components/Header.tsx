@@ -134,11 +134,11 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Action Buttons & Auth Pill */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
-            {/* Quick Scan Tag */}
+            {/* Quick Scan Tag (shown on sm+ screens, mobile has it in bottom nav) */}
             <button
               onClick={onOpenScanModal}
               title="Quick Scan QR / Barcode"
-              className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-2 text-xs font-semibold shadow-2xs active:scale-95 transition-all ${
+              className={`hidden sm:inline-flex items-center justify-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-2 text-xs font-semibold shadow-2xs active:scale-95 transition-all ${
                 isScrolled
                   ? 'border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900'
                   : 'border border-white/25 bg-black/40 backdrop-blur-md text-white hover:bg-black/60'
@@ -147,15 +147,15 @@ export const Header: React.FC<HeaderProps> = ({
               <QrCode className={`h-4 w-4 transition-colors duration-300 ${
                 isScrolled ? 'text-neutral-600' : 'text-white/90'
               }`} />
-              <span className="hidden sm:inline">Scan Tag</span>
+              <span>Scan Tag</span>
             </button>
 
-            {/* Official A5 Equipment Borrowing Slip */}
+            {/* Official A5 Equipment Borrowing Slip (shown on sm+ screens, mobile has it in bottom nav) */}
             {onOpenChecklistModal && (
               <button
                 onClick={onOpenChecklistModal}
                 title="View / Print Official A5 Event Borrowing Checklist Slip"
-                className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-2 text-xs font-semibold shadow-2xs active:scale-95 transition-all ${
+                className={`hidden sm:inline-flex items-center justify-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-2 text-xs font-semibold shadow-2xs active:scale-95 transition-all ${
                   isScrolled
                     ? 'border border-emerald-200 bg-emerald-50/70 text-emerald-800 hover:bg-emerald-100'
                     : 'border border-white/25 bg-black/40 backdrop-blur-md text-emerald-300 hover:bg-black/60'

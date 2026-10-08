@@ -24,27 +24,31 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md rounded-3xl bg-white border border-neutral-200/90 p-6 shadow-2xl transition-all">
+    <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="relative w-full max-w-md rounded-t-[32px] sm:rounded-3xl bg-white border-t sm:border border-neutral-200/90 p-5 sm:p-6 shadow-2xl transition-all pb-[max(1.25rem,env(safe-area-inset-bottom))]">
         
+        {/* Mobile Native Drag Pill Handle */}
+        <div className="w-12 h-1.5 bg-neutral-300 rounded-full mx-auto mb-2.5 shrink-0 sm:hidden" />
+
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-black/[0.06]">
+        <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-black/[0.06]">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-neutral-900 text-white shadow-sm">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-neutral-900 text-white shadow-sm shrink-0">
               <ShieldCheck className="h-5 w-5 text-emerald-400" />
             </div>
             <div>
-              <h3 className="text-base font-semibold tracking-tight text-neutral-900">
+              <h3 className="text-sm sm:text-base font-bold tracking-tight text-neutral-900">
                 HIMU Security & Access
               </h3>
-              <p className="text-xs text-neutral-500">
+              <p className="text-[11px] sm:text-xs text-neutral-500">
                 2 Authorized System Roles • City of Parañaque
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="rounded-full p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 transition"
+            className="rounded-full p-2 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 transition active:scale-95"
+            aria-label="Close"
           >
             <X className="h-4 w-4" />
           </button>

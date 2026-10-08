@@ -163,20 +163,23 @@ export const TransferModal: React.FC<TransferModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200">
-      <div className="relative w-full max-w-xl rounded-3xl bg-white border border-neutral-200/90 p-5 sm:p-6 shadow-2xl transition-all my-auto max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200">
+      <div className="relative w-full max-w-xl rounded-t-[32px] sm:rounded-3xl bg-white border-t sm:border border-neutral-200/90 p-5 sm:p-6 shadow-2xl transition-all max-h-[92vh] flex flex-col">
         
+        {/* Mobile Native Drag Pill Handle */}
+        <div className="w-12 h-1.5 bg-neutral-300 rounded-full mx-auto mb-2 shrink-0 sm:hidden" />
+
         {/* Header */}
         <div className="flex items-center justify-between pb-3.5 border-b border-black/[0.06] shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-sm">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-sm shrink-0">
               <Printer className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-base font-extrabold tracking-tight text-neutral-900">
+              <h3 className="text-sm sm:text-base font-extrabold tracking-tight text-neutral-900">
                 Event Equipment Borrowing & Dispatch
               </h3>
-              <p className="text-xs text-neutral-500 font-medium">
+              <p className="text-[11px] sm:text-xs text-neutral-500 font-medium">
                 Generates 1:1 Official A5 Borrowing Checklist Slip
               </p>
             </div>
@@ -444,21 +447,21 @@ export const TransferModal: React.FC<TransferModalProps> = ({
           </div>
 
           {/* Bottom Form Actions */}
-          <div className="pt-3 border-t border-black/[0.06] flex items-center justify-between gap-2.5">
+          <div className="pt-3 border-t border-black/[0.06] flex items-center justify-between gap-2.5 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-neutral-200 bg-white px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 transition"
+              className="rounded-xl border border-neutral-200 bg-white px-4 py-2.5 sm:py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 transition active:scale-95"
             >
               Cancel
             </button>
 
             <button
               type="submit"
-              className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 text-xs font-bold shadow-md transition active:scale-95"
+              className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 sm:py-2 text-xs font-bold shadow-md transition active:scale-95 flex-1 sm:flex-initial"
             >
               <Printer className="h-4 w-4" />
-              <span>Confirm & Generate A5 Receipt</span>
+              <span>Confirm & Generate A5</span>
             </button>
           </div>
         </form>

@@ -101,19 +101,22 @@ export const BorrowChecklistReceiptModal: React.FC<BorrowChecklistReceiptModalPr
   };
 
   return (
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[10000] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/70 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200">
       
-      {/* Container Dialog */}
-      <div className="relative w-full max-w-[620px] rounded-3xl bg-neutral-900 border border-neutral-700/80 shadow-2xl p-4 sm:p-6 my-auto text-white">
+      {/* Container Dialog: Native Bottom Sheet on Mobile, Centered Modal on Desktop */}
+      <div className="relative w-full max-w-[640px] rounded-t-[32px] sm:rounded-3xl bg-neutral-900 border-t sm:border border-neutral-700/80 shadow-2xl p-4 sm:p-6 text-white max-h-[94vh] flex flex-col">
         
+        {/* Mobile Native Drag Pill Handle */}
+        <div className="w-12 h-1.5 bg-neutral-600 rounded-full mx-auto mb-2.5 shrink-0 sm:hidden" />
+
         {/* Top Control Bar (Hidden during print) */}
-        <div className="no-print flex items-center justify-between pb-3.5 mb-4 border-b border-white/10">
+        <div className="no-print flex items-center justify-between pb-3 mb-3 border-b border-white/10 shrink-0">
           <div className="flex items-center gap-2">
             <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
-            <h3 className="text-sm font-bold tracking-tight text-neutral-100">
+            <h3 className="text-xs sm:text-sm font-bold tracking-tight text-neutral-100 truncate">
               Official A5 Borrowing Checklist Slip
             </h3>
-            <span className="text-[10px] rounded-full bg-white/10 px-2 py-0.5 text-neutral-300 font-mono">
+            <span className="hidden xs:inline-block text-[10px] rounded-full bg-white/10 px-2 py-0.5 text-neutral-300 font-mono shrink-0">
               A5 Standard (148 × 210 mm)
             </span>
           </div>
@@ -121,46 +124,77 @@ export const BorrowChecklistReceiptModal: React.FC<BorrowChecklistReceiptModalPr
           <div className="flex items-center gap-2">
             <button
               onClick={handlePrint}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 text-xs font-bold shadow-md transition active:scale-95"
+              className="hidden sm:inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 text-xs font-bold shadow-md transition active:scale-95"
             >
               <Printer size={15} />
               <span>Print A5 Copy</span>
             </button>
             <button
               onClick={onClose}
-              className="rounded-xl p-1.5 text-neutral-400 hover:text-white hover:bg-white/10 transition"
+              className="rounded-xl p-2 text-neutral-400 hover:text-white hover:bg-white/10 transition active:scale-95"
               title="Close"
+              aria-label="Close dialog"
             >
-              <X size={18} />
+              <X size={20} />
             </button>
           </div>
         </div>
 
         {/* Quick Helper Banner */}
-        <div className="no-print mb-2.5 rounded-xl bg-white/10 px-3 py-1.5 text-[11px] text-neutral-300 flex items-center justify-between">
-          <span>✏️ <strong>Live Input:</strong> Click directly on <u>Event/Activity</u>, <u>Office</u>, or <u>Borrower</u> below to customize or type any title before printing.</span>
+        <div className="no-print mb-2.5 rounded-xl bg-white/10 px-3 py-1.5 text-[11px] text-neutral-300 flex items-center justify-between shrink-0">
+          <span>✏️ <strong>Live Input:</strong> Tap directly on <u>Event/Activity</u>, <u>Office</u>, or <u>Borrower</u> below to edit before printing.</span>
         </div>
 
-        {/* ========================================================================= */}
-        {/* A5 DOCUMENT CANVAS (1-TO-1 EXACT REPLICA OF PHYSICAL A5 CHECKLIST PAPER) */}
-        {/* ========================================================================= */}
-        <div
-          ref={printContentRef}
-          className="a5-printable-document rounded-2xl bg-white text-black p-6 sm:p-8 shadow-xl font-sans leading-normal selection:bg-neutral-200 selection:text-black border border-neutral-200 text-left mx-auto"
-          style={{
-            color: '#000000',
-            backgroundColor: '#FFFFFF',
-          }}
-        >
-          {/* 1. Header Logos (4 Logos in exact horizontal alignment) */}
-          <div className="flex items-center justify-between gap-1 sm:gap-2 pb-2">
-            {/* Logo 1: City of Parañaque Official Seal */}
-            <div className="flex items-center justify-center shrink-0">
-              <img
-                src="/logo-paranaque-seal.png"
-                alt="City of Parañaque"
-                className="h-12 w-12 sm:h-14 sm:w-14 object-contain"
-              />
+        {/* Document Scroll Wrapper for Phone Viewports */}
+        <div className="flex-1 overflow-y-auto overflow-x-auto min-h-0 pr-0 sm:pr-1 pb-1">
+          {/* ========================================================================= */}
+          {/* A5 DOCUMENT CANVAS (1-TO-1 EXACT REPLICA OF PHYSICAL A5 CHECKLIST PAPER) */}
+          {/* ========================================================================= */}
+          <div
+            ref={printContentRef}
+            className="a5-printable-document rounded-2xl bg-white text-black p-4 sm:p-8 shadow-xl font-sans leading-normal selection:bg-neutral-200 selection:text-black border border-neutral-200 text-left min-w-[340px] sm:min-w-0 mx-auto"
+            style={{
+              color: '#000000',
+              backgroundColor: '#FFFFFF',
+            }}
+          >
+            {/* 1. Header Logos (4 Logos in exact horizontal alignment) */}
+            <div className="flex items-center justify-between gap-1 sm:gap-2 pb-2">
+              {/* Logo 1: City of Parañaque Official Seal */}
+              <div className="flex items-center justify-center shrink-0">
+                <img
+                  src="/logo-paranaque-seal.png"
+                  alt="City of Parañaque"
+                  className="h-9 w-9 sm:h-14 sm:w-14 object-contain"
+                />
+              </div>
+
+              {/* Logo 2: Bagong Pilipinas */}
+              <div className="flex items-center justify-center shrink-0">
+                <img
+                  src="/logo-bagong-pilipinas.png"
+                  alt="Bagong Pilipinas"
+                  className="h-9 w-9 sm:h-14 sm:w-14 object-contain"
+                />
+              </div>
+
+              {/* Logo 3: Parañaque A Mega City By The Bay */}
+              <div className="flex items-center justify-center shrink-0 max-w-[85px] sm:max-w-[140px]">
+                <img
+                  src="/logo-paranaque-megacity.png"
+                  alt="Parañaque A Mega City By The Bay"
+                  className="h-7 sm:h-11 object-contain"
+                />
+              </div>
+
+              {/* Logo 4: City Health Office Parañaque */}
+              <div className="flex items-center justify-center shrink-0">
+                <img
+                  src="/logo-city-health-office.png"
+                  alt="City Health Office"
+                  className="h-9 w-9 sm:h-14 sm:w-14 object-contain"
+                />
+              </div>
             </div>
 
             {/* Logo 2: Bagong Pilipinas */}
@@ -366,9 +400,9 @@ export const BorrowChecklistReceiptModal: React.FC<BorrowChecklistReceiptModalPr
           </div>
         </div>
 
-        {/* Modal Action Buttons (Bottom) */}
-        <div className="no-print mt-4 flex items-center justify-between gap-3">
-          <div className="text-xs text-neutral-400">
+        {/* Modal Action Buttons (Bottom Sticky Bar on Mobile) */}
+        <div className="no-print mt-3 pt-3 border-t border-white/10 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 shrink-0 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+          <div className="text-[11px] sm:text-xs text-neutral-400 text-center sm:text-left truncate">
             Dispatched by: <strong className="text-white">{record.dispatchedBy}</strong>
           </div>
 
@@ -376,7 +410,7 @@ export const BorrowChecklistReceiptModal: React.FC<BorrowChecklistReceiptModalPr
             {record.status !== 'returned' && onMarkReturned && (
               <button
                 onClick={() => onMarkReturned(record.id, record.dispatchedBy)}
-                className="rounded-xl border border-white/20 bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 text-xs font-semibold transition"
+                className="flex-1 sm:flex-initial rounded-xl border border-white/20 bg-white/10 hover:bg-white/20 text-white px-3 py-2 text-xs font-semibold transition active:scale-95"
               >
                 Mark Returned
               </button>
@@ -384,10 +418,10 @@ export const BorrowChecklistReceiptModal: React.FC<BorrowChecklistReceiptModalPr
 
             <button
               onClick={handlePrint}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 text-xs font-bold shadow-md transition active:scale-95"
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 rounded-2xl sm:rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-3 sm:py-2 text-sm sm:text-xs font-bold shadow-md transition active:scale-95"
             >
-              <Printer size={15} />
-              <span>Print A5 Paper Copy</span>
+              <Printer size={16} />
+              <span>Print A5 Copy</span>
             </button>
           </div>
         </div>

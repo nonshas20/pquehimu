@@ -25,8 +25,8 @@ import {
   QrCode, 
   Plus, 
   MapIcon, 
-  ShieldCheck, 
-  Database 
+  Database,
+  Printer 
 } from './components/HugeIcons';
 
 export function App() {
@@ -929,20 +929,22 @@ export function App() {
 
         {/* Interactive Parañaque Leaflet Map */}
         {showMap && (
-          <ParanaqueMap
-            locations={locations}
-            assets={assets}
-            selectedLocationId={selectedLocationId}
-            onSelectLocation={setSelectedLocationId}
-            onOpenTransfer={handleOpenTransfer}
-            onOpenAddModal={handleOpenAddForLocation}
-            onDeployKit={handleDeployHealthKit}
-            onDeployAllKits={handleDeployAllBarangaysKit}
-            onQuickRelocate={handleQuickRelocateAsset}
-            onPrintA5ForAsset={handlePrintA5ForAsset}
-            onPrintA5ForBarangay={handlePrintA5ForBarangay}
-            onDeleteBorrow={handleDeleteOrUndoBorrow}
-          />
+          <div id="paranaque-map-section" className="scroll-mt-24">
+            <ParanaqueMap
+              locations={locations}
+              assets={assets}
+              selectedLocationId={selectedLocationId}
+              onSelectLocation={setSelectedLocationId}
+              onOpenTransfer={handleOpenTransfer}
+              onOpenAddModal={handleOpenAddForLocation}
+              onDeployKit={handleDeployHealthKit}
+              onDeployAllKits={handleDeployAllBarangaysKit}
+              onQuickRelocate={handleQuickRelocateAsset}
+              onPrintA5ForAsset={handlePrintA5ForAsset}
+              onPrintA5ForBarangay={handlePrintA5ForBarangay}
+              onDeleteBorrow={handleDeleteOrUndoBorrow}
+            />
+          </div>
         )}
 
         {/* 16 Barangays District Selector Strip */}
@@ -954,17 +956,20 @@ export function App() {
         />
 
         {/* Core Asset List & Management Table */}
-        <AssetList
-          assets={filteredAssets}
-          locations={locations}
-          onOpenTransfer={handleOpenTransfer}
-          onOpenDetail={handleOpenDetail}
-          onOpenAddModal={() => setIsAddOpen(true)}
-          selectedCategory={selectedCategory}
-          onSelectCategory={setSelectedCategory}
-          selectedStatus={selectedStatus}
-          onSelectStatus={setSelectedStatus}
-        />
+        <div id="asset-registry-section" className="scroll-mt-24">
+          <AssetList
+            assets={filteredAssets}
+            locations={locations}
+            onOpenTransfer={handleOpenTransfer}
+            onOpenDetail={handleOpenDetail}
+            onOpenAddModal={() => setIsAddOpen(true)}
+            onPrintA5ForAsset={handlePrintA5ForAsset}
+            selectedCategory={selectedCategory}
+            onSelectCategory={setSelectedCategory}
+            selectedStatus={selectedStatus}
+            onSelectStatus={setSelectedStatus}
+          />
+        </div>
 
         {/* Infrastructure & Security Info */}
         <div className="rounded-3xl bg-white border border-neutral-200/90 p-5 shadow-xs text-xs text-neutral-600">
@@ -985,57 +990,78 @@ export function App() {
         </div>
       </main>
 
-      {/* Mobile Floating Plain White Bottom Navigation Bar */}
-      <div className="fixed bottom-3 inset-x-3 z-40 sm:hidden">
-        <div className="rounded-3xl bg-white p-2 shadow-lg border border-neutral-200">
-          <div className="flex items-center justify-around text-xs">
-            <button
-              onClick={() => {
-                setSelectedLocationId(null);
-                setSelectedCategory('ALL');
-                setSelectedStatus('ALL');
-                setSearchQuery('');
-              }}
-              className="flex flex-col items-center gap-1 text-neutral-600 hover:text-neutral-900 px-3 py-1.5"
-            >
-              <Layers className="h-4.5 w-4.5" />
-              <span className="text-[10px] font-semibold">Assets</span>
-            </button>
+      {/* Mobile Native Docked Bottom Navigation Bar */}
+      <nav 
+        aria-label="Mobile Bottom Navigation"
+        className="fixed bottom-0 inset-x-0 z-40 sm:hidden bg-white/95 backdrop-blur-md border-t border-neutral-200/90 shadow-2xl px-2 pt-1.5 pb-[max(0.6rem,env(safe-area-inset-bottom))]"
+      >
+        <div className="flex items-center justify-around text-xs max-w-md mx-auto">
+          {/* 1. Assets Tab */}
+          <button
+            onClick={() => {
+              setShowMap(false);
+              const el = document.getElementById('asset-registry-section');
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className={`flex flex-1 flex-col items-center justify-center gap-1 py-1 px-1 rounded-2xl transition active:scale-95 ${
+              !showMap
+                ? 'text-neutral-950 font-bold bg-neutral-100/90'
+                : 'text-neutral-500 hover:text-neutral-900 font-medium'
+            }`}
+          >
+            <Layers className={`h-4.5 w-4.5 ${!showMap ? 'text-neutral-950' : 'text-neutral-500'}`} />
+            <span className="text-[10px]">Assets</span>
+          </button>
 
-            <button
-              onClick={() => setShowMap(!showMap)}
-              className="flex flex-col items-center gap-1 text-neutral-600 hover:text-neutral-900 px-3 py-1.5"
-            >
-              <MapIcon className="h-4.5 w-4.5" />
-              <span className="text-[10px] font-semibold">Map</span>
-            </button>
+          {/* 2. Map Tab */}
+          <button
+            onClick={() => {
+              setShowMap(true);
+              setTimeout(() => {
+                const el = document.getElementById('paranaque-map-section');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }, 50);
+            }}
+            className={`flex flex-1 flex-col items-center justify-center gap-1 py-1 px-1 rounded-2xl transition active:scale-95 ${
+              showMap
+                ? 'text-emerald-700 font-bold bg-emerald-50'
+                : 'text-neutral-500 hover:text-neutral-900 font-medium'
+            }`}
+          >
+            <MapIcon className={`h-4.5 w-4.5 ${showMap ? 'text-emerald-600' : 'text-neutral-500'}`} />
+            <span className="text-[10px]">Map</span>
+          </button>
 
-            {/* Central Floating Add Pill */}
+          {/* 3. Central Native Floating Add Action (FAB) */}
+          <div className="flex-1 flex justify-center -mt-6">
             <button
               onClick={() => setIsAddOpen(true)}
-              className="flex h-12 w-12 items-center justify-center rounded-2xl bg-neutral-900 text-white shadow-lg active:scale-90 -mt-5 ring-4 ring-white"
+              aria-label="Register New Hardware"
+              className="flex h-12 w-12 items-center justify-center rounded-2xl bg-neutral-900 text-white shadow-xl ring-4 ring-white active:scale-90 transition-transform"
             >
-              <Plus className="h-6 w-6" />
-            </button>
-
-            <button
-              onClick={() => setIsScanOpen(true)}
-              className="flex flex-col items-center gap-1 text-neutral-600 hover:text-neutral-900 px-3 py-1.5"
-            >
-              <QrCode className="h-4.5 w-4.5" />
-              <span className="text-[10px] font-semibold">Scan</span>
-            </button>
-
-            <button
-              onClick={() => setIsAuthOpen(true)}
-              className="flex flex-col items-center gap-1 text-neutral-600 hover:text-neutral-900 px-3 py-1.5"
-            >
-              <ShieldCheck className="h-4.5 w-4.5" />
-              <span className="text-[10px] font-semibold">Role</span>
+              <Plus className="h-6 w-6 stroke-[2.5]" />
             </button>
           </div>
+
+          {/* 4. Scan QR / Barcode */}
+          <button
+            onClick={() => setIsScanOpen(true)}
+            className="flex flex-1 flex-col items-center justify-center gap-1 py-1 px-1 text-neutral-500 hover:text-neutral-900 font-medium rounded-2xl transition active:scale-95"
+          >
+            <QrCode className="h-4.5 w-4.5 text-neutral-500" />
+            <span className="text-[10px]">Scan</span>
+          </button>
+
+          {/* 5. A5 Slip (Quick Official Receipt Generator) */}
+          <button
+            onClick={handleOpenQuickChecklist}
+            className="flex flex-1 flex-col items-center justify-center gap-1 py-1 px-1 text-neutral-500 hover:text-neutral-900 font-medium rounded-2xl transition active:scale-95"
+          >
+            <Printer className="h-4.5 w-4.5 text-neutral-500" />
+            <span className="text-[10px]">A5 Slip</span>
+          </button>
         </div>
-      </div>
+      </nav>
 
       {/* Modals */}
       <TransferModal

@@ -43,12 +43,15 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-2xl max-h-[90vh] flex flex-col rounded-3xl bg-white border border-neutral-200/90 shadow-2xl transition-all overflow-hidden">
+    <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="relative w-full max-w-2xl max-h-[92vh] sm:max-h-[90vh] flex flex-col rounded-t-[32px] sm:rounded-3xl bg-white border-t sm:border border-neutral-200/90 shadow-2xl transition-all overflow-hidden">
         
+        {/* Mobile Native Drag Pill Handle */}
+        <div className="w-12 h-1.5 bg-neutral-300 rounded-full mx-auto my-2.5 shrink-0 sm:hidden" />
+
         {/* Header */}
-        <div className="flex items-center justify-between p-6 pb-4 border-b border-black/[0.06]">
-          <div className="min-w-0 pr-4">
+        <div className="flex items-center justify-between px-4 sm:px-6 pb-3 sm:pb-4 border-b border-black/[0.06] shrink-0">
+          <div className="min-w-0 pr-3">
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-neutral-600 bg-white/80 px-2 py-0.5 rounded border border-black/5">
                 {asset.assetTag}
@@ -65,13 +68,14 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
             <h3 className="mt-1 text-base sm:text-lg font-bold tracking-tight text-neutral-900 truncate">
               {asset.name}
             </h3>
-            <p className="text-xs text-neutral-500 font-medium">
+            <p className="text-xs text-neutral-500 font-medium truncate">
               {asset.brandModel}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="rounded-full p-2 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 transition"
+            className="rounded-full p-2 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 transition active:scale-95 shrink-0"
+            aria-label="Close"
           >
             <X className="h-4 w-4" />
           </button>
@@ -260,8 +264,8 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 px-6 border-t border-black/[0.06] bg-white/60 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="p-3 sm:p-4 sm:px-6 border-t border-black/[0.06] bg-white flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] shrink-0">
+          <div className="flex items-center gap-2 flex-1 sm:flex-initial">
             <button
               onClick={() => {
                 if (asset.history.length > 0 && onViewChecklist) {
@@ -270,27 +274,27 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
                   window.print();
                 }
               }}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 px-3.5 py-2 text-xs font-bold hover:bg-emerald-100 transition active:scale-95 shadow-2xs"
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 px-3.5 py-2.5 sm:py-2 text-xs font-bold hover:bg-emerald-100 transition active:scale-95 shadow-2xs"
             >
               <Printer className="h-3.5 w-3.5" />
-              <span>A5 Borrowing Slip</span>
+              <span>A5 Borrow Slip</span>
             </button>
 
             <button
               onClick={() => {
                 window.print();
               }}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-neutral-200 bg-white px-3.5 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 transition active:scale-95"
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 rounded-xl border border-neutral-200 bg-white px-3.5 py-2.5 sm:py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 transition active:scale-95"
             >
               <FileText className="h-3.5 w-3.5" />
               <span>Print PAR</span>
             </button>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 justify-end">
             <button
               onClick={onClose}
-              className="rounded-xl border border-neutral-200 bg-white px-3.5 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 transition"
+              className="rounded-xl border border-neutral-200 bg-white px-4 py-2.5 sm:py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 transition active:scale-95"
             >
               Close
             </button>
@@ -299,7 +303,7 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
                 onClose();
                 onOpenTransfer(asset);
               }}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-neutral-900 px-4 py-2 text-xs font-semibold text-white hover:bg-neutral-800 transition active:scale-95"
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 rounded-xl bg-neutral-900 px-4 py-2.5 sm:py-2 text-xs font-semibold text-white hover:bg-neutral-800 transition active:scale-95"
             >
               <ArrowRightLeft className="h-3.5 w-3.5" />
               <span>Transfer Item</span>
