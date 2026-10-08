@@ -197,34 +197,6 @@ export const BorrowChecklistReceiptModal: React.FC<BorrowChecklistReceiptModalPr
               </div>
             </div>
 
-            {/* Logo 2: Bagong Pilipinas */}
-            <div className="flex items-center justify-center shrink-0">
-              <img
-                src="/logo-bagong-pilipinas.png"
-                alt="Bagong Pilipinas"
-                className="h-12 w-12 sm:h-14 sm:w-14 object-contain"
-              />
-            </div>
-
-            {/* Logo 3: Parañaque A Mega City By The Bay */}
-            <div className="flex items-center justify-center shrink-0 max-w-[120px] sm:max-w-[140px]">
-              <img
-                src="/logo-paranaque-megacity.png"
-                alt="Parañaque A Mega City By The Bay"
-                className="h-9 sm:h-11 object-contain"
-              />
-            </div>
-
-            {/* Logo 4: City Health Office Parañaque */}
-            <div className="flex items-center justify-center shrink-0">
-              <img
-                src="/logo-city-health-office.png"
-                alt="City Health Office"
-                className="h-12 w-12 sm:h-14 sm:w-14 object-contain"
-              />
-            </div>
-          </div>
-
           {/* 2. Official Republic & Department Hierarchy */}
           <div className="text-center mt-1 leading-tight text-[11px] sm:text-[12px] font-bold text-neutral-800 tracking-wide uppercase">
             <p>Republic of the Philippines</p>
@@ -399,8 +371,9 @@ export const BorrowChecklistReceiptModal: React.FC<BorrowChecklistReceiptModalPr
             <span>Recorded: {formatDateTime(record.dispatchedAt)}</span>
           </div>
         </div>
+      </div>
 
-        {/* Modal Action Buttons (Bottom Sticky Bar on Mobile) */}
+      {/* Modal Action Buttons (Bottom Sticky Bar on Mobile) */}
         <div className="no-print mt-3 pt-3 border-t border-white/10 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 shrink-0 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           <div className="text-[11px] sm:text-xs text-neutral-400 text-center sm:text-left truncate">
             Dispatched by: <strong className="text-white">{record.dispatchedBy}</strong>
