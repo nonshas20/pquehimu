@@ -103,6 +103,7 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
   // Drag-and-Drop Tracking State
   const [draggingAsset, setDraggingAsset] = useState<AssetItem | null>(null);
   const [hoveredDropLocationId, setHoveredDropLocationId] = useState<string | null>(null);
+  const [justDroppedLocationId, setJustDroppedLocationId] = useState<string | null>(null);
   const [lastDeployedNotice, setLastDeployedNotice] = useState<{
     assetId?: string;
     assetName: string;
@@ -117,6 +118,18 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
     const t = setTimeout(() => setLastDeployedNotice(null), 10000);
     return () => clearTimeout(t);
   }, [lastDeployedNotice]);
+
+  // Navigate to destination location and zoom into its polygon
+  const handleGoToDestination = (locationId?: string) => {
+    if (!locationId) return;
+    onSelectLocation(locationId);
+    setActiveTab('BARANGAY');
+    setIsPanelOpen(true);
+    const poly = polygonLayersRef.current.get(locationId);
+    if (poly && mapRef.current) {
+      mapRef.current.flyTo(poly.getBounds().getCenter(), Math.max(mapRef.current.getZoom(), 13.5), { duration: 0.8 });
+    }
+  };
 
   // Selected Location and its assets
   const selectedLocation = useMemo(() => {
@@ -496,12 +509,12 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
     geoJsonLayerRef.current = geoJsonLayer;
   }, [selectedLocationId, hoveredDropLocationId, locationStats, locations, filterCategory, onSelectLocation]);
 
-  // Dynamic Polygon Glow on Drag Hover
+  // Dynamic Polygon Glow on Drag Hover & Drop Confirmation
   useEffect(() => {
     if (!geoJsonLayerRef.current) return;
 
     polygonLayersRef.current.forEach((poly, locId) => {
-      if (locId === hoveredDropLocationId) {
+      if (locId === hoveredDropLocationId || locId === justDroppedLocationId) {
         poly.setStyle({
           fillColor: '#10B981',
           fillOpacity: 0.92,
@@ -522,7 +535,7 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
         geoJsonLayerRef.current?.resetStyle(poly);
       }
     });
-  }, [hoveredDropLocationId, selectedLocationId]);
+  }, [hoveredDropLocationId, selectedLocationId, justDroppedLocationId]);
 
   // Recenter map button
   const handleRecenter = () => {
@@ -608,10 +621,15 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
         time: Date.now(),
       });
 
-      // Auto-select target barangay and open its bay so the user verifies the placement
-      onSelectLocation(targetLocId);
-      setActiveTab('BARANGAY');
-      setIsPanelOpen(true);
+      // Brief emerald flash on the destination polygon to visually acknowledge the drop
+      setJustDroppedLocationId(targetLocId);
+      setTimeout(() => {
+        setJustDroppedLocationId((curr) => (curr === targetLocId ? null : curr));
+      }, 1200);
+
+      // NOTE: We intentionally remain on the DEPOT tab and do NOT auto-select
+      // the destination location so the user can drag and drag continuously!
+      // The user can click "Go to Location →" on the banner or click the map/tab when done.
     }
 
     setDraggingAsset(null);
@@ -631,9 +649,12 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
       locationName: targetLoc?.name || 'Barangay',
       time: Date.now(),
     });
+
     if (toLocationId !== 'loc-himu-hq') {
-      onSelectLocation(toLocationId);
-      setActiveTab('BARANGAY');
+      setJustDroppedLocationId(toLocationId);
+      setTimeout(() => {
+        setJustDroppedLocationId((curr) => (curr === toLocationId ? null : curr));
+      }, 1200);
     }
   };
 
@@ -796,7 +817,7 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
 
       {/* Interactive Drag & Drop Borrow Success HUD Banner with Direct A5 Print & Delete */}
       {lastDeployedNotice && (
-        <div className="absolute top-16 left-3 right-3 sm:left-auto sm:right-[430px] z-30 transition-all animate-in fade-in slide-in-from-top-3 duration-200">
+        <div className="absolute top-16 left-3 right-3 sm:left-auto sm:right-[410px] lg:right-[450px] z-30 transition-all animate-in fade-in slide-in-from-top-3 duration-200">
           <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 rounded-2xl bg-neutral-900/95 backdrop-blur-md text-white p-3 sm:px-4 sm:py-2.5 shadow-2xl border border-white/20">
             <div className="flex items-center gap-2 min-w-0">
               <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
@@ -804,11 +825,30 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
                 <span className="font-extrabold text-emerald-400">Borrow Recorded: </span>
                 <span className="font-bold text-white">{lastDeployedNotice.assetName}</span>
                 <span className="text-neutral-400"> → </span>
-                <span className="font-extrabold underline text-white">{lastDeployedNotice.locationName}</span>
+                <button
+                  type="button"
+                  onClick={() => handleGoToDestination(lastDeployedNotice.locationId)}
+                  className="font-extrabold underline text-emerald-300 hover:text-white transition cursor-pointer text-left"
+                  title="Click to view destination location"
+                >
+                  {lastDeployedNotice.locationName}
+                </button>
               </div>
             </div>
 
             <div className="flex items-center gap-1.5 shrink-0 pl-1">
+              {/* Go to Destination Button */}
+              {lastDeployedNotice.locationId && lastDeployedNotice.locationId !== 'loc-himu-hq' && (
+                <button
+                  type="button"
+                  onClick={() => handleGoToDestination(lastDeployedNotice.locationId)}
+                  className="inline-flex items-center gap-1 rounded-xl bg-white/10 hover:bg-white/20 text-white px-2.5 py-1 text-[11px] font-bold border border-white/20 transition active:scale-95 cursor-pointer"
+                  title={`Go to ${lastDeployedNotice.locationName}`}
+                >
+                  <span>Go to Location →</span>
+                </button>
+              )}
+
               {onPrintA5ForAsset && lastDeployedNotice.assetId && (
                 <button
                   type="button"
