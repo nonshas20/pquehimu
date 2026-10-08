@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { AssetItem, AssetCategory, BarangayLocation } from '../types/inventory';
-import { X, Plus } from 'lucide-react';
+import { X, Plus } from './HugeIcons';
 
 interface AddAssetModalProps {
   isOpen: boolean;

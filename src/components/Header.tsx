@@ -7,7 +7,7 @@ import {
   ShieldCheck, 
   UserCheck, 
   ChevronDown 
-} from 'lucide-react';
+} from './HugeIcons';
 
 interface HeaderProps {
   searchQuery: string;

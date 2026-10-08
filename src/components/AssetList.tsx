@@ -21,8 +21,8 @@ import {
   Plus, 
   Archive, 
   LayoutGrid, 
-  Table as TableIcon 
-} from 'lucide-react';
+  TableIcon 
+} from './HugeIcons';
 
 interface AssetListProps {
   assets: AssetItem[];

@@ -1,7 +1,7 @@
 import React from 'react';
 import type { AppUser } from '../types/inventory';
 import { DEFAULT_USERS } from '../data/mockData';
-import { X, ShieldCheck, UserCheck, Check } from 'lucide-react';
+import { X, ShieldCheck, UserCheck, Check } from './HugeIcons';
 
 interface AuthModalProps {
   isOpen: boolean;

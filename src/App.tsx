@@ -22,10 +22,10 @@ import {
   Layers, 
   QrCode, 
   Plus, 
-  Map as MapIcon, 
+  MapIcon, 
   ShieldCheck, 
   Database 
-} from 'lucide-react';
+} from './components/HugeIcons';
 
 export function App() {
   // Current user / role (ADMIN or IT_OFFICER)

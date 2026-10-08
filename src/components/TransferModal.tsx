@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import type { AssetItem, BarangayLocation } from '../types/inventory';
 import { DISPATCH_OFFICERS } from '../types/inventory';
-import { X, ArrowRight, Truck } from 'lucide-react';
+import { X, ArrowRight, Truck } from './HugeIcons';
 
 interface TransferModalProps {
   isOpen: boolean;

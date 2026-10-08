@@ -8,7 +8,7 @@ import {
   Copy, 
   Check, 
   MapPin 
-} from 'lucide-react';
+} from './HugeIcons';
 
 interface AssetDetailModalProps {
   isOpen: boolean;

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { BarangayLocation, AssetItem } from '../types/inventory';
-import { MapPin, Building2 } from 'lucide-react';
+import { MapPin, Building2 } from './HugeIcons';
 
 interface BarangaySelectorProps {
   locations: BarangayLocation[];

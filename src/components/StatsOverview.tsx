@@ -1,6 +1,6 @@
 import React from 'react';
 import type { AssetItem } from '../types/inventory';
-import { Package, Truck, Wrench, CheckCircle2 } from 'lucide-react';
+import { Package, Truck, Wrench, CheckCircle2 } from './HugeIcons';
 
 interface StatsOverviewProps {
   assets: AssetItem[];

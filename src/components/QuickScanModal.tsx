@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { AssetItem } from '../types/inventory';
-import { X, QrCode, Camera, AlertCircle } from 'lucide-react';
+import { X, QrCode, Camera, AlertCircle } from './HugeIcons';
 
 interface QuickScanModalProps {
   isOpen: boolean;
