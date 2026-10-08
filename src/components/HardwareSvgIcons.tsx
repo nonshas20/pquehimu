@@ -195,8 +195,8 @@ export const ComputerSvg: React.FC<SvgProps> = ({ className = 'w-6 h-6', size, .
 );
 
 // Raw HTML strings for Leaflet L.divIcon markers
-export const getPrinterMarkerSvg = () => `
-  <svg viewBox="0 0 64 64" width="22" height="22" fill="none" xmlns="http://www.w3.org/2000/svg">
+export const getPrinterMarkerSvg = (size = 20) => `
+  <svg viewBox="0 0 64 64" width="${size}" height="${size}" fill="none" xmlns="http://www.w3.org/2000/svg">
     <rect x="18" y="6" width="28" height="20" rx="2" fill="#F1F5F9" stroke="#94A3B8" stroke-width="2"/>
     <rect x="8" y="20" width="48" height="28" rx="6" fill="#1E293B" stroke="#0F172A" stroke-width="2"/>
     <rect x="14" y="24" width="36" height="6" rx="2" fill="#334155"/>
@@ -211,8 +211,8 @@ export const getPrinterMarkerSvg = () => `
   </svg>
 `;
 
-export const getRouterMarkerSvg = () => `
-  <svg viewBox="0 0 64 64" width="22" height="22" fill="none" xmlns="http://www.w3.org/2000/svg">
+export const getRouterMarkerSvg = (size = 20) => `
+  <svg viewBox="0 0 64 64" width="${size}" height="${size}" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M24 14C28.5 10.5 35.5 10.5 40 14" stroke="#38BDF8" stroke-width="2.5" stroke-linecap="round"/>
     <line x1="14" y1="34" x2="8" y2="12" stroke="#334155" stroke-width="3" stroke-linecap="round"/>
     <line x1="22" y1="32" x2="18" y2="8" stroke="#1E293B" stroke-width="3" stroke-linecap="round"/>
@@ -226,8 +226,8 @@ export const getRouterMarkerSvg = () => `
   </svg>
 `;
 
-export const getExtensionCordMarkerSvg = () => `
-  <svg viewBox="0 0 64 64" width="22" height="22" fill="none" xmlns="http://www.w3.org/2000/svg">
+export const getExtensionCordMarkerSvg = (size = 20) => `
+  <svg viewBox="0 0 64 64" width="${size}" height="${size}" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M12 36C8 38 6 44 8 49C10 54 16 56 22 55C29 54 30 48 26 44C23 41 18 43 17 47C16 51 21 54 28 54C34 54 44 52 48 50" stroke="#F97316" stroke-width="3.5" stroke-linecap="round"/>
     <rect x="12" y="12" width="44" height="22" rx="6" fill="#F8FAFC" stroke="#475569" stroke-width="2"/>
     <rect x="16" y="17" width="7" height="12" rx="2" fill="#EF4444"/>
@@ -241,8 +241,8 @@ export const getExtensionCordMarkerSvg = () => `
   </svg>
 `;
 
-export const getComputerMarkerSvg = () => `
-  <svg viewBox="0 0 64 64" width="22" height="22" fill="none" xmlns="http://www.w3.org/2000/svg">
+export const getComputerMarkerSvg = (size = 20) => `
+  <svg viewBox="0 0 64 64" width="${size}" height="${size}" fill="none" xmlns="http://www.w3.org/2000/svg">
     <rect x="10" y="10" width="44" height="30" rx="3" fill="#0F172A" stroke="#334155" stroke-width="2"/>
     <rect x="13" y="13" width="38" height="23" rx="1.5" fill="#1E293B"/>
     <path d="M16 29L22 24L28 27L36 19L44 23" stroke="#38BDF8" stroke-width="2" stroke-linecap="round"/>
