@@ -572,15 +572,25 @@ export function App() {
 
       {/* Full-Width 21:9 HIMU Team Background Header with 3D Parallax Effect */}
       <div className="relative w-full overflow-hidden bg-neutral-950 aspect-[21/9] min-h-[260px] sm:min-h-[380px] lg:min-h-[480px] max-h-[580px] shadow-xs">
-        <img
-          src="/himu-team-banner.jpg"
-          alt="HIMU IT Operations Team"
-          style={{
-            transform: `translate3d(0, ${scrollY * 0.38}px, 0) scale(${1.06 + Math.min(scrollY * 0.0002, 0.04)})`,
-            willChange: 'transform',
-          }}
-          className="absolute inset-0 h-[125%] -top-[12%] w-full object-cover object-[center_28%] select-none pointer-events-none transition-transform duration-75 ease-out"
-        />
+        <picture>
+          <source
+            type="image/webp"
+            srcSet="/himu-team-banner-1920.webp 1920w, /himu-team-banner.webp 2880w"
+            sizes="(max-width: 1920px) 1920px, 2880px"
+          />
+          <img
+            src="/himu-team-banner.jpg"
+            alt="HIMU IT Operations Team"
+            loading="eager"
+            fetchPriority="high"
+            decoding="async"
+            style={{
+              transform: `translate3d(0, ${scrollY * 0.38}px, 0) scale(${1.06 + Math.min(scrollY * 0.0002, 0.04)})`,
+              willChange: 'transform',
+            }}
+            className="absolute inset-0 h-[125%] -top-[12%] w-full object-cover object-[center_28%] select-none pointer-events-none transition-transform duration-75 ease-out"
+          />
+        </picture>
       </div>
 
       {/* Main Content Container with Stat Cards Overlapping Banner */}
