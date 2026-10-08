@@ -65,7 +65,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
   const selectedDestination = locations.find((l) => l.id === toLocationId);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="relative w-full max-w-lg rounded-3xl bg-white border border-neutral-200/90 p-6 shadow-2xl transition-all">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-black/[0.06]">

@@ -136,6 +136,35 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
     setTimeout(() => setCopiedSerial(null), 1800);
   };
 
+  // Lock body scroll and handle Escape key for true Fullscreen mode
+  useEffect(() => {
+    if (isExpanded) {
+      document.body.style.overflow = 'hidden';
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          setIsExpanded(false);
+        }
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = '';
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    } else {
+      document.body.style.overflow = '';
+    }
+  }, [isExpanded]);
+
+  // Recalculate Leaflet tile dimensions whenever expanded state toggles
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (mapRef.current) {
+        mapRef.current.invalidateSize({ animate: true });
+      }
+    }, 120);
+    return () => clearTimeout(timer);
+  }, [isExpanded]);
+
   // Initialize Leaflet Map
   useEffect(() => {
     if (!mapContainerRef.current) return;
@@ -361,10 +390,10 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
 
   return (
     <div
-      className={`isolate relative z-0 overflow-hidden transition-all duration-300 rounded-3xl border border-neutral-200/90 bg-white shadow-xs ${
+      className={`isolate overflow-hidden transition-all duration-300 bg-white ${
         isExpanded
-          ? 'fixed inset-3 z-[2000] rounded-2xl shadow-2xl h-[calc(100vh-1.5rem)]'
-          : 'h-[360px] sm:h-[460px] w-full'
+          ? 'fixed inset-0 z-[1500] h-screen w-screen rounded-none border-none shadow-none m-0 p-0'
+          : 'relative z-0 rounded-3xl border border-neutral-200/90 shadow-xs h-[420px] sm:h-[520px] w-full'
       }`}
     >
       {/* Top Floating Bar: Category Filter Chips & Controls */}
@@ -456,13 +485,23 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
 
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            title={isExpanded ? 'Minimize Map' : 'Full Screen Map'}
-            className="flex h-8 w-8 items-center justify-center rounded-xl bg-white border border-neutral-200/90 text-neutral-700 hover:text-neutral-950 transition active:scale-95 shadow-xs"
+            title={isExpanded ? 'Exit Full Screen Map (Esc)' : 'Enter Full Screen Map'}
+            className={`flex items-center gap-1.5 h-8 px-2.5 rounded-xl transition active:scale-95 shadow-xs ${
+              isExpanded
+                ? 'bg-neutral-900 text-white hover:bg-neutral-800'
+                : 'bg-white border border-neutral-200/90 text-neutral-700 hover:text-neutral-950'
+            }`}
           >
             {isExpanded ? (
-              <Minimize2 className="h-4 w-4" />
+              <>
+                <Minimize2 className="h-4 w-4 text-white" />
+                <span className="text-xs font-bold">Exit Fullscreen</span>
+              </>
             ) : (
-              <Maximize2 className="h-4 w-4" />
+              <>
+                <Maximize2 className="h-4 w-4" />
+                <span className="hidden sm:inline text-xs font-bold">Fullscreen</span>
+              </>
             )}
           </button>
         </div>
