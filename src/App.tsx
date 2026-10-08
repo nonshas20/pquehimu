@@ -11,6 +11,7 @@ import { PARANAQUE_LOCATIONS, INITIAL_ASSETS, DEFAULT_USERS } from './data/mockD
 import { Header } from './components/Header';
 import { StatsOverview } from './components/StatsOverview';
 import { BarangaySelector } from './components/BarangaySelector';
+import { BarangayStationsMobileList } from './components/BarangayStationsMobileList';
 import { ParanaqueMap } from './components/ParanaqueMap';
 import { AssetList } from './components/AssetList';
 import { TransferModal } from './components/TransferModal';
@@ -26,7 +27,8 @@ import {
   Plus, 
   MapIcon, 
   Database,
-  Printer 
+  Printer,
+  Building2 
 } from './components/HugeIcons';
 
 export function App() {
@@ -81,6 +83,7 @@ export function App() {
 
   // View toggles
   const [showMap, setShowMap] = useState(true);
+  const [mobileTab, setMobileTab] = useState<'assets' | 'stations'>('assets');
 
   // Filtering & Search states
   const [searchQuery, setSearchQuery] = useState('');
@@ -134,6 +137,16 @@ export function App() {
   const handleOpenTransfer = (asset: AssetItem) => {
     setActiveAsset(asset);
     setIsTransferOpen(true);
+  };
+
+  const handleOpenTransferForLocation = (_locationId: string) => {
+    // Find an item stationed at HIMU Central depot, or any asset ready for deployment
+    const staged = assets.find((a) => a.currentLocationId === 'loc-himu-hq' && a.status === 'in_service');
+    const targetAsset = staged || assets[0];
+    if (targetAsset) {
+      setActiveAsset(targetAsset);
+      setIsTransferOpen(true);
+    }
   };
 
   const handleOpenDetail = (asset: AssetItem) => {
@@ -916,7 +929,7 @@ export function App() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="hidden md:flex items-center gap-2">
             <button
               onClick={() => setShowMap(!showMap)}
               className="inline-flex items-center gap-1.5 rounded-2xl bg-white border border-neutral-200/90 px-3.5 py-2 text-xs font-semibold text-neutral-700 hover:text-neutral-950 transition active:scale-95 shadow-2xs"
@@ -927,9 +940,9 @@ export function App() {
           </div>
         </div>
 
-        {/* Interactive Parañaque Leaflet Map */}
+        {/* Interactive Parañaque Leaflet Map - Desktop & Tablet Only (Hidden on phones) */}
         {showMap && (
-          <div id="paranaque-map-section" className="scroll-mt-24">
+          <div id="paranaque-map-section" className="hidden md:block scroll-mt-24">
             <ParanaqueMap
               locations={locations}
               assets={assets}
@@ -947,28 +960,68 @@ export function App() {
           </div>
         )}
 
-        {/* 16 Barangays District Selector Strip */}
-        <BarangaySelector
-          locations={locations}
-          assets={assets}
-          selectedLocationId={selectedLocationId}
-          onSelectLocation={setSelectedLocationId}
-        />
+        {/* Mobile View: Native Tab Switched ('assets' vs 'stations') */}
+        <div className="md:hidden">
+          {mobileTab === 'stations' ? (
+            <BarangayStationsMobileList
+              locations={locations}
+              assets={assets}
+              onOpenTransferForLocation={handleOpenTransferForLocation}
+              onPrintA5ForBarangay={handlePrintA5ForBarangay}
+              onViewAssetsForLocation={(locId) => {
+                setSelectedLocationId(locId);
+                setMobileTab('assets');
+              }}
+            />
+          ) : (
+            <div className="space-y-4">
+              <BarangaySelector
+                locations={locations}
+                assets={assets}
+                selectedLocationId={selectedLocationId}
+                onSelectLocation={setSelectedLocationId}
+              />
+              <div id="asset-registry-section" className="scroll-mt-24">
+                <AssetList
+                  assets={filteredAssets}
+                  locations={locations}
+                  onOpenTransfer={handleOpenTransfer}
+                  onOpenDetail={handleOpenDetail}
+                  onOpenAddModal={() => setIsAddOpen(true)}
+                  onPrintA5ForAsset={handlePrintA5ForAsset}
+                  selectedCategory={selectedCategory}
+                  onSelectCategory={setSelectedCategory}
+                  selectedStatus={selectedStatus}
+                  onSelectStatus={setSelectedStatus}
+                />
+              </div>
+            </div>
+          )}
+        </div>
 
-        {/* Core Asset List & Management Table */}
-        <div id="asset-registry-section" className="scroll-mt-24">
-          <AssetList
-            assets={filteredAssets}
+        {/* Desktop & Tablet View (>= md): Full Suite Always Available */}
+        <div className="hidden md:block space-y-6">
+          <BarangaySelector
             locations={locations}
-            onOpenTransfer={handleOpenTransfer}
-            onOpenDetail={handleOpenDetail}
-            onOpenAddModal={() => setIsAddOpen(true)}
-            onPrintA5ForAsset={handlePrintA5ForAsset}
-            selectedCategory={selectedCategory}
-            onSelectCategory={setSelectedCategory}
-            selectedStatus={selectedStatus}
-            onSelectStatus={setSelectedStatus}
+            assets={assets}
+            selectedLocationId={selectedLocationId}
+            onSelectLocation={setSelectedLocationId}
           />
+
+          <div id="asset-registry-section" className="scroll-mt-24">
+            <AssetList
+              assets={filteredAssets}
+              locations={locations}
+              onOpenTransfer={handleOpenTransfer}
+              onOpenDetail={handleOpenDetail}
+              onOpenAddModal={() => setIsAddOpen(true)}
+              onPrintA5ForAsset={handlePrintA5ForAsset}
+              selectedCategory={selectedCategory}
+              onSelectCategory={setSelectedCategory}
+              selectedStatus={selectedStatus}
+              onSelectStatus={setSelectedStatus}
+            />
+          </div>
         </div>
 
         {/* Infrastructure & Security Info */}
@@ -999,37 +1052,34 @@ export function App() {
           {/* 1. Assets Tab */}
           <button
             onClick={() => {
-              setShowMap(false);
+              setMobileTab('assets');
               const el = document.getElementById('asset-registry-section');
               if (el) el.scrollIntoView({ behavior: 'smooth' });
             }}
             className={`flex flex-1 flex-col items-center justify-center gap-1 py-1 px-1 rounded-2xl transition active:scale-95 ${
-              !showMap
+              mobileTab === 'assets'
                 ? 'text-neutral-950 font-bold bg-neutral-100/90'
                 : 'text-neutral-500 hover:text-neutral-900 font-medium'
             }`}
           >
-            <Layers className={`h-4.5 w-4.5 ${!showMap ? 'text-neutral-950' : 'text-neutral-500'}`} />
+            <Layers className={`h-4.5 w-4.5 ${mobileTab === 'assets' ? 'text-neutral-950' : 'text-neutral-500'}`} />
             <span className="text-[10px]">Assets</span>
           </button>
 
-          {/* 2. Map Tab */}
+          {/* 2. Stations Tab (16 Barangays) */}
           <button
             onClick={() => {
-              setShowMap(true);
-              setTimeout(() => {
-                const el = document.getElementById('paranaque-map-section');
-                if (el) el.scrollIntoView({ behavior: 'smooth' });
-              }, 50);
+              setMobileTab('stations');
+              window.scrollTo({ top: 220, behavior: 'smooth' });
             }}
             className={`flex flex-1 flex-col items-center justify-center gap-1 py-1 px-1 rounded-2xl transition active:scale-95 ${
-              showMap
+              mobileTab === 'stations'
                 ? 'text-emerald-700 font-bold bg-emerald-50'
                 : 'text-neutral-500 hover:text-neutral-900 font-medium'
             }`}
           >
-            <MapIcon className={`h-4.5 w-4.5 ${showMap ? 'text-emerald-600' : 'text-neutral-500'}`} />
-            <span className="text-[10px]">Map</span>
+            <Building2 className={`h-4.5 w-4.5 ${mobileTab === 'stations' ? 'text-emerald-600' : 'text-neutral-500'}`} />
+            <span className="text-[10px]">Stations</span>
           </button>
 
           {/* 3. Central Native Floating Add Action (FAB) */}
