@@ -53,8 +53,16 @@ export function App() {
   // Assets: Clean initial slate with localStorage persistence
   const [assets, setAssets] = useState<AssetItem[]>(() => {
     try {
-      const saved = localStorage.getItem('himu_assets_pque_v1');
-      if (saved) return JSON.parse(saved);
+      const savedV2 = localStorage.getItem('himu_assets_pque_v2');
+      if (savedV2) {
+        const parsed = JSON.parse(savedV2);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+      const savedV1 = localStorage.getItem('himu_assets_pque_v1');
+      if (savedV1) {
+        const parsedV1 = JSON.parse(savedV1);
+        if (Array.isArray(parsedV1) && parsedV1.length > 0) return parsedV1;
+      }
     } catch (e) {
       console.error('Failed to load localStorage', e);
     }
@@ -63,7 +71,7 @@ export function App() {
 
   useEffect(() => {
     try {
-      localStorage.setItem('himu_assets_pque_v1', JSON.stringify(assets));
+      localStorage.setItem('himu_assets_pque_v2', JSON.stringify(assets));
     } catch (e) {
       console.error('Failed to save to localStorage', e);
     }
@@ -186,6 +194,52 @@ export function App() {
             status: 'in_service',
             currentLocationId: latestTransfer.toLocationId,
             history: [updatedTransfer, ...item.history.slice(1)],
+          };
+        }
+        return item;
+      })
+    );
+  };
+
+  // Quick Drag-and-Drop Relocation Handler
+  const handleQuickRelocateAsset = (assetId: string, toLocationId: string) => {
+    const asset = assets.find((a) => a.id === assetId);
+    if (!asset || asset.currentLocationId === toLocationId) return;
+
+    const fromLoc = locations.find((l) => l.id === asset.currentLocationId);
+    const toLoc = locations.find((l) => l.id === toLocationId);
+    const isReturningToHq = toLocationId === 'loc-himu-hq';
+
+    const newTransfer: AssetTransferRecord = {
+      id: `tr-${Date.now()}`,
+      referenceNo: `TR-PQUE-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+      assetId,
+      fromLocationId: asset.currentLocationId,
+      toLocationId,
+      fromLocationName: fromLoc?.name || 'HIMU Central Depot',
+      toLocationName: toLoc?.name || (isReturningToHq ? 'HIMU Central IT Office' : 'Assigned Barangay'),
+      dispatchedBy: currentUser.name,
+      dispatchedAt: new Date().toISOString(),
+      receivedBy: isReturningToHq
+        ? 'HIMU Depot Inventory Custodian'
+        : `${toLoc?.name || 'Barangay'} Health Custodian`,
+      status: 'received',
+      purpose: isReturningToHq
+        ? 'Returned to Central Depot for warehouse staging & maintenance'
+        : `Direct Map Deployment to ${toLoc?.name || 'Barangay'} Facility`,
+    };
+
+    setAssets((prev) =>
+      prev.map((item) => {
+        if (item.id === assetId) {
+          return {
+            ...item,
+            currentLocationId: toLocationId,
+            status: 'in_service',
+            custodianName: isReturningToHq
+              ? 'HIMU Central Depot Staging'
+              : `${toLoc?.name || 'Barangay'} Health Custodian`,
+            history: [newTransfer, ...item.history],
           };
         }
         return item;
@@ -573,6 +627,7 @@ export function App() {
             onOpenAddModal={handleOpenAddForLocation}
             onDeployKit={handleDeployHealthKit}
             onDeployAllKits={handleDeployAllBarangaysKit}
+            onQuickRelocate={handleQuickRelocateAsset}
           />
         )}
 
