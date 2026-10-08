@@ -18,9 +18,9 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
 
   const stats = [
     {
-      label: 'Total Tracked Assets',
+      label: 'Total HIMU Assets',
       value: assets.length,
-      detail: `Distributed in ${totalLocationsCount} locations`,
+      detail: `Across ${totalLocationsCount} Parañaque sites`,
       icon: Package,
       iconColor: 'text-neutral-900',
       bgColor: 'bg-neutral-100',
@@ -28,7 +28,7 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
     {
       label: 'In Active Service',
       value: inServiceCount,
-      detail: `${Math.round((inServiceCount / (assets.length || 1)) * 100)}% operational rate`,
+      detail: assets.length > 0 ? `${Math.round((inServiceCount / assets.length) * 100)}% operational rate` : 'Ready for asset entry',
       icon: CheckCircle2,
       iconColor: 'text-emerald-600',
       bgColor: 'bg-emerald-50',
@@ -59,28 +59,28 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
         return (
           <div
             key={idx}
-            className={`group relative overflow-hidden rounded-2xl border bg-white p-4 sm:p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] ${
+            className={`group relative overflow-hidden rounded-3xl liquid-glass p-4 sm:p-5 transition-all hover:shadow-md ${
               stat.highlight
-                ? 'border-blue-200/90 ring-1 ring-blue-500/10'
-                : 'border-neutral-200/80'
+                ? 'ring-2 ring-blue-500/30'
+                : ''
             }`}
           >
             <div className="flex items-center justify-between">
-              <span className="text-xs sm:text-[13px] font-medium text-neutral-500">
+              <span className="text-xs sm:text-[13px] font-semibold text-neutral-500">
                 {stat.label}
               </span>
               <div
-                className={`flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-xl ${stat.bgColor} ${stat.iconColor} transition-transform group-hover:scale-105`}
+                className={`flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-2xl ${stat.bgColor} ${stat.iconColor} transition-transform group-hover:scale-105 shadow-xs`}
               >
                 <Icon className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
               </div>
             </div>
 
             <div className="mt-2.5 sm:mt-3">
-              <div className="text-2xl sm:text-3xl font-semibold tracking-tight text-neutral-900">
+              <div className="text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900">
                 {stat.value}
               </div>
-              <p className="mt-1 text-xs text-neutral-400">
+              <p className="mt-1 text-xs text-neutral-400 font-medium">
                 {stat.detail}
               </p>
             </div>

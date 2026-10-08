@@ -1,10 +1,20 @@
+export type UserRole = 'ADMIN' | 'IT_OFFICER';
+
+export interface AppUser {
+  id: string;
+  name: string;
+  role: UserRole;
+  email: string;
+}
+
 export type AssetCategory =
   | 'Printer'
   | 'Network Router'
   | 'Network Switch'
   | 'Workstation / PC'
   | 'Biometric / Scanner'
-  | 'UPS / Power';
+  | 'UPS / Power'
+  | 'Other IT Equipment';
 
 export type AssetStatus =
   | 'in_service'
@@ -17,11 +27,11 @@ export interface BarangayLocation {
   id: string;
   code: string;
   name: string;
-  type: 'barangay' | 'central_office' | 'repair_center';
-  contactPerson: string;
-  contactPhone: string;
+  district: 1 | 2 | 0; // 0 for Central IT Depot
+  type: 'barangay' | 'central_office';
+  contactPerson?: string;
+  contactPhone?: string;
   address: string;
-  assetCount?: number;
 }
 
 export interface AssetTransferRecord {
@@ -51,10 +61,23 @@ export interface AssetItem {
   currentLocationId: string;
   status: AssetStatus;
   custodianName: string;
-  custodianRole: string;
+  custodianRole?: string;
   acquisitionDate: string;
   ipAddress?: string;
   macAddress?: string;
   notes?: string;
   history: AssetTransferRecord[];
 }
+
+export const DISPATCH_OFFICERS = [
+  'JOHN SHANNON O. RODRIGUEZ',
+  'CHAN PEREZ',
+  'KEN LLAGUNO',
+  'JAY CONCON',
+  'DANT TE GUTZ',
+  'MICH CRUTO',
+  'JUSTIN RY PUNLA',
+  'ISAIAH SAN PEDRO',
+] as const;
+
+export type DispatchOfficer = (typeof DISPATCH_OFFICERS)[number];

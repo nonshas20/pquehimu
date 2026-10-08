@@ -4,31 +4,56 @@ import type {
   BarangayLocation, 
   AssetCategory, 
   AssetStatus, 
-  AssetTransferRecord 
+  AssetTransferRecord,
+  AppUser 
 } from './types/inventory';
-import { INITIAL_LOCATIONS, INITIAL_ASSETS } from './data/mockData';
+import { PARANAQUE_LOCATIONS, INITIAL_ASSETS, DEFAULT_USERS } from './data/mockData';
 import { Header } from './components/Header';
 import { StatsOverview } from './components/StatsOverview';
 import { BarangaySelector } from './components/BarangaySelector';
+import { ParanaqueMap } from './components/ParanaqueMap';
 import { AssetList } from './components/AssetList';
 import { TransferModal } from './components/TransferModal';
 import { AssetDetailModal } from './components/AssetDetailModal';
 import { AddAssetModal } from './components/AddAssetModal';
 import { QuickScanModal } from './components/QuickScanModal';
+import { AuthModal } from './components/AuthModal';
 import { 
   Layers, 
   QrCode, 
   Plus, 
-  MapPin, 
+  Map as MapIcon, 
+  ShieldCheck, 
   Database 
 } from 'lucide-react';
 
 export function App() {
-  // Load state from localStorage or initial mock data
-  const [locations] = useState<BarangayLocation[]>(INITIAL_LOCATIONS);
+  // Current user / role (ADMIN or IT_OFFICER)
+  const [currentUser, setCurrentUser] = useState<AppUser>(() => {
+    try {
+      const saved = localStorage.getItem('himu_current_user');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
+    return DEFAULT_USERS[0]; // John Shannon O. Rodriguez (ADMIN)
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('himu_current_user', JSON.stringify(currentUser));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [currentUser]);
+
+  // Locations: 16 Real Parañaque Barangays + HIMU Depot
+  const [locations] = useState<BarangayLocation[]>(PARANAQUE_LOCATIONS);
+
+  // Assets: Clean initial slate with localStorage persistence
   const [assets, setAssets] = useState<AssetItem[]>(() => {
     try {
-      const saved = localStorage.getItem('baits_assets_v1');
+      const saved = localStorage.getItem('himu_assets_pque_v1');
       if (saved) return JSON.parse(saved);
     } catch (e) {
       console.error('Failed to load localStorage', e);
@@ -36,14 +61,16 @@ export function App() {
     return INITIAL_ASSETS;
   });
 
-  // Save to localStorage on change
   useEffect(() => {
     try {
-      localStorage.setItem('baits_assets_v1', JSON.stringify(assets));
+      localStorage.setItem('himu_assets_pque_v1', JSON.stringify(assets));
     } catch (e) {
       console.error('Failed to save to localStorage', e);
     }
   }, [assets]);
+
+  // View toggles
+  const [showMap, setShowMap] = useState(true);
 
   // Filtering & Search states
   const [searchQuery, setSearchQuery] = useState('');
@@ -57,6 +84,7 @@ export function App() {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isScanOpen, setIsScanOpen] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
 
   // Filtered Assets
   const filteredAssets = useMemo(() => {
@@ -111,7 +139,7 @@ export function App() {
 
     const newTransfer: AssetTransferRecord = {
       id: `tr-${Date.now()}`,
-      referenceNo: `TR-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+      referenceNo: `TR-PQUE-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
       assetId,
       fromLocationId: originLoc?.id || '',
       toLocationId,
@@ -149,7 +177,7 @@ export function App() {
             ...latestTransfer,
             status: 'received',
             receivedAt: new Date().toISOString(),
-            receivedBy: item.custodianName || 'Barangay Staff',
+            receivedBy: item.custodianName || 'Barangay Health Staff',
           };
 
           return {
@@ -171,18 +199,18 @@ export function App() {
       history: [
         {
           id: `tr-init-${Date.now()}`,
-          referenceNo: `TR-${new Date().getFullYear()}-0001`,
+          referenceNo: `TR-PQUE-${new Date().getFullYear()}-0001`,
           assetId: `ast-${Date.now()}`,
-          fromLocationId: 'loc-central',
+          fromLocationId: 'loc-himu-hq',
           toLocationId: newAssetData.currentLocationId,
-          fromLocationName: 'Central IT Depot (Municipal Hall)',
+          fromLocationName: 'HIMU Central IT Office (Parañaque City Hall)',
           toLocationName:
             locations.find((l) => l.id === newAssetData.currentLocationId)?.name ||
             'Assigned Barangay',
-          dispatchedBy: 'System Administrator',
+          dispatchedBy: currentUser.name,
           dispatchedAt: new Date().toISOString(),
           status: 'received',
-          purpose: 'Initial inventory registration and commissioning',
+          purpose: 'Initial inventory intake and deployment',
         },
       ],
     };
@@ -190,44 +218,42 @@ export function App() {
     setAssets((prev) => [newAsset, ...prev]);
   };
 
-  const handleResetData = () => {
-    if (window.confirm('Reset inventory data back to default demo state?')) {
-      setAssets(INITIAL_ASSETS);
-      localStorage.removeItem('baits_assets_v1');
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-[#F8F9FA] pb-24 text-neutral-900 selection:bg-neutral-900 selection:text-white">
-      {/* Top Header */}
+    <div className="min-h-screen bg-[#F8F9FA] pb-28 text-neutral-900 selection:bg-neutral-900 selection:text-white">
+      {/* Top Liquid Glass Header with Logos */}
       <Header
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         onOpenAddModal={() => setIsAddOpen(true)}
         onOpenScanModal={() => setIsScanOpen(true)}
+        onOpenAuthModal={() => setIsAuthOpen(true)}
+        currentUser={currentUser}
         totalAssetsCount={assets.length}
       />
 
       {/* Main Content Container */}
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-6 space-y-6">
+      <main className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 pt-5 space-y-6">
         
-        {/* Banner with contextual breadcrumb */}
+        {/* Banner with contextual title & Map View Toggle */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-neutral-900">
-              Barangay IT Equipment Inventory
-            </h1>
-            <p className="text-xs sm:text-sm text-neutral-500">
-              Live custody and relocation tracking for printers, routers, switches, and workstations across 16 barangays.
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-neutral-900">
+                City of Parañaque • HIMU Hardware Tracker
+              </h1>
+            </div>
+            <p className="text-xs sm:text-sm text-neutral-500 font-medium">
+              Health Information Management Unit • Asset tracking across 16 health centers and barangay facilities.
             </p>
           </div>
 
           <div className="flex items-center gap-2">
             <button
-              onClick={handleResetData}
-              className="text-xs text-neutral-400 hover:text-neutral-700 underline transition"
+              onClick={() => setShowMap(!showMap)}
+              className="inline-flex items-center gap-1.5 rounded-2xl liquid-glass px-3.5 py-2 text-xs font-semibold text-neutral-700 hover:text-neutral-950 transition active:scale-95 shadow-2xs"
             >
-              Reset Demo Data
+              <MapIcon className="h-4 w-4 text-emerald-600" />
+              <span>{showMap ? 'Hide Map' : 'Show Map'}</span>
             </button>
           </div>
         </div>
@@ -238,7 +264,17 @@ export function App() {
           totalLocationsCount={locations.length}
         />
 
-        {/* 16 Barangays Selector & Filter Strip */}
+        {/* Interactive Parañaque Leaflet Map */}
+        {showMap && (
+          <ParanaqueMap
+            locations={locations}
+            assets={assets}
+            selectedLocationId={selectedLocationId}
+            onSelectLocation={setSelectedLocationId}
+          />
+        )}
+
+        {/* 16 Barangays District Selector Strip */}
         <BarangaySelector
           locations={locations}
           assets={assets}
@@ -252,72 +288,81 @@ export function App() {
           locations={locations}
           onOpenTransfer={handleOpenTransfer}
           onOpenDetail={handleOpenDetail}
+          onOpenAddModal={() => setIsAddOpen(true)}
           selectedCategory={selectedCategory}
           onSelectCategory={setSelectedCategory}
           selectedStatus={selectedStatus}
           onSelectStatus={setSelectedStatus}
         />
 
-        {/* Architecture & Free-Tier Info Callout */}
-        <div className="rounded-2xl border border-neutral-200/80 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.03)] text-xs text-neutral-600">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-neutral-100 pb-3">
-            <div className="flex items-center gap-2 font-semibold text-neutral-900">
+        {/* Infrastructure & Security Info */}
+        <div className="rounded-3xl liquid-glass p-5 shadow-xs text-xs text-neutral-600">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-black/[0.05] pb-3">
+            <div className="flex items-center gap-2 font-bold text-neutral-900">
               <Database className="h-4 w-4 text-emerald-600" />
-              <span>Zero-Cost Infrastructure Ready</span>
+              <span>Parañaque HIMU • Official IT Custody Platform</span>
             </div>
-            <div className="flex items-center gap-2 text-neutral-400">
-              <span>Hostable on Vercel / Netlify Free Tier</span>
+            <div className="flex items-center gap-2 text-neutral-400 font-medium">
+              <span>Active Role: <strong className="text-neutral-800">{currentUser.role}</strong></span>
               <span>•</span>
-              <span>Backed by Supabase PostgreSQL</span>
+              <span>Operator: <strong className="text-neutral-800">{currentUser.name}</strong></span>
             </div>
           </div>
-          <p className="mt-3 leading-relaxed text-neutral-500">
-            This system runs without recurring software fees. The database schema in <code className="bg-neutral-100 px-1.5 py-0.5 rounded text-neutral-800 font-mono">supabase/schema.sql</code> can be directly deployed to a free Supabase instance with 500MB storage (supporting over 200,000+ asset movement records).
+          <p className="mt-3 leading-relaxed text-neutral-500 font-medium">
+            Configured for the 16 Barangays of the City of Parañaque. All property movements generate timestamped reference IDs under the Universal Health Care (UHC) property accountability protocol.
           </p>
         </div>
       </main>
 
-      {/* Mobile Floating Bottom Bar for Thumb Accessibility */}
-      <div className="fixed bottom-0 inset-x-0 z-30 border-t border-neutral-200/80 bg-white/90 backdrop-blur-xl sm:hidden px-4 py-2.5">
-        <div className="flex items-center justify-around text-xs">
-          <button
-            onClick={() => {
-              setSelectedLocationId(null);
-              setSelectedCategory('ALL');
-              setSelectedStatus('ALL');
-              setSearchQuery('');
-            }}
-            className="flex flex-col items-center gap-1 text-neutral-600 hover:text-neutral-900"
-          >
-            <Layers className="h-4.5 w-4.5" />
-            <span className="text-[10px]">Overview</span>
-          </button>
+      {/* Mobile Floating Liquid Glass Bottom Navigation Bar */}
+      <div className="fixed bottom-3 inset-x-3 z-40 sm:hidden">
+        <div className="rounded-3xl liquid-glass p-2 shadow-xl border border-white/60">
+          <div className="flex items-center justify-around text-xs">
+            <button
+              onClick={() => {
+                setSelectedLocationId(null);
+                setSelectedCategory('ALL');
+                setSelectedStatus('ALL');
+                setSearchQuery('');
+              }}
+              className="flex flex-col items-center gap-1 text-neutral-600 hover:text-neutral-900 px-3 py-1.5"
+            >
+              <Layers className="h-4.5 w-4.5" />
+              <span className="text-[10px] font-semibold">Assets</span>
+            </button>
 
-          <button
-            onClick={() => setIsScanOpen(true)}
-            className="flex flex-col items-center gap-1 text-neutral-600 hover:text-neutral-900"
-          >
-            <QrCode className="h-4.5 w-4.5" />
-            <span className="text-[10px]">Scan Tag</span>
-          </button>
+            <button
+              onClick={() => setShowMap(!showMap)}
+              className="flex flex-col items-center gap-1 text-neutral-600 hover:text-neutral-900 px-3 py-1.5"
+            >
+              <MapIcon className="h-4.5 w-4.5" />
+              <span className="text-[10px] font-semibold">Map</span>
+            </button>
 
-          <button
-            onClick={() => setIsAddOpen(true)}
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-neutral-900 text-white shadow-lg active:scale-95 -mt-4 ring-4 ring-white"
-          >
-            <Plus className="h-5 w-5" />
-          </button>
+            {/* Central Floating Add Pill */}
+            <button
+              onClick={() => setIsAddOpen(true)}
+              className="flex h-12 w-12 items-center justify-center rounded-2xl bg-neutral-900 text-white shadow-lg active:scale-90 -mt-5 ring-4 ring-white"
+            >
+              <Plus className="h-6 w-6" />
+            </button>
 
-          <button
-            onClick={() => {
-              const nextLoc = locations[1];
-              setSelectedLocationId(nextLoc.id);
-            }}
-            className="flex flex-col items-center gap-1 text-neutral-600 hover:text-neutral-900"
-          >
-            <MapPin className="h-4.5 w-4.5" />
-            <span className="text-[10px]">Barangays</span>
-          </button>
+            <button
+              onClick={() => setIsScanOpen(true)}
+              className="flex flex-col items-center gap-1 text-neutral-600 hover:text-neutral-900 px-3 py-1.5"
+            >
+              <QrCode className="h-4.5 w-4.5" />
+              <span className="text-[10px] font-semibold">Scan</span>
+            </button>
+
+            <button
+              onClick={() => setIsAuthOpen(true)}
+              className="flex flex-col items-center gap-1 text-neutral-600 hover:text-neutral-900 px-3 py-1.5"
+            >
+              <ShieldCheck className="h-4.5 w-4.5" />
+              <span className="text-[10px] font-semibold">Role</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -327,6 +372,7 @@ export function App() {
         onClose={() => setIsTransferOpen(false)}
         asset={activeAsset}
         locations={locations}
+        defaultDispatcherName={currentUser.name}
         onConfirmTransfer={handleConfirmTransfer}
       />
 
@@ -354,6 +400,13 @@ export function App() {
           setActiveAsset(found);
           setIsDetailOpen(true);
         }}
+      />
+
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        currentUser={currentUser}
+        onSwitchUser={setCurrentUser}
       />
     </div>
   );

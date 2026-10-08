@@ -6,7 +6,8 @@ import {
   Clock, 
   FileText, 
   Copy, 
-  Check 
+  Check, 
+  MapPin 
 } from 'lucide-react';
 
 interface AssetDetailModalProps {
@@ -40,28 +41,28 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-2xl max-h-[90vh] flex flex-col rounded-3xl border border-neutral-200/80 bg-white shadow-2xl transition-all overflow-hidden">
+      <div className="relative w-full max-w-2xl max-h-[90vh] flex flex-col rounded-3xl liquid-glass shadow-2xl transition-all overflow-hidden">
         
         {/* Header */}
-        <div className="flex items-center justify-between p-6 pb-4 border-b border-neutral-100">
+        <div className="flex items-center justify-between p-6 pb-4 border-b border-black/[0.06]">
           <div className="min-w-0 pr-4">
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-mono uppercase tracking-wider text-neutral-400 bg-neutral-100 px-2 py-0.5 rounded">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-neutral-600 bg-white/80 px-2 py-0.5 rounded border border-black/5">
                 {asset.assetTag}
               </span>
-              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                asset.status === 'in_service' ? 'bg-emerald-50 text-emerald-700' :
-                asset.status === 'in_transit' ? 'bg-blue-50 text-blue-700' :
-                asset.status === 'under_repair' ? 'bg-amber-50 text-amber-700' :
+              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                asset.status === 'in_service' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                asset.status === 'in_transit' ? 'bg-blue-50 text-blue-700 border border-blue-200' :
+                asset.status === 'under_repair' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
                 'bg-neutral-100 text-neutral-700'
               }`}>
                 {asset.status.replace('_', ' ').toUpperCase()}
               </span>
             </div>
-            <h3 className="mt-1 text-lg font-semibold tracking-tight text-neutral-900 truncate">
+            <h3 className="mt-1 text-base sm:text-lg font-bold tracking-tight text-neutral-900 truncate">
               {asset.name}
             </h3>
-            <p className="text-xs text-neutral-500">
+            <p className="text-xs text-neutral-500 font-medium">
               {asset.brandModel}
             </p>
           </div>
@@ -78,17 +79,17 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
           
           {/* Quick Action banner if In-Transit */}
           {asset.status === 'in_transit' && (
-            <div className="flex items-center justify-between rounded-2xl bg-blue-50/90 border border-blue-200 p-4">
+            <div className="flex items-center justify-between rounded-2xl bg-blue-50/90 border border-blue-200 p-4 shadow-xs">
               <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-600 text-white">
-                  <ArrowRightLeft className="h-4 w-4" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white shrink-0">
+                  <ArrowRightLeft className="h-4.5 w-4.5" />
                 </div>
                 <div>
-                  <div className="font-semibold text-blue-900">
-                    Asset Is Currently In Transit
+                  <div className="font-bold text-blue-950">
+                    Hardware Currently In Transit
                   </div>
-                  <div className="text-blue-700">
-                    Awaiting recipient acknowledgement at destination barangay.
+                  <div className="text-[11px] text-blue-700">
+                    Awaiting arrival verification at destination barangay.
                   </div>
                 </div>
               </div>
@@ -97,18 +98,18 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
                   onAcknowledgeReceipt(asset.id);
                   onClose();
                 }}
-                className="rounded-xl bg-blue-600 px-3.5 py-1.5 font-medium text-white shadow-xs hover:bg-blue-700 transition"
+                className="rounded-xl bg-blue-600 px-3.5 py-1.5 font-bold text-white shadow-xs hover:bg-blue-700 transition active:scale-95 shrink-0"
               >
-                Confirm Receipt
+                Acknowledge Receipt
               </button>
             </div>
           )}
 
           {/* Hardware Specifications Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 rounded-2xl bg-neutral-50/80 p-4 border border-neutral-100">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 rounded-2xl bg-white/70 p-4 border border-white/60 shadow-xs">
             <div>
-              <span className="text-[10px] uppercase font-semibold text-neutral-400">Hardware Serial</span>
-              <div className="mt-0.5 flex items-center gap-1 font-mono font-medium text-neutral-800">
+              <span className="text-[10px] uppercase font-bold text-neutral-400">Hardware Serial</span>
+              <div className="mt-0.5 flex items-center gap-1 font-mono font-semibold text-neutral-800">
                 <span>{asset.serialNumber}</span>
                 <button
                   onClick={handleCopySerial}
@@ -120,38 +121,39 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
             </div>
 
             <div>
-              <span className="text-[10px] uppercase font-semibold text-neutral-400">Category</span>
-              <div className="mt-0.5 font-medium text-neutral-800">
+              <span className="text-[10px] uppercase font-bold text-neutral-400">Category</span>
+              <div className="mt-0.5 font-semibold text-neutral-800">
                 {asset.category}
               </div>
             </div>
 
             <div>
-              <span className="text-[10px] uppercase font-semibold text-neutral-400">Current Location</span>
-              <div className="mt-0.5 font-medium text-neutral-800 truncate">
-                {currentLoc ? currentLoc.name : 'Unknown'}
+              <span className="text-[10px] uppercase font-bold text-neutral-400">Current Location</span>
+              <div className="mt-0.5 font-semibold text-neutral-800 truncate flex items-center gap-1">
+                <MapPin className="h-3 w-3 text-neutral-400 shrink-0" />
+                <span className="truncate">{currentLoc ? currentLoc.name : 'Unknown'}</span>
               </div>
             </div>
 
             <div>
-              <span className="text-[10px] uppercase font-semibold text-neutral-400">Custodian</span>
-              <div className="mt-0.5 font-medium text-neutral-800">
+              <span className="text-[10px] uppercase font-bold text-neutral-400">Custodian</span>
+              <div className="mt-0.5 font-semibold text-neutral-800 truncate">
                 {asset.custodianName}
               </div>
-              <div className="text-[10px] text-neutral-400">{asset.custodianRole}</div>
+              <div className="text-[10px] text-neutral-400 truncate">{asset.custodianRole}</div>
             </div>
 
             <div>
-              <span className="text-[10px] uppercase font-semibold text-neutral-400">Acquisition Date</span>
-              <div className="mt-0.5 font-medium text-neutral-800">
+              <span className="text-[10px] uppercase font-bold text-neutral-400">Acquisition Date</span>
+              <div className="mt-0.5 font-semibold text-neutral-800">
                 {asset.acquisitionDate}
               </div>
             </div>
 
             {asset.ipAddress && (
               <div>
-                <span className="text-[10px] uppercase font-semibold text-neutral-400">IP Address</span>
-                <div className="mt-0.5 font-mono font-medium text-neutral-800">
+                <span className="text-[10px] uppercase font-bold text-neutral-400">IP Address</span>
+                <div className="mt-0.5 font-mono font-semibold text-neutral-800">
                   {asset.ipAddress}
                 </div>
               </div>
@@ -159,8 +161,8 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
           </div>
 
           {asset.notes && (
-            <div className="rounded-xl bg-neutral-50 p-3 border border-neutral-100 text-neutral-600">
-              <span className="text-[10px] uppercase font-semibold text-neutral-400 block mb-1">
+            <div className="rounded-2xl bg-white/70 p-3.5 border border-white/60 text-neutral-600">
+              <span className="text-[10px] uppercase font-bold text-neutral-400 block mb-1">
                 Field Notes & Condition
               </span>
               {asset.notes}
@@ -171,86 +173,92 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
           <div>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-neutral-500" />
-                <h4 className="text-sm font-semibold tracking-tight text-neutral-900">
-                  Chain-of-Custody Audit Trail ({asset.history.length} Movements)
+                <Clock className="h-4 w-4 text-neutral-600" />
+                <h4 className="text-sm font-bold tracking-tight text-neutral-900">
+                  HIMU Chain-of-Custody Audit Trail ({asset.history.length})
                 </h4>
               </div>
               <span className="text-[11px] text-neutral-400">
-                Full chronological movement log
+                Official Movement History
               </span>
             </div>
 
-            <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-neutral-200">
-              {asset.history.map((record) => (
-                <div key={record.id} className="relative group">
-                  {/* Timeline dot */}
-                  <div className={`absolute -left-6 top-1 h-4 w-4 rounded-full border-2 bg-white flex items-center justify-center ${
-                    record.status === 'received' ? 'border-emerald-500' :
-                    record.status === 'in_transit' ? 'border-blue-500 animate-pulse' :
-                    'border-neutral-400'
-                  }`}>
-                    <div className={`h-1.5 w-1.5 rounded-full ${
-                      record.status === 'received' ? 'bg-emerald-500' :
-                      record.status === 'in_transit' ? 'bg-blue-500' :
-                      'bg-neutral-400'
-                    }`} />
+            {asset.history.length === 0 ? (
+              <div className="p-4 rounded-2xl bg-white/60 text-center text-neutral-400 text-xs">
+                No transfer records logged yet.
+              </div>
+            ) : (
+              <div className="relative pl-6 space-y-4 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-neutral-200">
+                {asset.history.map((record) => (
+                  <div key={record.id} className="relative group">
+                    {/* Timeline dot */}
+                    <div className={`absolute -left-6 top-1.5 h-4 w-4 rounded-full border-2 bg-white flex items-center justify-center ${
+                      record.status === 'received' ? 'border-emerald-500' :
+                      record.status === 'in_transit' ? 'border-blue-500 animate-pulse' :
+                      'border-neutral-400'
+                    }`}>
+                      <div className={`h-1.5 w-1.5 rounded-full ${
+                        record.status === 'received' ? 'bg-emerald-500' :
+                        record.status === 'in_transit' ? 'bg-blue-500' :
+                        'bg-neutral-400'
+                      }`} />
+                    </div>
+
+                    {/* Transfer Details Card */}
+                    <div className="rounded-2xl border border-black/[0.06] bg-white/80 p-3.5 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-[10px] font-bold text-neutral-500 bg-neutral-100 px-1.5 py-0.5 rounded">
+                          {record.referenceNo}
+                        </span>
+                        <span className="text-[10px] text-neutral-400 font-medium">
+                          {new Date(record.dispatchedAt).toLocaleDateString(undefined, {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                          })}
+                        </span>
+                      </div>
+
+                      <div className="mt-1.5 flex items-center gap-2 text-xs font-semibold text-neutral-900">
+                        <span className="truncate max-w-[150px]">{record.fromLocationName}</span>
+                        <span className="text-neutral-400">→</span>
+                        <span className="text-blue-700 truncate max-w-[150px]">{record.toLocationName}</span>
+                      </div>
+
+                      <div className="mt-1 text-xs text-neutral-600">
+                        <strong>Purpose:</strong> {record.purpose}
+                      </div>
+
+                      <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-neutral-500 border-t border-black/[0.04] pt-2">
+                        <span>Dispatched by: <strong className="text-neutral-800">{record.dispatchedBy}</strong></span>
+                        {record.receivedBy && (
+                          <span>Received by: <strong className="text-neutral-800">{record.receivedBy}</strong></span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-
-                  {/* Transfer Details Card */}
-                  <div className="rounded-xl border border-neutral-200/80 bg-white p-3.5 shadow-2xs">
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono text-[10px] text-neutral-400">
-                        {record.referenceNo}
-                      </span>
-                      <span className="text-[10px] text-neutral-400">
-                        {new Date(record.dispatchedAt).toLocaleDateString(undefined, {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric',
-                        })}
-                      </span>
-                    </div>
-
-                    <div className="mt-1 flex items-center gap-2 text-xs font-medium text-neutral-900">
-                      <span className="truncate max-w-[150px]">{record.fromLocationName}</span>
-                      <span className="text-neutral-400">→</span>
-                      <span className="font-semibold text-neutral-900 truncate max-w-[150px]">{record.toLocationName}</span>
-                    </div>
-
-                    <div className="mt-1.5 text-xs text-neutral-600">
-                      <strong>Purpose:</strong> {record.purpose}
-                    </div>
-
-                    <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-neutral-500 border-t border-neutral-100 pt-2">
-                      <span>Dispatched by: <strong className="text-neutral-700">{record.dispatchedBy}</strong></span>
-                      {record.receivedBy && (
-                        <span>Received by: <strong className="text-neutral-700">{record.receivedBy}</strong></span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 px-6 border-t border-neutral-100 bg-neutral-50/50 flex items-center justify-between">
+        <div className="p-4 px-6 border-t border-black/[0.06] bg-white/60 flex items-center justify-between">
           <button
             onClick={() => {
               window.print();
             }}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-neutral-200 bg-white px-3.5 py-2 text-xs font-medium text-neutral-700 hover:bg-neutral-50 transition"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-neutral-200 bg-white px-3.5 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 transition active:scale-95"
           >
             <FileText className="h-3.5 w-3.5" />
-            <span>Print Custody Slip</span>
+            <span>Print Property Slip (PAR)</span>
           </button>
 
           <div className="flex items-center gap-2">
             <button
               onClick={onClose}
-              className="rounded-xl border border-neutral-200 bg-white px-3.5 py-2 text-xs font-medium text-neutral-700 hover:bg-neutral-50 transition"
+              className="rounded-xl border border-neutral-200 bg-white px-3.5 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 transition"
             >
               Close
             </button>
@@ -259,7 +267,7 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
                 onClose();
                 onOpenTransfer(asset);
               }}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-neutral-900 px-4 py-2 text-xs font-medium text-white hover:bg-neutral-800 transition"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-neutral-900 px-4 py-2 text-xs font-semibold text-white hover:bg-neutral-800 transition active:scale-95"
             >
               <ArrowRightLeft className="h-3.5 w-3.5" />
               <span>Transfer Item</span>
