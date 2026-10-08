@@ -220,7 +220,7 @@ export function App() {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] pb-28 text-neutral-900 selection:bg-neutral-900 selection:text-white">
-      {/* Top Liquid Glass Header with Logos */}
+      {/* Top Rounded Plain White Header with Logos */}
       <Header
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
@@ -231,19 +231,47 @@ export function App() {
         totalAssetsCount={assets.length}
       />
 
-      {/* Main Content Container */}
-      <main className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 pt-5 space-y-6">
+      {/* Full-Width 21:9 HIMU Team Background Header */}
+      <div className="relative w-full overflow-hidden bg-neutral-900 aspect-[21/9] min-h-[190px] max-h-[380px] -mt-6 sm:-mt-8 border-b border-black/[0.06] shadow-2xs">
+        <img
+          src="/himu-team-banner.jpg"
+          alt="HIMU IT Operations Team"
+          className="h-full w-full object-cover object-[center_35%] filter contrast-105"
+        />
+        {/* Soft gradient blend into #F8F9FA page canvas */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#F8F9FA] via-[#F8F9FA]/20 to-black/30" />
+
+        {/* Title overlay inside banner */}
+        <div className="absolute bottom-3 sm:bottom-6 inset-x-0 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full bg-black/60 backdrop-blur-md px-3 py-1 text-[11px] font-semibold text-white/95 border border-white/20 mb-1.5 shadow-sm">
+                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Health Information Management Unit</span>
+                <span className="text-white/40">•</span>
+                <span>City of Parañaque</span>
+              </div>
+              <h2 className="text-base sm:text-2xl font-extrabold tracking-tight text-neutral-950 drop-shadow-xs">
+                IT Asset & Hardware Operations
+              </h2>
+            </div>
+            <div className="hidden sm:block text-right">
+              <span className="rounded-xl bg-white/90 backdrop-blur-md px-3.5 py-1.5 text-xs font-bold text-neutral-800 border border-neutral-200/90 shadow-2xs">
+                16 Barangays Central Registry
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content Container (Slightly lowered with generous spacing) */}
+      <main className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 pt-4 sm:pt-6 space-y-6">
         
-        {/* Banner with contextual title & Map View Toggle */}
+        {/* Sub-header with Map Toggle */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-neutral-900">
-                City of Parañaque • HIMU Hardware Tracker
-              </h1>
-            </div>
             <p className="text-xs sm:text-sm text-neutral-500 font-medium">
-              Health Information Management Unit • Asset tracking across 16 health centers and barangay facilities.
+              Live custody and relocation tracking across 16 health stations, birthing clinics, and barangay facilities.
             </p>
           </div>
 
