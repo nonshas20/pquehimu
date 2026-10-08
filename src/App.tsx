@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import type { 
   AssetItem, 
   BarangayLocation, 
@@ -12,15 +12,17 @@ import { Header } from './components/Header';
 import { StatsOverview } from './components/StatsOverview';
 import { BarangaySelector } from './components/BarangaySelector';
 import { BarangayStationsMobileList } from './components/BarangayStationsMobileList';
-import { ParanaqueMap } from './components/ParanaqueMap';
 import { AssetList } from './components/AssetList';
-import { TransferModal } from './components/TransferModal';
-import { AssetDetailModal } from './components/AssetDetailModal';
-import { AddAssetModal } from './components/AddAssetModal';
-import { QuickScanModal } from './components/QuickScanModal';
-import { AuthModal } from './components/AuthModal';
-import { BorrowChecklistReceiptModal } from './components/BorrowChecklistReceiptModal';
 import type { BorrowChecklistItem } from './types/inventory';
+
+// Code-split heavy interactive map and modal dialogs
+const ParanaqueMap = lazy(() => import('./components/ParanaqueMap').then(m => ({ default: m.ParanaqueMap })));
+const TransferModal = lazy(() => import('./components/TransferModal').then(m => ({ default: m.TransferModal })));
+const AssetDetailModal = lazy(() => import('./components/AssetDetailModal').then(m => ({ default: m.AssetDetailModal })));
+const AddAssetModal = lazy(() => import('./components/AddAssetModal').then(m => ({ default: m.AddAssetModal })));
+const QuickScanModal = lazy(() => import('./components/QuickScanModal').then(m => ({ default: m.QuickScanModal })));
+const AuthModal = lazy(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
+const BorrowChecklistReceiptModal = lazy(() => import('./components/BorrowChecklistReceiptModal').then(m => ({ default: m.BorrowChecklistReceiptModal })));
 import { 
   Layers, 
   QrCode, 
@@ -83,6 +85,28 @@ export function App() {
 
   // View toggles
   const [showMap, setShowMap] = useState(true);
+  const [isDesktop, setIsDesktop] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth >= 768;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    const mql = window.matchMedia('(min-width: 768px)');
+    const onChange = (e: MediaQueryListEvent | MediaQueryList) => {
+      setIsDesktop(e.matches);
+    };
+    setIsDesktop(mql.matches);
+    if (mql.addEventListener) {
+      mql.addEventListener('change', onChange);
+      return () => mql.removeEventListener('change', onChange);
+    } else {
+      mql.addListener(onChange);
+      return () => mql.removeListener(onChange);
+    }
+  }, []);
+
   const [mobileTab, setMobileTab] = useState<'assets' | 'stations'>('assets');
 
   // Filtering & Search states
@@ -852,15 +876,20 @@ export function App() {
     setAssets(allItems);
   };
 
-  // Track scroll position for dynamic floating header and 3D parallax
-  const [scrollY, setScrollY] = useState(0);
+  // Decoupled hero parallax driven directly by ref and requestAnimationFrame (no root re-render)
+  const heroImageRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
     let ticking = false;
     const handleScroll = () => {
       if (!ticking) {
         window.requestAnimationFrame(() => {
-          setScrollY(window.scrollY);
+          if (heroImageRef.current) {
+            const y = window.scrollY;
+            if (y <= 650) {
+              heroImageRef.current.style.transform = `translate3d(0, ${y * 0.38}px, 0) scale(${1.06 + Math.min(y * 0.0002, 0.04)})`;
+            }
+          }
           ticking = false;
         });
         ticking = true;
@@ -872,7 +901,7 @@ export function App() {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] pb-28 text-neutral-900 selection:bg-neutral-900 selection:text-white">
-      {/* Dynamic Header: Transparent over hero at first, smoothly transforms into floating rounded white header on scroll */}
+      {/* Dynamic Header: Transparent over hero at first, self-manages floating rounded white header on scroll */}
       <Header
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
@@ -881,7 +910,6 @@ export function App() {
         onOpenAuthModal={() => setIsAuthOpen(true)}
         onOpenChecklistModal={handleOpenQuickChecklist}
         currentUser={currentUser}
-        isScrolled={scrollY > 30}
       />
 
       {/* Full-Width 21:9 HIMU Team Background Header with 3D Parallax Effect */}
@@ -889,20 +917,23 @@ export function App() {
         <picture>
           <source
             type="image/webp"
-            srcSet="/himu-team-banner-1920.webp 1920w, /himu-team-banner.webp 2880w"
-            sizes="(max-width: 1920px) 1920px, 2880px"
+            srcSet="/himu-team-banner-800.webp 800w, /himu-team-banner-1920.webp 1920w, /himu-team-banner.webp 2880w"
+            sizes="100vw"
           />
           <img
-            src="/himu-team-banner.jpg"
+            ref={heroImageRef}
+            src="/himu-team-banner-1920.webp"
+            srcSet="/himu-team-banner-800.webp 800w, /himu-team-banner-1920.webp 1920w, /himu-team-banner.webp 2880w"
+            sizes="100vw"
             alt="HIMU IT Operations Team"
             loading="eager"
             fetchPriority="high"
             decoding="async"
             style={{
-              transform: `translate3d(0, ${scrollY * 0.38}px, 0) scale(${1.06 + Math.min(scrollY * 0.0002, 0.04)})`,
+              transform: 'translate3d(0, 0px, 0) scale(1.06)',
               willChange: 'transform',
             }}
-            className="absolute inset-0 h-[125%] -top-[12%] w-full object-cover object-[center_28%] select-none pointer-events-none transition-transform duration-75 ease-out"
+            className="absolute inset-0 h-[125%] -top-[12%] w-full object-cover object-[center_28%] select-none pointer-events-none"
           />
         </picture>
       </div>
@@ -940,29 +971,38 @@ export function App() {
           </div>
         </div>
 
-        {/* Interactive Parañaque Leaflet Map - Desktop & Tablet Only (Hidden on phones) */}
-        {showMap && (
-          <div id="paranaque-map-section" className="hidden md:block scroll-mt-24">
-            <ParanaqueMap
-              locations={locations}
-              assets={assets}
-              selectedLocationId={selectedLocationId}
-              onSelectLocation={setSelectedLocationId}
-              onOpenTransfer={handleOpenTransfer}
-              onOpenAddModal={handleOpenAddForLocation}
-              onDeployKit={handleDeployHealthKit}
-              onDeployAllKits={handleDeployAllBarangaysKit}
-              onQuickRelocate={handleQuickRelocateAsset}
-              onPrintA5ForAsset={handlePrintA5ForAsset}
-              onPrintA5ForBarangay={handlePrintA5ForBarangay}
-              onDeleteBorrow={handleDeleteOrUndoBorrow}
-            />
+        {/* Interactive Parañaque Leaflet Map - Desktop & Tablet Only (Not rendered on phones) */}
+        {showMap && isDesktop && (
+          <div id="paranaque-map-section" className="scroll-mt-24">
+            <Suspense
+              fallback={
+                <div className="h-[460px] w-full rounded-3xl bg-white border border-neutral-200/90 flex flex-col items-center justify-center gap-2 text-xs font-semibold text-neutral-400 shadow-xs">
+                  <div className="h-6 w-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                  <span>Loading Parañaque GeoMap...</span>
+                </div>
+              }
+            >
+              <ParanaqueMap
+                locations={locations}
+                assets={assets}
+                selectedLocationId={selectedLocationId}
+                onSelectLocation={setSelectedLocationId}
+                onOpenTransfer={handleOpenTransfer}
+                onOpenAddModal={handleOpenAddForLocation}
+                onDeployKit={handleDeployHealthKit}
+                onDeployAllKits={handleDeployAllBarangaysKit}
+                onQuickRelocate={handleQuickRelocateAsset}
+                onPrintA5ForAsset={handlePrintA5ForAsset}
+                onPrintA5ForBarangay={handlePrintA5ForBarangay}
+                onDeleteBorrow={handleDeleteOrUndoBorrow}
+              />
+            </Suspense>
           </div>
         )}
 
-        {/* Mobile View: Native Tab Switched ('assets' vs 'stations') */}
-        <div className="md:hidden">
-          {mobileTab === 'stations' ? (
+        {/* Mobile View: Stations List (Only shown when mobileTab === 'stations' on mobile) */}
+        {mobileTab === 'stations' && (
+          <div className="md:hidden">
             <BarangayStationsMobileList
               locations={locations}
               assets={assets}
@@ -973,34 +1013,11 @@ export function App() {
                 setMobileTab('assets');
               }}
             />
-          ) : (
-            <div className="space-y-4">
-              <BarangaySelector
-                locations={locations}
-                assets={assets}
-                selectedLocationId={selectedLocationId}
-                onSelectLocation={setSelectedLocationId}
-              />
-              <div id="asset-registry-section" className="scroll-mt-24">
-                <AssetList
-                  assets={filteredAssets}
-                  locations={locations}
-                  onOpenTransfer={handleOpenTransfer}
-                  onOpenDetail={handleOpenDetail}
-                  onOpenAddModal={() => setIsAddOpen(true)}
-                  onPrintA5ForAsset={handlePrintA5ForAsset}
-                  selectedCategory={selectedCategory}
-                  onSelectCategory={setSelectedCategory}
-                  selectedStatus={selectedStatus}
-                  onSelectStatus={setSelectedStatus}
-                />
-              </div>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Desktop & Tablet View (>= md): Full Suite Always Available */}
-        <div className="hidden md:block space-y-6">
+        {/* Primary Asset Registry & Barangay Selector (Single mounted instance) */}
+        <div className={`${mobileTab === 'stations' ? 'hidden md:block' : 'block'} space-y-4 sm:space-y-6`}>
           <BarangaySelector
             locations={locations}
             assets={assets}
@@ -1113,63 +1130,77 @@ export function App() {
         </div>
       </nav>
 
-      {/* Modals */}
-      <TransferModal
-        isOpen={isTransferOpen}
-        onClose={() => setIsTransferOpen(false)}
-        asset={activeAsset}
-        locations={locations}
-        defaultDispatcherName={currentUser.name}
-        onConfirmTransfer={handleConfirmTransfer}
-      />
+      {/* Lazy-loaded Modals wrapped in Suspense */}
+      <Suspense fallback={null}>
+        {isTransferOpen && (
+          <TransferModal
+            isOpen={isTransferOpen}
+            onClose={() => setIsTransferOpen(false)}
+            asset={activeAsset}
+            locations={locations}
+            defaultDispatcherName={currentUser.name}
+            onConfirmTransfer={handleConfirmTransfer}
+          />
+        )}
 
-      <AssetDetailModal
-        isOpen={isDetailOpen}
-        onClose={() => setIsDetailOpen(false)}
-        asset={activeAsset}
-        locations={locations}
-        onOpenTransfer={handleOpenTransfer}
-        onAcknowledgeReceipt={handleAcknowledgeReceipt}
-        onViewChecklist={handleOpenReceiptForRecord}
-      />
+        {isDetailOpen && (
+          <AssetDetailModal
+            isOpen={isDetailOpen}
+            onClose={() => setIsDetailOpen(false)}
+            asset={activeAsset}
+            locations={locations}
+            onOpenTransfer={handleOpenTransfer}
+            onAcknowledgeReceipt={handleAcknowledgeReceipt}
+            onViewChecklist={handleOpenReceiptForRecord}
+          />
+        )}
 
-      <AddAssetModal
-        isOpen={isAddOpen}
-        onClose={() => {
-          setIsAddOpen(false);
-          setAddPresetLocationId(undefined);
-        }}
-        locations={locations}
-        onAddAsset={handleAddAsset}
-        initialLocationId={addPresetLocationId}
-      />
+        {isAddOpen && (
+          <AddAssetModal
+            isOpen={isAddOpen}
+            onClose={() => {
+              setIsAddOpen(false);
+              setAddPresetLocationId(undefined);
+            }}
+            locations={locations}
+            onAddAsset={handleAddAsset}
+            initialLocationId={addPresetLocationId}
+          />
+        )}
 
-      <QuickScanModal
-        isOpen={isScanOpen}
-        onClose={() => setIsScanOpen(false)}
-        assets={assets}
-        onFoundAsset={(found) => {
-          setActiveAsset(found);
-          setIsDetailOpen(true);
-        }}
-      />
+        {isScanOpen && (
+          <QuickScanModal
+            isOpen={isScanOpen}
+            onClose={() => setIsScanOpen(false)}
+            assets={assets}
+            onFoundAsset={(found) => {
+              setActiveAsset(found);
+              setIsDetailOpen(true);
+            }}
+          />
+        )}
 
-      <AuthModal
-        isOpen={isAuthOpen}
-        onClose={() => setIsAuthOpen(false)}
-        currentUser={currentUser}
-        onSwitchUser={setCurrentUser}
-      />
+        {isAuthOpen && (
+          <AuthModal
+            isOpen={isAuthOpen}
+            onClose={() => setIsAuthOpen(false)}
+            currentUser={currentUser}
+            onSwitchUser={setCurrentUser}
+          />
+        )}
 
-      {/* 1:1 Physical A5 Borrow Checklist Receipt Modal */}
-      <BorrowChecklistReceiptModal
-        isOpen={isReceiptOpen}
-        onClose={() => setIsReceiptOpen(false)}
-        record={activeChecklistRecord}
-        asset={activeChecklistAsset}
-        location={activeChecklistLocation}
-        onMarkReturned={handleMarkChecklistReturned}
-      />
+        {/* 1:1 Physical A5 Borrow Checklist Receipt Modal */}
+        {isReceiptOpen && (
+          <BorrowChecklistReceiptModal
+            isOpen={isReceiptOpen}
+            onClose={() => setIsReceiptOpen(false)}
+            record={activeChecklistRecord}
+            asset={activeChecklistAsset}
+            location={activeChecklistLocation}
+            onMarkReturned={handleMarkChecklistReturned}
+          />
+        )}
+      </Suspense>
     </div>
   );
 }

@@ -36,7 +36,8 @@ export const Header: React.FC<HeaderProps> = ({
   React.useEffect(() => {
     if (externalIsScrolled !== undefined) return;
     const handleScroll = () => {
-      setInternalScrolled(window.scrollY > 30);
+      const nextScrolled = window.scrollY > 30;
+      setInternalScrolled((prev) => (prev !== nextScrolled ? nextScrolled : prev));
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll();
@@ -67,8 +68,10 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Logos */}
             <div className="flex items-center gap-1.5 shrink-0">
               <img
-                src="/himu-logo-transparent.png"
+                src="/himu-logo-transparent.webp"
                 alt="Health Information Management Unit"
+                width={48}
+                height={48}
                 className={`h-10 w-10 sm:h-12 sm:w-12 rounded-xl object-contain shadow-xs border p-0.5 transition-all ${
                   isScrolled
                     ? 'border-black/5 bg-white'
@@ -76,8 +79,10 @@ export const Header: React.FC<HeaderProps> = ({
                 }`}
               />
               <img
-                src="/logo-uhc.png"
+                src="/logo-uhc.webp"
                 alt="UHC Alagang Parañaque"
+                width={120}
+                height={44}
                 className="h-9 sm:h-11 object-contain max-w-[90px] sm:max-w-[120px] drop-shadow-xs"
               />
             </div>

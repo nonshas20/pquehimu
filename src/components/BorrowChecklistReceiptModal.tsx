@@ -117,10 +117,10 @@ export const BorrowChecklistReceiptModal: React.FC<BorrowChecklistReceiptModalPr
   };
 
   return (
-    <div className="fixed inset-0 z-[10000] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200">
+    <div className="receipt-modal-backdrop fixed inset-0 z-[10000] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200">
       
       {/* Container Dialog: Solid Plain White Apple Aesthetic */}
-      <div className="relative w-full max-w-[660px] rounded-t-[32px] sm:rounded-3xl bg-white border-t sm:border border-neutral-200/90 shadow-2xl p-4 sm:p-6 text-neutral-900 max-h-[94vh] flex flex-col">
+      <div className="receipt-modal-dialog relative w-full max-w-[660px] rounded-t-[32px] sm:rounded-3xl bg-white border-t sm:border border-neutral-200/90 shadow-2xl p-4 sm:p-6 text-neutral-900 max-h-[94vh] flex flex-col">
         
         {/* Mobile Native Drag Pill Handle */}
         <div className="w-12 h-1.5 bg-neutral-300 rounded-full mx-auto mb-2.5 shrink-0 sm:hidden" />
@@ -164,7 +164,7 @@ export const BorrowChecklistReceiptModal: React.FC<BorrowChecklistReceiptModalPr
         {/* Document Scroll Wrapper for Phone & Desktop Viewports */}
         <div 
           ref={scrollContainerRef}
-          className="flex-1 overflow-y-auto overflow-x-auto min-h-0 bg-neutral-100/80 p-2 sm:p-5 rounded-2xl border border-neutral-200/70"
+          className="receipt-modal-scroll flex-1 overflow-y-auto overflow-x-auto min-h-0 bg-neutral-100/80 p-2 sm:p-5 rounded-2xl border border-neutral-200/70"
         >
           {/* ========================================================================= */}
           {/* A5 DOCUMENT CANVAS (1-TO-1 EXACT REPLICA OF PHYSICAL A5 CHECKLIST PAPER) */}
@@ -182,8 +182,10 @@ export const BorrowChecklistReceiptModal: React.FC<BorrowChecklistReceiptModalPr
               {/* Logo 1: City of Parañaque Official Seal */}
               <div className="flex items-center justify-center shrink-0">
                 <img
-                  src="/logo-paranaque-seal.png"
+                  src="/logo-paranaque-seal.webp"
                   alt="City of Parañaque"
+                  width={56}
+                  height={56}
                   className="h-10 w-10 sm:h-14 sm:w-14 object-contain"
                   loading="eager"
                 />
@@ -192,8 +194,10 @@ export const BorrowChecklistReceiptModal: React.FC<BorrowChecklistReceiptModalPr
               {/* Logo 2: Bagong Pilipinas */}
               <div className="flex items-center justify-center shrink-0">
                 <img
-                  src="/logo-bagong-pilipinas.png"
+                  src="/logo-bagong-pilipinas.webp"
                   alt="Bagong Pilipinas"
+                  width={56}
+                  height={56}
                   className="h-10 w-10 sm:h-14 sm:w-14 object-contain"
                   loading="eager"
                 />
@@ -202,8 +206,10 @@ export const BorrowChecklistReceiptModal: React.FC<BorrowChecklistReceiptModalPr
               {/* Logo 3: Parañaque A Mega City By The Bay */}
               <div className="flex items-center justify-center shrink-0 max-w-[95px] sm:max-w-[145px]">
                 <img
-                  src="/logo-paranaque-megacity.png"
+                  src="/logo-paranaque-megacity.webp"
                   alt="Parañaque A Mega City By The Bay"
+                  width={145}
+                  height={44}
                   className="h-8 sm:h-11 object-contain"
                   loading="eager"
                 />
@@ -212,8 +218,10 @@ export const BorrowChecklistReceiptModal: React.FC<BorrowChecklistReceiptModalPr
               {/* Logo 4: City Health Office Parañaque */}
               <div className="flex items-center justify-center shrink-0">
                 <img
-                  src="/logo-city-health-office.png"
+                  src="/logo-city-health-office.webp"
                   alt="City Health Office"
+                  width={56}
+                  height={56}
                   className="h-10 w-10 sm:h-14 sm:w-14 object-contain"
                   loading="eager"
                 />

@@ -17,14 +17,12 @@ export const AddAssetModal: React.FC<AddAssetModalProps> = ({
   onAddAsset,
   initialLocationId,
 }) => {
-  if (!isOpen) return null;
-
   const [name, setName] = useState('');
   const [category, setCategory] = useState<AssetCategory>('Printer');
   const [brandModel, setBrandModel] = useState('');
   const [serialNumber, setSerialNumber] = useState('');
   const [assetTag, setAssetTag] = useState(
-    `HIMU-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`
+    () => `HIMU-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`
   );
   const [currentLocationId, setCurrentLocationId] = useState(
     initialLocationId || locations[0]?.id || ''
@@ -38,6 +36,8 @@ export const AddAssetModal: React.FC<AddAssetModalProps> = ({
   const [custodianName, setCustodianName] = useState('');
   const [custodianRole, setCustodianRole] = useState('Barangay Health Center Staff / IT Coordinator');
   const [notes, setNotes] = useState('');
+
+  if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

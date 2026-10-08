@@ -34,14 +34,13 @@ export const TransferModal: React.FC<TransferModalProps> = ({
   defaultDispatcherName,
   onConfirmTransfer,
 }) => {
-  if (!isOpen || !asset) return null;
+  const currentLocation = locations.find((l) => l.id === asset?.currentLocationId);
+  const eligibleDestinations = locations.filter((l) => l.id !== asset?.currentLocationId);
 
-  const currentLocation = locations.find((l) => l.id === asset.currentLocationId);
-  const eligibleDestinations = locations.filter((l) => l.id !== asset.currentLocationId);
-
-  const [toLocationId, setToLocationId] = useState<string>(
-    eligibleDestinations[0]?.id || ''
-  );
+  const [toLocationId, setToLocationId] = useState<string>(() => {
+    const eligible = locations.filter((l) => l.id !== asset?.currentLocationId);
+    return eligible[0]?.id || '';
+  });
 
   const selectedDestination = locations.find((l) => l.id === toLocationId);
   const destinationCleanName = selectedDestination?.name?.replace(/^Barangay\s+/i, '') || 'BARANGAY';
@@ -73,31 +72,22 @@ export const TransferModal: React.FC<TransferModalProps> = ({
     return now.toISOString().slice(0, 16); // YYYY-MM-DDTHH:MM
   });
 
-  // Items Borrowed Checklist Rows (Matching 1-to-1 with A5 table)
-  const [itemsList, setItemsList] = useState<BorrowChecklistItem[]>([
-    {
-      itemEquipment: (asset.name || asset.brandModel || 'IT EQUIPMENT').toUpperCase(),
-      serialNo: asset.serialNumber || 'N/A',
-      quantity: 1,
-      remarks: asset.category === 'Printer' ? 'WITH POWER AND CABLE' : 'WITH POWER',
-    },
-  ]);
-
   // Standard Accessories Quick Add Toggles
-  const [includeExtensions, setIncludeExtensions] = useState(asset.category === 'Printer');
-  const [includeRouter, setIncludeRouter] = useState(false);
+  const [includeExtensions, setIncludeExtensions] = useState<boolean>(() => asset?.category === 'Printer');
+  const [includeRouter, setIncludeRouter] = useState<boolean>(false);
 
-  useEffect(() => {
+  // Helper to build initial item rows
+  const createDefaultItems = (targetAsset: AssetItem | null): BorrowChecklistItem[] => {
+    if (!targetAsset) return [];
     const list: BorrowChecklistItem[] = [
       {
-        itemEquipment: (asset.name || asset.brandModel || 'IT EQUIPMENT').toUpperCase(),
-        serialNo: asset.serialNumber || 'N/A',
+        itemEquipment: (targetAsset.name || targetAsset.brandModel || 'IT EQUIPMENT').toUpperCase(),
+        serialNo: targetAsset.serialNumber || 'N/A',
         quantity: 1,
-        remarks: asset.category === 'Printer' ? 'WITH POWER AND CABLE' : 'WITH POWER',
+        remarks: targetAsset.category === 'Printer' ? 'WITH POWER AND CABLE' : 'WITH POWER',
       },
     ];
-
-    if (includeExtensions) {
+    if (targetAsset.category === 'Printer') {
       list.push({
         itemEquipment: '2 EXTENSIONS',
         serialNo: 'N/A',
@@ -105,18 +95,65 @@ export const TransferModal: React.FC<TransferModalProps> = ({
         remarks: '',
       });
     }
+    return list;
+  };
 
-    if (includeRouter) {
-      list.push({
-        itemEquipment: 'D-LINK WIFI ROUTER',
-        serialNo: '',
-        quantity: 1,
-        remarks: 'WITH POWER',
-      });
+  // Items Borrowed Checklist Rows (Matching 1-to-1 with A5 table)
+  const [itemsList, setItemsList] = useState<BorrowChecklistItem[]>(() => createDefaultItems(asset));
+
+  // Reset form state cleanly when a different asset is selected
+  useEffect(() => {
+    if (asset) {
+      const eligible = locations.filter((l) => l.id !== asset.currentLocationId);
+      setToLocationId(eligible[0]?.id || '');
+      setIncludeExtensions(asset.category === 'Printer');
+      setIncludeRouter(false);
+      setItemsList(createDefaultItems(asset));
     }
+  }, [asset?.id, locations]);
 
-    setItemsList(list);
-  }, [includeExtensions, includeRouter, asset]);
+  // Non-destructive accessory toggles that preserve user edits and custom rows
+  const handleToggleExtensions = (checked: boolean) => {
+    setIncludeExtensions(checked);
+    if (checked) {
+      setItemsList((prev) => {
+        if (prev.some((item) => item.itemEquipment.includes('EXTENSION'))) return prev;
+        return [
+          ...prev,
+          {
+            itemEquipment: '2 EXTENSIONS',
+            serialNo: 'N/A',
+            quantity: 2,
+            remarks: '',
+          },
+        ];
+      });
+    } else {
+      setItemsList((prev) => prev.filter((item) => !item.itemEquipment.includes('EXTENSION')));
+    }
+  };
+
+  const handleToggleRouter = (checked: boolean) => {
+    setIncludeRouter(checked);
+    if (checked) {
+      setItemsList((prev) => {
+        if (prev.some((item) => item.itemEquipment.includes('ROUTER'))) return prev;
+        return [
+          ...prev,
+          {
+            itemEquipment: 'D-LINK WIFI ROUTER',
+            serialNo: '',
+            quantity: 1,
+            remarks: 'WITH POWER',
+          },
+        ];
+      });
+    } else {
+      setItemsList((prev) => prev.filter((item) => !item.itemEquipment.includes('ROUTER')));
+    }
+  };
+
+  if (!isOpen || !asset) return null;
 
   const handleAddItemRow = () => {
     setItemsList((prev) => [
@@ -343,7 +380,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
                 <input
                   type="checkbox"
                   checked={includeExtensions}
-                  onChange={(e) => setIncludeExtensions(e.target.checked)}
+                  onChange={(e) => handleToggleExtensions(e.target.checked)}
                   className="rounded text-emerald-600 focus:ring-emerald-500"
                 />
                 <span>Include 2x Extension Cords (Heavy Duty)</span>
@@ -353,7 +390,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
                 <input
                   type="checkbox"
                   checked={includeRouter}
-                  onChange={(e) => setIncludeRouter(e.target.checked)}
+                  onChange={(e) => handleToggleRouter(e.target.checked)}
                   className="rounded text-emerald-600 focus:ring-emerald-500"
                 />
                 <span>Include Wi-Fi 6 Router</span>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { 
   AssetItem, 
   AssetCategory, 
@@ -51,6 +51,27 @@ export const AssetList: React.FC<AssetListProps> = ({
 }) => {
   const [copiedSerial, setCopiedSerial] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
+  const [isMobile, setIsMobile] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 768;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    const mql = window.matchMedia('(max-width: 767px)');
+    const onChange = (e: MediaQueryListEvent | MediaQueryList) => {
+      setIsMobile(e.matches);
+    };
+    setIsMobile(mql.matches);
+    if (mql.addEventListener) {
+      mql.addEventListener('change', onChange);
+      return () => mql.removeEventListener('change', onChange);
+    } else {
+      mql.addListener(onChange);
+      return () => mql.removeListener(onChange);
+    }
+  }, []);
 
   const handleCopySerial = (serial: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -142,6 +163,8 @@ export const AssetList: React.FC<AssetListProps> = ({
     { label: 'Depot Standby', value: 'standby' },
   ];
 
+  const showTable = !isMobile && viewMode === 'table';
+
   return (
     <div className="space-y-4">
       {/* Filters & View Switcher Bar */}
@@ -178,7 +201,7 @@ export const AssetList: React.FC<AssetListProps> = ({
           </select>
 
           {/* Desktop Table/Grid Mode */}
-          <div className="hidden sm:inline-flex rounded-2xl border border-black/5 bg-white/70 p-0.5">
+          <div className="hidden md:inline-flex rounded-2xl border border-black/5 bg-white/70 p-0.5">
             <button
               onClick={() => setViewMode('table')}
               className={`rounded-xl p-1.5 transition-all ${
@@ -227,10 +250,8 @@ export const AssetList: React.FC<AssetListProps> = ({
             </button>
           </div>
         </div>
-      ) : (
-        <>
-          {/* Table View (Default Desktop) */}
-          <div className={`${viewMode === 'table' ? 'hidden md:block' : 'hidden'} overflow-hidden rounded-3xl bg-white border border-neutral-200/90 shadow-xs`}>
+      ) : showTable ? (
+        <div className="overflow-hidden rounded-3xl bg-white border border-neutral-200/90 shadow-xs">
             <table className="min-w-full divide-y divide-black/[0.04] text-left text-xs">
               <thead className="bg-white/60 text-[11px] font-bold text-neutral-500 uppercase tracking-wider">
                 <tr>
@@ -349,9 +370,8 @@ export const AssetList: React.FC<AssetListProps> = ({
               </tbody>
             </table>
           </div>
-
-          {/* Cards View (Mobile & Tablet) */}
-          <div className={`${viewMode === 'cards' ? 'grid' : 'grid md:hidden'} grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5`}>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
             {assets.map((asset) => {
               const Icon = getCategoryIcon(asset.category);
               const loc = getLocation(asset.currentLocationId);
@@ -441,7 +461,6 @@ export const AssetList: React.FC<AssetListProps> = ({
               );
             })}
           </div>
-        </>
       )}
     </div>
   );

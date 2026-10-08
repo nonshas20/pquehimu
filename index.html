@@ -13,8 +13,16 @@
     <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="shortcut icon" href="/favicon.ico" />
-    <!-- Preload Hero Banner for instant Largest Contentful Paint (LCP) -->
-    <link rel="preload" as="image" href="/himu-team-banner.webp" type="image/webp" fetchpriority="high" />
+    <!-- Preload Hero Banner for instant Largest Contentful Paint (LCP) with responsive srcset -->
+    <link
+      rel="preload"
+      as="image"
+      href="/himu-team-banner-1920.webp"
+      type="image/webp"
+      fetchpriority="high"
+      imagesrcset="/himu-team-banner-800.webp 800w, /himu-team-banner-1920.webp 1920w, /himu-team-banner.webp 2880w"
+      imagesizes="100vw"
+    />
     <!-- Plus Jakarta Sans & Space Mono: bespoke, high-craft non-AI typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

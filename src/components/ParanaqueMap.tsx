@@ -103,6 +103,8 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
   // Drag-and-Drop Tracking State
   const [draggingAsset, setDraggingAsset] = useState<AssetItem | null>(null);
   const [hoveredDropLocationId, setHoveredDropLocationId] = useState<string | null>(null);
+  const hoveredDropLocationIdRef = useRef<string | null>(null);
+  hoveredDropLocationIdRef.current = hoveredDropLocationId;
   const [justDroppedLocationId, setJustDroppedLocationId] = useState<string | null>(null);
   const [lastDeployedNotice, setLastDeployedNotice] = useState<{
     assetId?: string;
@@ -387,7 +389,7 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
           },
           mouseover: (e) => {
             const l = e.target as L.Path;
-            if (loc.id !== selectedLocationId && loc.id !== hoveredDropLocationId) {
+            if (loc.id !== selectedLocationId && loc.id !== hoveredDropLocationIdRef.current) {
               l.setStyle({
                 weight: 2.5,
                 fillOpacity: 0.85,
@@ -397,7 +399,7 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
           },
           mouseout: (e) => {
             const l = e.target as L.Path;
-            if (loc.id !== selectedLocationId && loc.id !== hoveredDropLocationId) {
+            if (loc.id !== selectedLocationId && loc.id !== hoveredDropLocationIdRef.current) {
               geoJsonLayer.resetStyle(l);
             }
           },
@@ -412,7 +414,7 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
           const total = stats?.count || 0;
 
           const isSelected = selectedLocationId === loc.id;
-          const isDropHovered = hoveredDropLocationId === loc.id;
+          const isDropHovered = hoveredDropLocationIdRef.current === loc.id;
           const cleanDisplayName = loc.name.replace(/^Barangay\s+/i, '');
 
           let markerHtml = '';
@@ -507,7 +509,7 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
     }).addTo(map);
 
     geoJsonLayerRef.current = geoJsonLayer;
-  }, [selectedLocationId, hoveredDropLocationId, locationStats, locations, filterCategory, onSelectLocation]);
+  }, [selectedLocationId, locationStats, locations, filterCategory, onSelectLocation]);
 
   // Dynamic Polygon Glow on Drag Hover & Drop Confirmation
   useEffect(() => {
@@ -533,6 +535,18 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
         });
       } else {
         geoJsonLayerRef.current?.resetStyle(poly);
+      }
+    });
+
+    // Directly update marker pod DOM glow without tearing down Leaflet layers
+    const container = mapContainerRef.current || document;
+    const pods = container.querySelectorAll('.custom-hardware-pod, .empty-hardware-pod');
+    pods.forEach((pod) => {
+      const locId = pod.getAttribute('data-location-id');
+      if (locId === hoveredDropLocationId) {
+        pod.classList.add('scale-125', 'ring-4', 'ring-emerald-500', 'shadow-2xl', 'z-50');
+      } else {
+        pod.classList.remove('scale-125', 'ring-4', 'ring-emerald-500', 'shadow-2xl', 'z-50');
       }
     });
   }, [hoveredDropLocationId, selectedLocationId, justDroppedLocationId]);
