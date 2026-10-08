@@ -83,18 +83,6 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
   const [filterCategory, setFilterCategory] = useState<'ALL' | AssetCategory>('ALL');
   const [copiedSerial, setCopiedSerial] = useState<string | null>(null);
 
-  // Zoom Tracking & Density Mode
-  const [currentZoom, setCurrentZoom] = useState(12.4);
-  const [displayDensity, setDisplayDensity] = useState<'adaptive' | 'compact' | 'detailed'>('adaptive');
-
-  // Derive whether to render compact non-overlapping pods or full detailed badges
-  const isCompact = useMemo(() => {
-    if (displayDensity === 'compact') return true;
-    if (displayDensity === 'detailed') return false;
-    // In adaptive mode, use compact when zoomed out (< 12.85) to prevent overlapping deck-of-cards collision
-    return currentZoom < 12.85;
-  }, [displayDensity, currentZoom]);
-
   // Right Side Panel & Drag State
   const [isPanelOpen, setIsPanelOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<'DEPOT' | 'BARANGAY'>('DEPOT');
@@ -227,7 +215,7 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
     }
   }, [isExpanded]);
 
-  // Recalculate Leaflet tile dimensions whenever expanded state or drawer toggles
+  // Recalculate Leaflet tile dimensions whenever expanded state toggles
   useEffect(() => {
     const timer = setTimeout(() => {
       if (mapRef.current) {
@@ -243,18 +231,13 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
 
     const map = L.map(mapContainerRef.current, {
       zoomControl: false,
-      minZoom: 11.2,
+      minZoom: 11.5,
       maxZoom: 16.5,
       scrollWheelZoom: true,
       dragging: true,
-    }).setView([14.484, 121.014], 12.4);
+    }).setView([14.484, 121.012], 12.4);
 
     mapRef.current = map;
-
-    // Track zoom level changes for adaptive level-of-detail rendering
-    map.on('zoomend', () => {
-      setCurrentZoom(map.getZoom());
-    });
 
     // Add Esri Light Gray Canvas tiles
     L.tileLayer(ESRI_LIGHT_TILE_URL, {
@@ -408,136 +391,80 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
 
           let markerHtml = '';
 
-          if (isCompact) {
-            // ==========================================
-            // COMPACT MODE (Zoomed Out / City Overview)
-            // Ultra-compact non-overlapping pods
-            // ==========================================
-            if (total > 0) {
-              markerHtml = `
-                <div 
-                  class="custom-hardware-pod group cursor-pointer transition-all ${
-                    isDropHovered 
-                      ? 'scale-125 ring-4 ring-emerald-500 shadow-2xl z-50' 
-                      : isSelected 
-                        ? 'scale-115 ring-2 ring-emerald-500 shadow-lg' 
-                        : 'hover:scale-110 active:scale-95'
-                  }"
-                  data-location-id="${loc.id}"
-                  data-location-name="${loc.name}"
-                  title="${cleanDisplayName}: ${total} IT Items stationed"
-                >
-                  <div class="inline-flex items-center gap-1 rounded-full bg-white border ${
-                    isSelected ? 'border-neutral-900 ring-2 ring-emerald-500 bg-white' : 'border-neutral-200/90'
-                  } shadow-md px-1.5 py-1 whitespace-nowrap">
-                    <div class="flex items-center gap-0.5">
-                      ${printers > 0 ? `<div class="flex items-center text-emerald-700" title="${printers} Printer(s)">${getPrinterMarkerSvg(15)}</div>` : ''}
-                      ${routers > 0 ? `<div class="flex items-center text-sky-700" title="${routers} Router(s)">${getRouterMarkerSvg(15)}</div>` : ''}
-                      ${cords > 0 ? `<div class="flex items-center text-amber-700" title="${cords} Cord(s)">${getExtensionCordMarkerSvg(15)}</div>` : ''}
-                      ${pcs > 0 ? `<div class="flex items-center text-purple-700" title="${pcs} Workstation(s)">${getComputerMarkerSvg(15)}</div>` : ''}
+          if (total > 0) {
+            // Active Hardware Cluster Pod with SVGs
+            markerHtml = `
+              <div 
+                class="custom-hardware-pod group cursor-pointer transition-all ${
+                  isDropHovered 
+                    ? 'scale-125 ring-4 ring-emerald-500 shadow-2xl z-50' 
+                    : isSelected 
+                      ? 'scale-115 ring-2 ring-emerald-500 rounded-2xl shadow-lg' 
+                      : 'hover:scale-110 active:scale-95'
+                }"
+                data-location-id="${loc.id}"
+                data-location-name="${loc.name}"
+              >
+                <div class="flex items-center gap-1.5 rounded-2xl bg-white/95 backdrop-blur-md border ${
+                  isSelected ? 'border-neutral-900 bg-white' : 'border-neutral-200/90'
+                } shadow-md px-2 py-1 transition-all">
+                  ${printers > 0 ? `
+                    <div class="flex items-center gap-0.5 rounded-lg bg-emerald-50 p-1 text-emerald-700 shadow-2xs" title="${printers} Printer(s) deployed">
+                      ${getPrinterMarkerSvg()}
+                      ${printers > 1 ? `<span class="text-[9px] font-extrabold text-emerald-800 leading-none">${printers}</span>` : ''}
                     </div>
-                    <span class="rounded-full bg-emerald-600 text-white text-[9px] font-black px-1.5 py-0.2 leading-none">
-                      ${total}
-                    </span>
+                  ` : ''}
+                  ${routers > 0 ? `
+                    <div class="flex items-center gap-0.5 rounded-lg bg-sky-50 p-1 text-sky-700 shadow-2xs" title="${routers} Router(s) deployed">
+                      ${getRouterMarkerSvg()}
+                      ${routers > 1 ? `<span class="text-[9px] font-extrabold text-sky-800 leading-none">${routers}</span>` : ''}
+                    </div>
+                  ` : ''}
+                  ${cords > 0 ? `
+                    <div class="flex items-center gap-0.5 rounded-lg bg-amber-50 p-1 text-amber-700 shadow-2xs" title="${cords} Extension Cord(s) deployed">
+                      ${getExtensionCordMarkerSvg()}
+                      ${cords > 1 ? `<span class="text-[9px] font-extrabold text-amber-800 leading-none">${cords}</span>` : ''}
+                    </div>
+                  ` : ''}
+                  ${pcs > 0 ? `
+                    <div class="flex items-center gap-0.5 rounded-lg bg-purple-50 p-1 text-purple-700 shadow-2xs" title="${pcs} Workstation(s) deployed">
+                      ${getComputerMarkerSvg()}
+                      ${pcs > 1 ? `<span class="text-[9px] font-extrabold text-purple-800 leading-none">${pcs}</span>` : ''}
+                    </div>
+                  ` : ''}
+
+                  <div class="flex items-center gap-1 pl-0.5 pr-1">
+                    <span class="text-[11px] font-bold text-neutral-900 truncate max-w-[90px]">${cleanDisplayName}</span>
+                    <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                   </div>
                 </div>
-              `;
-            } else {
-              markerHtml = `
-                <div 
-                  class="empty-hardware-pod cursor-pointer transition-all hover:scale-110 active:scale-95"
-                  data-location-id="${loc.id}"
-                  data-location-name="${loc.name}"
-                  title="${cleanDisplayName}: 0 Items stationed"
-                >
-                  <div class="inline-flex items-center gap-1 rounded-full bg-white/95 border border-neutral-200/80 shadow-2xs px-1.5 py-0.5 text-neutral-500 whitespace-nowrap">
-                    <span class="text-[9px] font-bold text-neutral-600">${cleanDisplayName.slice(0, 3)}</span>
-                    <span class="text-[8px] font-bold text-neutral-400">0</span>
-                  </div>
-                </div>
-              `;
-            }
+              </div>
+            `;
           } else {
-            // ==========================================
-            // DETAILED MODE (Zoomed In / Expanded View)
-            // Complete unified white pill encapsulating both icons and barangay name
-            // ==========================================
-            if (total > 0) {
-              markerHtml = `
-                <div 
-                  class="custom-hardware-pod group cursor-pointer transition-all ${
-                    isDropHovered 
-                      ? 'scale-125 ring-4 ring-emerald-500 shadow-2xl z-50' 
-                      : isSelected 
-                        ? 'scale-115 ring-2 ring-emerald-500 shadow-lg' 
-                        : 'hover:scale-105 active:scale-95'
-                  }"
-                  data-location-id="${loc.id}"
-                  data-location-name="${loc.name}"
-                >
-                  <div class="inline-flex items-center gap-1.5 rounded-2xl bg-white border ${
-                    isSelected ? 'border-neutral-900 ring-2 ring-emerald-500 bg-white' : 'border-neutral-200/90'
-                  } shadow-md px-2.5 py-1 whitespace-nowrap">
-                    
-                    <!-- Equipment Icons Strip -->
-                    <div class="flex items-center gap-1">
-                      ${printers > 0 ? `
-                        <div class="flex items-center gap-0.5 rounded-lg bg-emerald-50 p-1 text-emerald-700 shadow-2xs" title="${printers} Printer(s) deployed">
-                          ${getPrinterMarkerSvg(17)}
-                          ${printers > 1 ? `<span class="text-[9px] font-extrabold text-emerald-800 leading-none">${printers}</span>` : ''}
-                        </div>
-                      ` : ''}
-                      ${routers > 0 ? `
-                        <div class="flex items-center gap-0.5 rounded-lg bg-sky-50 p-1 text-sky-700 shadow-2xs" title="${routers} Router(s) deployed">
-                          ${getRouterMarkerSvg(17)}
-                          ${routers > 1 ? `<span class="text-[9px] font-extrabold text-sky-800 leading-none">${routers}</span>` : ''}
-                        </div>
-                      ` : ''}
-                      ${cords > 0 ? `
-                        <div class="flex items-center gap-0.5 rounded-lg bg-amber-50 p-1 text-amber-700 shadow-2xs" title="${cords} Extension Cord(s) deployed">
-                          ${getExtensionCordMarkerSvg(17)}
-                          ${cords > 1 ? `<span class="text-[9px] font-extrabold text-amber-800 leading-none">${cords}</span>` : ''}
-                        </div>
-                      ` : ''}
-                      ${pcs > 0 ? `
-                        <div class="flex items-center gap-0.5 rounded-lg bg-purple-50 p-1 text-purple-700 shadow-2xs" title="${pcs} Workstation(s) deployed">
-                          ${getComputerMarkerSvg(17)}
-                          ${pcs > 1 ? `<span class="text-[9px] font-extrabold text-purple-800 leading-none">${pcs}</span>` : ''}
-                        </div>
-                      ` : ''}
-                    </div>
-
-                    <!-- Clean Vertical Divider -->
-                    <div class="h-3.5 w-px bg-neutral-200 shrink-0"></div>
-
-                    <!-- Barangay Name with Live Status Indicator enclosed within the white card -->
-                    <div class="flex items-center gap-1.5 pl-0.5 pr-0.5">
-                      <span class="text-[11px] font-extrabold text-neutral-900">${cleanDisplayName}</span>
-                      <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
-                    </div>
-                  </div>
+            // Clean empty badge marker
+            markerHtml = `
+              <div 
+                class="empty-hardware-pod cursor-pointer transition-all ${
+                  isDropHovered 
+                    ? 'scale-120 ring-4 ring-emerald-500 bg-emerald-50 shadow-xl' 
+                    : 'hover:scale-105 active:scale-95'
+                }"
+                data-location-id="${loc.id}"
+                data-location-name="${loc.name}"
+              >
+                <div class="flex items-center gap-1 rounded-xl bg-white/95 backdrop-blur-xs border border-neutral-200/90 shadow-2xs px-2 py-0.5 text-neutral-600 hover:border-neutral-400">
+                  <span class="text-[10px] font-bold text-neutral-800">${cleanDisplayName}</span>
+                  <span class="text-[9px] font-bold text-neutral-400">0</span>
                 </div>
-              `;
-            } else {
-              markerHtml = `
-                <div 
-                  class="empty-hardware-pod cursor-pointer transition-all hover:scale-105 active:scale-95"
-                  data-location-id="${loc.id}"
-                  data-location-name="${loc.name}"
-                >
-                  <div class="inline-flex items-center gap-1.5 rounded-xl bg-white border border-neutral-200/90 shadow-2xs px-2.5 py-1 whitespace-nowrap">
-                    <span class="text-[10px] font-bold text-neutral-800">${cleanDisplayName}</span>
-                    <span class="rounded-full bg-neutral-100 text-neutral-500 text-[9px] font-bold px-1.5 py-0.2">0</span>
-                  </div>
-                </div>
-              `;
-            }
+              </div>
+            `;
           }
 
-          // Do NOT pass fixed iconSize so Leaflet does not force a rigid clipped width box
           const hardwareIcon = L.divIcon({
             className: 'hardware-leaflet-div-icon',
             html: markerHtml,
+            iconSize: [total > 0 ? 145 : 85, 36],
+            iconAnchor: [total > 0 ? 72 : 42, 18],
           });
 
           const marker = L.marker(centroid, { icon: hardwareIcon });
@@ -554,7 +481,7 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
     }).addTo(map);
 
     geoJsonLayerRef.current = geoJsonLayer;
-  }, [selectedLocationId, hoveredDropLocationId, locationStats, locations, filterCategory, isCompact, onSelectLocation]);
+  }, [selectedLocationId, hoveredDropLocationId, locationStats, locations, filterCategory, onSelectLocation]);
 
   // Dynamic Polygon Glow on Drag Hover
   useEffect(() => {
@@ -587,7 +514,7 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
   // Recenter map button
   const handleRecenter = () => {
     if (mapRef.current) {
-      mapRef.current.setView([14.484, 121.014], 12.4, { animate: true });
+      mapRef.current.setView([14.484, 121.012], 12.4, { animate: true });
     }
   };
 
@@ -712,107 +639,67 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
           isPanelOpen ? 'right-3 sm:right-[400px] lg:right-[440px]' : 'right-3'
         }`}
       >
-        {/* Hardware Category Filter Pills & Density View Switcher */}
-        <div className="flex flex-wrap items-center gap-1.5 pointer-events-auto">
-          {/* Hardware Category Pills */}
-          <div className="flex items-center gap-1 overflow-x-auto rounded-2xl bg-white/95 backdrop-blur-md border border-neutral-200/90 p-1 shadow-sm no-scrollbar">
-            <button
-              onClick={() => setFilterCategory('ALL')}
-              className={`inline-flex items-center gap-1 rounded-xl px-2.5 py-1 text-xs font-bold transition-all ${
-                filterCategory === 'ALL'
-                  ? 'bg-neutral-900 text-white shadow-xs'
-                  : 'text-neutral-600 hover:text-neutral-950 hover:bg-neutral-100'
-              }`}
-            >
-              <Layers className="h-3.5 w-3.5" />
-              <span>All ({assets.length})</span>
-            </button>
+        {/* Hardware Category Filter Pills */}
+        <div className="pointer-events-auto flex items-center gap-1.5 overflow-x-auto rounded-2xl bg-white/95 backdrop-blur-md border border-neutral-200/90 p-1 shadow-sm no-scrollbar">
+          <button
+            onClick={() => setFilterCategory('ALL')}
+            className={`inline-flex items-center gap-1 rounded-xl px-2.5 py-1 text-xs font-bold transition-all ${
+              filterCategory === 'ALL'
+                ? 'bg-neutral-900 text-white shadow-xs'
+                : 'text-neutral-600 hover:text-neutral-950 hover:bg-neutral-100'
+            }`}
+          >
+            <Layers className="h-3.5 w-3.5" />
+            <span>All ({assets.length})</span>
+          </button>
 
-            <button
-              onClick={() => setFilterCategory('Printer')}
-              className={`inline-flex items-center gap-1 rounded-xl px-2.5 py-1 text-xs font-bold transition-all ${
-                filterCategory === 'Printer'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-neutral-600 hover:text-neutral-950 hover:bg-neutral-100'
-              }`}
-            >
-              <PrinterSvg size={14} className="shrink-0" />
-              <span>Printers ({totalPrinters})</span>
-            </button>
+          <button
+            onClick={() => setFilterCategory('Printer')}
+            className={`inline-flex items-center gap-1 rounded-xl px-2.5 py-1 text-xs font-bold transition-all ${
+              filterCategory === 'Printer'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'text-neutral-600 hover:text-neutral-950 hover:bg-neutral-100'
+            }`}
+          >
+            <PrinterSvg size={14} className="shrink-0" />
+            <span>Printers ({totalPrinters})</span>
+          </button>
 
-            <button
-              onClick={() => setFilterCategory('Network Router')}
-              className={`inline-flex items-center gap-1 rounded-xl px-2.5 py-1 text-xs font-bold transition-all ${
-                filterCategory === 'Network Router'
-                  ? 'bg-sky-600 text-white shadow-xs'
-                  : 'text-neutral-600 hover:text-neutral-950 hover:bg-neutral-100'
-              }`}
-            >
-              <RouterSvg size={14} className="shrink-0" />
-              <span>Routers ({totalRouters})</span>
-            </button>
+          <button
+            onClick={() => setFilterCategory('Network Router')}
+            className={`inline-flex items-center gap-1 rounded-xl px-2.5 py-1 text-xs font-bold transition-all ${
+              filterCategory === 'Network Router'
+                ? 'bg-sky-600 text-white shadow-xs'
+                : 'text-neutral-600 hover:text-neutral-950 hover:bg-neutral-100'
+            }`}
+          >
+            <RouterSvg size={14} className="shrink-0" />
+            <span>Routers ({totalRouters})</span>
+          </button>
 
-            <button
-              onClick={() => setFilterCategory('Extension Cord / Power')}
-              className={`inline-flex items-center gap-1 rounded-xl px-2.5 py-1 text-xs font-bold transition-all ${
-                filterCategory === 'Extension Cord / Power'
-                  ? 'bg-amber-600 text-white shadow-xs'
-                  : 'text-neutral-600 hover:text-neutral-950 hover:bg-neutral-100'
-              }`}
-            >
-              <ExtensionCordSvg size={14} className="shrink-0" />
-              <span>Cords ({totalCords})</span>
-            </button>
+          <button
+            onClick={() => setFilterCategory('Extension Cord / Power')}
+            className={`inline-flex items-center gap-1 rounded-xl px-2.5 py-1 text-xs font-bold transition-all ${
+              filterCategory === 'Extension Cord / Power'
+                ? 'bg-amber-600 text-white shadow-xs'
+                : 'text-neutral-600 hover:text-neutral-950 hover:bg-neutral-100'
+            }`}
+          >
+            <ExtensionCordSvg size={14} className="shrink-0" />
+            <span>Cords ({totalCords})</span>
+          </button>
 
-            <button
-              onClick={() => setFilterCategory('Workstation / PC')}
-              className={`inline-flex items-center gap-1 rounded-xl px-2.5 py-1 text-xs font-bold transition-all ${
-                filterCategory === 'Workstation / PC'
-                  ? 'bg-purple-600 text-white shadow-xs'
-                  : 'text-neutral-600 hover:text-neutral-950 hover:bg-neutral-100'
-              }`}
-            >
-              <ComputerSvg size={14} className="shrink-0" />
-              <span>PCs ({totalComputers})</span>
-            </button>
-          </div>
-
-          {/* Density Level-of-Detail Switcher */}
-          <div className="hidden sm:flex items-center gap-0.5 rounded-2xl bg-white/95 backdrop-blur-md border border-neutral-200/90 p-1 shadow-sm">
-            <button
-              onClick={() => setDisplayDensity('adaptive')}
-              title="Automatically switch between compact and full based on zoom level"
-              className={`px-2 py-1 text-[11px] font-bold rounded-xl transition ${
-                displayDensity === 'adaptive'
-                  ? 'bg-neutral-900 text-white shadow-xs'
-                  : 'text-neutral-600 hover:text-neutral-950 hover:bg-neutral-100'
-              }`}
-            >
-              Auto {isCompact ? '(Compact)' : '(Full)'}
-            </button>
-            <button
-              onClick={() => setDisplayDensity('compact')}
-              title="Always show compact non-overlapping pins"
-              className={`px-2 py-1 text-[11px] font-bold rounded-xl transition ${
-                displayDensity === 'compact'
-                  ? 'bg-neutral-900 text-white shadow-xs'
-                  : 'text-neutral-600 hover:text-neutral-950 hover:bg-neutral-100'
-              }`}
-            >
-              Compact
-            </button>
-            <button
-              onClick={() => setDisplayDensity('detailed')}
-              title="Always show full equipment cards"
-              className={`px-2 py-1 text-[11px] font-bold rounded-xl transition ${
-                displayDensity === 'detailed'
-                  ? 'bg-neutral-900 text-white shadow-xs'
-                  : 'text-neutral-600 hover:text-neutral-950 hover:bg-neutral-100'
-              }`}
-            >
-              Full
-            </button>
-          </div>
+          <button
+            onClick={() => setFilterCategory('Workstation / PC')}
+            className={`inline-flex items-center gap-1 rounded-xl px-2.5 py-1 text-xs font-bold transition-all ${
+              filterCategory === 'Workstation / PC'
+                ? 'bg-purple-600 text-white shadow-xs'
+                : 'text-neutral-600 hover:text-neutral-950 hover:bg-neutral-100'
+            }`}
+          >
+            <ComputerSvg size={14} className="shrink-0" />
+            <span>PCs ({totalComputers})</span>
+          </button>
         </div>
 
         {/* Control Buttons & Drawer Opener */}
