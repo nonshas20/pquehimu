@@ -132,6 +132,21 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ users, onLogin }) => {
       <div className="relative z-10 w-full lg:w-[48%] xl:w-[45%] flex flex-col justify-center px-6 sm:px-12 md:px-16 lg:px-14 xl:px-20 py-8 lg:py-16 min-h-[calc(100vh-176px)] lg:min-h-screen">
         <div className="w-full max-w-[360px] mx-auto lg:mx-0">
           
+          {/* Institutional Emblems: HIMU Official Seal & Alagang Parañaque UHC */}
+          <div className="flex items-center gap-3.5 mb-5">
+            <img
+              src="/logo-himu-official-transparent.webp"
+              alt="Health Information Management Unit Emblem"
+              className="h-11 sm:h-12 w-auto object-contain drop-shadow-xs"
+            />
+            <div className="h-7 w-px bg-neutral-200" />
+            <img
+              src="/logo-uhc-alagang-paranaque.webp"
+              alt="Alagang Parañaque UHC"
+              className="h-8 sm:h-9 w-auto object-contain"
+            />
+          </div>
+
           {/* Top Brand Pill: | IT */}
           <div className="flex items-center gap-2 mb-1.5">
             <span className="w-1 h-5 sm:h-6 rounded-full bg-[#0d62d9]" />
@@ -140,9 +155,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ users, onLogin }) => {
             </span>
           </div>
 
-          {/* HIMUT Title */}
+          {/* HIMU Title */}
           <h1 className="text-5xl sm:text-6xl font-black text-[#0c1427] tracking-tight leading-none">
-            HIMUT
+            HIMU
           </h1>
 
           {/* Subtitle: A S S E T   T R A C K E R */}
