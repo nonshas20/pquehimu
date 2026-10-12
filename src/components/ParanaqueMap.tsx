@@ -22,7 +22,8 @@ import {
   CheckCircle2, 
   Send,
   Printer,
-  Trash
+  Trash,
+  MapIcon
 } from './HugeIcons';
 import {
   PrinterSvg,
@@ -100,8 +101,13 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
   // Configurable Profiling Event Title for Map Borrows (Defaults to PhilHealth YAKAP)
   const [activeProfilingTitle, setActiveProfilingTitle] = useState('PHILHEALTH YAKAP PROFILING');
 
-  // Drag-and-Drop Tracking State
+  // Drag-and-Drop & Mobile Tap-to-Deploy State
   const [draggingAsset, setDraggingAsset] = useState<AssetItem | null>(null);
+  const [tapStagedAsset, setTapStagedAsset] = useState<AssetItem | null>(null);
+  const tapStagedAssetRef = useRef<AssetItem | null>(null);
+  tapStagedAssetRef.current = tapStagedAsset;
+  const outerWrapperRef = useRef<HTMLDivElement>(null);
+
   const [hoveredDropLocationId, setHoveredDropLocationId] = useState<string | null>(null);
   const hoveredDropLocationIdRef = useRef<string | null>(null);
   hoveredDropLocationIdRef.current = hoveredDropLocationId;
@@ -113,6 +119,38 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
     locationName: string;
     time: number;
   } | null>(null);
+
+  // Fullscreen Landscape Toggle with Screen Orientation Lock
+  const handleToggleLandscape = async () => {
+    try {
+      if (!isExpanded) {
+        setIsExpanded(true);
+        const el = outerWrapperRef.current || document.documentElement;
+        if (el.requestFullscreen) {
+          await el.requestFullscreen().catch(() => {});
+        } else if ((el as any).webkitRequestFullscreen) {
+          await (el as any).webkitRequestFullscreen();
+        }
+        if (window.screen?.orientation && 'lock' in window.screen.orientation) {
+          await (window.screen.orientation as any).lock('landscape').catch(() => {});
+        }
+      } else {
+        setIsExpanded(false);
+        if (document.fullscreenElement) {
+          if (document.exitFullscreen) {
+            await document.exitFullscreen().catch(() => {});
+          } else if ((document as any).webkitExitFullscreen) {
+            await (document as any).webkitExitFullscreen();
+          }
+        }
+        if (window.screen?.orientation && 'unlock' in window.screen.orientation) {
+          (window.screen.orientation as any).unlock();
+        }
+      }
+    } catch {
+      setIsExpanded(!isExpanded);
+    }
+  };
 
   // Auto-dismiss notification after 10 seconds
   useEffect(() => {
@@ -382,6 +420,12 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
         // 1. Polygon interaction
         layer.on({
           click: () => {
+            if (tapStagedAssetRef.current) {
+              const staged = tapStagedAssetRef.current;
+              handleQuickDeployDropdown(staged.id, loc.id);
+              setTapStagedAsset(null);
+              return;
+            }
             onSelectLocation(loc.id);
             setActiveTab('BARANGAY');
             setIsPanelOpen(true);
@@ -679,6 +723,7 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
 
   return (
     <div
+      ref={outerWrapperRef}
       className={`isolate overflow-hidden transition-all duration-300 bg-white ${
         isExpanded
           ? 'fixed inset-0 z-[1500] h-screen w-screen rounded-none border-none shadow-none m-0 p-0'
@@ -788,9 +833,9 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
           </button>
 
           <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            title={isExpanded ? 'Exit Full Screen Map (Esc)' : 'Enter Full Screen Map'}
-            className={`flex items-center gap-1.5 h-8 px-2.5 rounded-xl transition active:scale-95 shadow-xs ${
+            onClick={handleToggleLandscape}
+            title={isExpanded ? 'Exit Full Screen Map (Esc)' : 'Enter Full Screen Landscape Map (Locks Horizontal on Mobile)'}
+            className={`flex items-center gap-1.5 h-8 px-2.5 rounded-xl transition active:scale-95 shadow-xs cursor-pointer ${
               isExpanded
                 ? 'bg-neutral-900 text-white hover:bg-neutral-800'
                 : 'bg-white border border-neutral-200/90 text-neutral-700 hover:text-neutral-950'
@@ -804,12 +849,33 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
             ) : (
               <>
                 <Maximize2 className="h-4 w-4" />
-                <span className="hidden sm:inline text-xs font-bold">Fullscreen</span>
+                <span className="text-xs font-bold">Landscape View</span>
               </>
             )}
           </button>
         </div>
       </div>
+
+      {/* Mobile Tap-to-Deploy Guidance HUD Banner */}
+      {tapStagedAsset && (
+        <div className="absolute top-16 left-3 right-3 sm:left-1/2 sm:-translate-x-1/2 sm:max-w-md z-30 transition-all animate-in fade-in slide-in-from-top-2">
+          <div className="flex items-center justify-between gap-2.5 rounded-2xl bg-neutral-900/95 backdrop-blur-md px-4 py-2.5 text-white shadow-2xl border border-emerald-500/50">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-400 animate-ping shrink-0" />
+              <div className="text-xs truncate">
+                <span className="font-extrabold text-emerald-300">Tap destination Barangay: </span>
+                <span className="font-semibold text-white truncate">{tapStagedAsset.name}</span>
+              </div>
+            </div>
+            <button
+              onClick={() => setTapStagedAsset(null)}
+              className="px-2 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-[10px] font-bold text-white shrink-0 transition cursor-pointer"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Floating Drag Drop Guidance HUD */}
       {draggingAsset && (
@@ -1171,30 +1237,45 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
                               </span>
                             </div>
 
-                            {/* 1-Tap Quick Deploy Dropdown (Touch & Non-Drag Fallback) */}
-                            <div className="mt-2 pt-1.5 border-t border-neutral-100 flex items-center gap-1.5">
-                              <Send className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-                              <select
-                                defaultValue=""
-                                onChange={(e) => {
-                                  if (e.target.value) {
-                                    handleQuickDeployDropdown(asset.id, e.target.value);
-                                    e.target.value = '';
-                                  }
+                              {/* 1-Tap Quick Deploy Dropdown & Tap-to-Deploy on Map */}
+                            <div className="mt-2 pt-1.5 border-t border-neutral-100 space-y-1.5">
+                              <div className="flex items-center gap-1.5">
+                                <Send className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                                <select
+                                  defaultValue=""
+                                  onChange={(e) => {
+                                    if (e.target.value) {
+                                      handleQuickDeployDropdown(asset.id, e.target.value);
+                                      e.target.value = '';
+                                    }
+                                  }}
+                                  className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-2.5 py-2 sm:py-1 text-xs sm:text-[10px] font-bold text-neutral-800 hover:bg-neutral-100 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 min-h-[38px] sm:min-h-0"
+                                >
+                                  <option value="" disabled>
+                                    ⚡ 1-Tap Deploy To Barangay...
+                                  </option>
+                                  {locations
+                                    .filter((l) => l.type === 'barangay')
+                                    .map((b) => (
+                                      <option key={b.id} value={b.id}>
+                                        {b.name} (Dist. {b.district})
+                                      </option>
+                                    ))}
+                                </select>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setTapStagedAsset(asset);
+                                  setIsPanelOpen(false);
                                 }}
-                                className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-2.5 py-2 sm:py-1 text-xs sm:text-[10px] font-bold text-neutral-800 hover:bg-neutral-100 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 min-h-[38px] sm:min-h-0"
+                                className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white py-1.5 px-2 text-xs font-bold transition shadow-2xs active:scale-95 cursor-pointer"
+                                title="Select this equipment and tap any Barangay directly on the map to deploy"
                               >
-                                <option value="" disabled>
-                                  ⚡ 1-Tap Deploy To Barangay...
-                                </option>
-                                {locations
-                                  .filter((l) => l.type === 'barangay')
-                                  .map((b) => (
-                                    <option key={b.id} value={b.id}>
-                                      {b.name} (Dist. {b.district})
-                                    </option>
-                                  ))}
-                              </select>
+                                <MapIcon className="h-3.5 w-3.5" />
+                                <span>Deploy on Map (Tap Destination)</span>
+                              </button>
                             </div>
                           </div>
                         </div>

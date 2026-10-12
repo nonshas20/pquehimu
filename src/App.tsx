@@ -35,7 +35,6 @@ import {
   Plus, 
   MapIcon, 
   Database,
-  Printer,
   Building2 
 } from './components/HugeIcons';
 
@@ -276,7 +275,7 @@ export function App() {
     }
   }, []);
 
-  const [mobileTab, setMobileTab] = useState<'assets' | 'stations'>('assets');
+  const [mobileTab, setMobileTab] = useState<'assets' | 'map' | 'stations'>('assets');
 
   // Filtering & Search states
   const [searchQuery, setSearchQuery] = useState('');
@@ -1337,8 +1336,8 @@ export function App() {
           </div>
         </div>
 
-        {/* Interactive Parañaque Leaflet Map - Desktop & Tablet Only (Not rendered on phones) */}
-        {showMap && isDesktop && (
+        {/* Interactive Parañaque Leaflet Map - Desktop, Tablet & Mobile */}
+        {showMap && (isDesktop || mobileTab === 'map') && (
           <div id="paranaque-map-section" className="scroll-mt-24">
             <Suspense
               fallback={
@@ -1383,7 +1382,7 @@ export function App() {
         )}
 
         {/* Primary Asset Registry & Barangay Selector (Single mounted instance) */}
-        <div className={`${mobileTab === 'stations' ? 'hidden md:block' : 'block'} space-y-4 sm:space-y-6`}>
+        <div className={`${mobileTab === 'stations' || mobileTab === 'map' ? 'hidden md:block' : 'block'} space-y-4 sm:space-y-6`}>
           <BarangaySelector
             locations={locations}
             assets={assets}
@@ -1449,7 +1448,35 @@ export function App() {
             <span className="text-[10px]">Assets</span>
           </button>
 
-          {/* 2. Stations Tab (16 Barangays) */}
+          {/* 2. Interactive Parañaque Map Tab */}
+          <button
+            onClick={() => {
+              setMobileTab('map');
+              setShowMap(true);
+              window.scrollTo({ top: 220, behavior: 'smooth' });
+            }}
+            className={`flex flex-1 flex-col items-center justify-center gap-1 py-1 px-1 rounded-2xl transition active:scale-95 ${
+              mobileTab === 'map'
+                ? 'text-emerald-700 font-bold bg-emerald-50'
+                : 'text-neutral-500 hover:text-neutral-900 font-medium'
+            }`}
+          >
+            <MapIcon className={`h-4.5 w-4.5 ${mobileTab === 'map' ? 'text-emerald-600' : 'text-neutral-500'}`} />
+            <span className="text-[10px]">Map</span>
+          </button>
+
+          {/* 3. Central Native Floating Add Action (FAB) */}
+          <div className="flex-1 flex justify-center -mt-6">
+            <button
+              onClick={() => setIsAddOpen(true)}
+              aria-label="Register New Hardware"
+              className="flex h-12 w-12 items-center justify-center rounded-2xl bg-neutral-900 text-white shadow-xl ring-4 ring-white active:scale-90 transition-transform"
+            >
+              <Plus className="h-6 w-6 stroke-[2.5]" />
+            </button>
+          </div>
+
+          {/* 4. Stations Tab (16 Barangays) */}
           <button
             onClick={() => {
               setMobileTab('stations');
@@ -1465,33 +1492,13 @@ export function App() {
             <span className="text-[10px]">Stations</span>
           </button>
 
-          {/* 3. Central Native Floating Add Action (FAB) */}
-          <div className="flex-1 flex justify-center -mt-6">
-            <button
-              onClick={() => setIsAddOpen(true)}
-              aria-label="Register New Hardware"
-              className="flex h-12 w-12 items-center justify-center rounded-2xl bg-neutral-900 text-white shadow-xl ring-4 ring-white active:scale-90 transition-transform"
-            >
-              <Plus className="h-6 w-6 stroke-[2.5]" />
-            </button>
-          </div>
-
-          {/* 4. Scan QR / Barcode */}
+          {/* 5. Scan QR / Barcode */}
           <button
             onClick={() => setIsScanOpen(true)}
             className="flex flex-1 flex-col items-center justify-center gap-1 py-1 px-1 text-neutral-500 hover:text-neutral-900 font-medium rounded-2xl transition active:scale-95"
           >
             <QrCode className="h-4.5 w-4.5 text-neutral-500" />
             <span className="text-[10px]">Scan</span>
-          </button>
-
-          {/* 5. A5 Slip (Quick Official Receipt Generator) */}
-          <button
-            onClick={handleOpenQuickChecklist}
-            className="flex flex-1 flex-col items-center justify-center gap-1 py-1 px-1 text-neutral-500 hover:text-neutral-900 font-medium rounded-2xl transition active:scale-95"
-          >
-            <Printer className="h-4.5 w-4.5 text-neutral-500" />
-            <span className="text-[10px]">A5 Slip</span>
           </button>
         </div>
       </nav>
