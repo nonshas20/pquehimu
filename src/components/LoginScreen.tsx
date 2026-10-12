@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { AppUser } from '../types/inventory';
-import { ShieldCheck, UserCheck, AlertCircle, ArrowRight } from './HugeIcons';
+import { User, Lock, Eye, EyeOff, ArrowRight, AlertCircle } from './HugeIcons';
 
 interface LoginScreenProps {
   users: AppUser[];
@@ -10,6 +10,7 @@ interface LoginScreenProps {
 export const LoginScreen: React.FC<LoginScreenProps> = ({ users, onLogin }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -47,89 +48,128 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ users, onLogin }) => {
     // Success!
     setTimeout(() => {
       onLogin(matched);
-    }, 200);
-  };
-
-  const handleQuickFill = (presetUser: 'admin' | 'itofficer') => {
-    const target = users.find((u) => u.username.toLowerCase() === presetUser);
-    if (target) {
-      setUsername(target.username);
-      setPassword(target.password || 'password123');
-      setError(null);
-    } else {
-      setUsername(presetUser);
-      setPassword('password123');
-      setError(null);
-    }
+    }, 150);
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 px-4 py-8 text-neutral-100 relative overflow-hidden selection:bg-emerald-500 selection:text-neutral-950">
+    <div className="relative min-h-screen w-full bg-white flex flex-col lg:flex-row overflow-x-hidden selection:bg-[#0d62d9] selection:text-white">
       
-      {/* Subtle Background Glow Accent */}
-      <div className="pointer-events-none absolute -top-40 -left-40 h-96 w-96 rounded-full bg-emerald-500/10 blur-[120px]" />
-      <div className="pointer-events-none absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-blue-500/10 blur-[120px]" />
-
-      <div className="w-full max-w-sm space-y-6 relative z-10 animate-in fade-in duration-300">
+      {/* ========================================================= */}
+      {/* DESKTOP BACKGROUND GRAPHIC: EXACT 1-TO-1 REFERENCE DIAGONAL */}
+      {/* ========================================================= */}
+      <div className="hidden lg:block absolute inset-0 w-full h-full pointer-events-none select-none overflow-hidden z-0">
         
-        {/* Government Identity Header & Dual Logos */}
-        <div className="flex flex-col items-center text-center space-y-3">
-          <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl p-2.5 backdrop-blur-md shadow-2xl">
+        {/* Layer 1: Right Photo Viewport (Clipped from top 60.45% to bottom 39.95%) */}
+        <div
+          className="absolute inset-0 w-full h-full"
+          style={{
+            clipPath: 'polygon(60.45% 0%, 100% 0%, 100% 100%, 39.95% 100%)',
+          }}
+        >
+          <picture>
+            <source srcSet="/login-bg.webp" type="image/webp" />
             <img
-              src="/himu-logo-transparent.webp"
-              alt="HIMU Parañaque"
-              width={54}
-              height={54}
-              className="h-12 w-12 rounded-xl object-contain bg-white p-1 shadow-xs"
+              src="/login-bg.png"
+              alt="HIMU IT Operations"
+              className="w-full h-full object-cover object-right"
+              loading="eager"
             />
-            <div className="h-8 w-px bg-white/20" />
-            <img
-              src="/logo-uhc.webp"
-              alt="UHC Alagang Parañaque"
-              width={110}
-              height={40}
-              className="h-10 object-contain drop-shadow-sm"
-            />
-          </div>
-
-          <div>
-            <h1 className="text-xl font-extrabold tracking-tight text-white">
-              HIMU IT Equipment Tracker
-            </h1>
-            <p className="text-xs text-neutral-400 font-medium mt-0.5">
-              City of Parañaque • Health Information Management Unit
-            </p>
-          </div>
+          </picture>
         </div>
 
-        {/* Clean Login Card */}
-        <div className="rounded-3xl border border-white/10 bg-white/95 text-neutral-900 p-6 sm:p-7 shadow-2xl backdrop-blur-md space-y-5">
-          <div className="flex items-center justify-between pb-3 border-b border-neutral-200">
-            <div>
-              <h2 className="text-sm font-bold text-neutral-900">
-                Authorized Officer Sign In
-              </h2>
-              <p className="text-[11px] text-neutral-500">
-                Enter your credentials to access inventory
-              </p>
-            </div>
-            <div className="h-8 w-8 rounded-xl bg-neutral-900 text-white flex items-center justify-center shrink-0">
-              <ShieldCheck className="h-4.5 w-4.5 text-emerald-400" />
-            </div>
+        {/* Layer 2: Deep Blue Translucent Ribbon (Slope parallel to photo cut) */}
+        <div
+          className="absolute inset-0 w-full h-full bg-[#0f4082]/75 mix-blend-multiply"
+          style={{
+            clipPath: 'polygon(60.45% 0%, 69.4% 0%, 48.9% 100%, 39.95% 100%)',
+          }}
+        />
+
+        {/* Layer 3: Vibrant Royal Blue Translucent Ribbon */}
+        <div
+          className="absolute inset-0 w-full h-full bg-[#2563eb]/45 backdrop-blur-[0.5px]"
+          style={{
+            clipPath: 'polygon(69.4% 0%, 76.5% 0%, 56.0% 100%, 48.9% 100%)',
+          }}
+        />
+
+        {/* Layer 4: Geometric Square Accent near bottom-left of graphic */}
+        <div className="absolute left-[49.5%] bottom-[13%] w-10 h-10 bg-white/25 border border-white/35 backdrop-blur-xs rounded-xs shadow-sm" />
+      </div>
+
+      {/* ========================================================= */}
+      {/* MOBILE HEADER BANNER: RESPONSIVE HIGH-TECH WORKSTATION    */}
+      {/* ========================================================= */}
+      <div className="lg:hidden relative w-full h-44 sm:h-52 overflow-hidden bg-neutral-900 shrink-0">
+        <picture>
+          <source srcSet="/login-bg.webp" type="image/webp" />
+          <img
+            src="/login-bg.png"
+            alt="HIMU IT Operations"
+            className="w-full h-full object-cover object-center opacity-85"
+            loading="eager"
+          />
+        </picture>
+        {/* Angled Ribbon Overlay on Mobile */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+        <div
+          className="absolute inset-x-0 bottom-0 h-6 bg-white"
+          style={{
+            clipPath: 'polygon(0 100%, 100% 100%, 100% 0, 0 100%)',
+          }}
+        />
+        <div className="absolute bottom-4 left-6 flex items-center gap-2">
+          <span className="w-1.5 h-4.5 rounded-full bg-[#0d62d9]" />
+          <span className="text-sm font-bold text-white tracking-widest uppercase">
+            Parañaque HIMU
+          </span>
+        </div>
+      </div>
+
+      {/* ========================================================= */}
+      {/* LEFT CONTENT: 1-TO-1 EXACT TYPOGRAPHY, INPUTS & SPACING   */}
+      {/* ========================================================= */}
+      <div className="relative z-10 w-full lg:w-[48%] xl:w-[45%] flex flex-col justify-center px-6 sm:px-12 md:px-16 lg:px-14 xl:px-20 py-8 lg:py-16 min-h-[calc(100vh-176px)] lg:min-h-screen">
+        <div className="w-full max-w-[360px] mx-auto lg:mx-0">
+          
+          {/* Top Brand Pill: | IT */}
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="w-1 h-5 sm:h-6 rounded-full bg-[#0d62d9]" />
+            <span className="text-xl sm:text-2xl font-black text-[#0d62d9] tracking-tight leading-none">
+              IT
+            </span>
           </div>
 
+          {/* HIMUT Title */}
+          <h1 className="text-5xl sm:text-6xl font-black text-[#0c1427] tracking-tight leading-none">
+            HIMUT
+          </h1>
+
+          {/* Subtitle: A S S E T   T R A C K E R */}
+          <p className="text-[11px] sm:text-xs font-bold text-[#1e293b] tracking-[0.32em] uppercase mt-2">
+            A S S E T &nbsp; T R A C K E R
+          </p>
+
+          {/* Tagline */}
+          <div className="mt-3.5 mb-7 text-xs sm:text-sm text-neutral-500 font-normal leading-relaxed">
+            <p>Manage. Monitor. Track.</p>
+            <p>IT Assets for a more efficient workplace.</p>
+          </div>
+
+          {/* Inline Error Notice */}
           {error && (
-            <div className="flex items-center gap-2 p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium animate-in fade-in">
+            <div className="mb-4 flex items-center gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs font-medium text-rose-700 animate-in fade-in">
               <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" />
               <span>{error}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-3.5">
-            <div>
-              <label className="block text-[11px] font-bold text-neutral-700 uppercase tracking-wider mb-1">
-                Username
-              </label>
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-3">
+            
+            {/* Username Input Field */}
+            <div className="relative flex items-center w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-3 transition-all focus-within:border-[#0d62d9] focus-within:ring-2 focus-within:ring-[#0d62d9]/15 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+              <User className="h-5 w-5 text-neutral-400 shrink-0" strokeWidth={1.8} />
               <input
                 type="text"
                 required
@@ -141,79 +181,57 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ users, onLogin }) => {
                   setUsername(e.target.value);
                   setError(null);
                 }}
-                placeholder="e.g. admin or itofficer"
-                className="w-full rounded-xl border border-neutral-300 bg-neutral-50/80 px-3.5 py-2.5 text-xs font-mono font-medium text-neutral-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-neutral-900 transition"
+                placeholder="Username"
+                className="w-full bg-transparent pl-3 pr-2 text-sm text-[#0c1427] placeholder:text-neutral-400 outline-none font-normal"
               />
             </div>
 
-            <div>
-              <label className="block text-[11px] font-bold text-neutral-700 uppercase tracking-wider mb-1">
-                Password
-              </label>
+            {/* Password Input Field with Toggle Visibility */}
+            <div className="relative flex items-center w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-3 transition-all focus-within:border-[#0d62d9] focus-within:ring-2 focus-within:ring-[#0d62d9]/15 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+              <Lock className="h-5 w-5 text-neutral-400 shrink-0" strokeWidth={1.8} />
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 required
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value);
                   setError(null);
                 }}
-                placeholder="••••••••"
-                className="w-full rounded-xl border border-neutral-300 bg-neutral-50/80 px-3.5 py-2.5 text-xs font-mono font-medium text-neutral-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-neutral-900 transition"
+                placeholder="Password"
+                className="w-full bg-transparent pl-3 pr-2 text-sm text-[#0c1427] placeholder:text-neutral-400 outline-none font-normal"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                tabIndex={-1}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                className="p-1 text-neutral-400 hover:text-neutral-600 transition shrink-0 cursor-pointer"
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4.5 w-4.5" strokeWidth={1.8} />
+                ) : (
+                  <Eye className="h-4.5 w-4.5" strokeWidth={1.8} />
+                )}
+              </button>
             </div>
 
+            {/* Log In Button */}
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full flex items-center justify-center gap-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 active:scale-98 text-white py-2.5 text-xs font-bold transition shadow-md disabled:opacity-50 mt-1"
+              className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#0d62d9] hover:bg-[#0b54bb] active:scale-[0.99] text-white py-3 px-6 font-semibold text-sm transition-all shadow-[0_2px_6px_rgba(13,98,217,0.22)] hover:shadow-[0_4px_12px_rgba(13,98,217,0.3)] disabled:opacity-50 mt-4 cursor-pointer"
             >
-              <span>{isSubmitting ? 'Authenticating...' : 'Sign In to HIMU IT'}</span>
-              <ArrowRight className="h-4 w-4" />
+              <span>{isSubmitting ? 'Signing In...' : 'Log In'}</span>
+              <ArrowRight className="h-4.5 w-4.5 text-white" strokeWidth={2} />
             </button>
           </form>
 
-          {/* Quick Demo Fill Buttons for Fast Login */}
-          <div className="pt-2 border-t border-neutral-200">
-            <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block mb-2 text-center">
-              Quick Sign In Presets
-            </span>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickFill('admin')}
-                className="flex items-center gap-2 p-2 rounded-xl border border-purple-200/90 bg-purple-50/70 hover:bg-purple-100 text-left transition"
-              >
-                <div className="h-6 w-6 rounded-lg bg-purple-600 text-white flex items-center justify-center shrink-0">
-                  <ShieldCheck className="h-3.5 w-3.5" />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[11px] font-bold text-purple-950 truncate">ADMIN</div>
-                  <div className="text-[9px] font-mono text-purple-700 truncate">@admin</div>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickFill('itofficer')}
-                className="flex items-center gap-2 p-2 rounded-xl border border-blue-200/90 bg-blue-50/70 hover:bg-blue-100 text-left transition"
-              >
-                <div className="h-6 w-6 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0">
-                  <UserCheck className="h-3.5 w-3.5" />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[11px] font-bold text-blue-950 truncate">IT OFFICER</div>
-                  <div className="text-[9px] font-mono text-blue-700 truncate">@itofficer</div>
-                </div>
-              </button>
-            </div>
+          {/* Discreet Footer Info */}
+          <div className="mt-8 text-[11px] text-neutral-400 text-left">
+            <span>City of Parañaque • Health Information Management Unit</span>
           </div>
-        </div>
 
-        {/* Security Notice */}
-        <p className="text-center text-[11px] text-neutral-500 font-medium">
-          City of Parañaque • UHC Asset Custody Protocol
-        </p>
+        </div>
       </div>
     </div>
   );
