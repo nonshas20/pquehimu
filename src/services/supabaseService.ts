@@ -5,6 +5,7 @@ import type {
   AssetTransferRecord,
   BorrowChecklistItem,
   AppUser,
+  AuditLogEntry,
 } from '../types/inventory';
 
 // Database column mapping interfaces
@@ -508,7 +509,95 @@ export const supabaseService = {
   },
 
   /**
-   * Subscribe to Supabase Realtime changes across assets, transfers, and users.
+   * Fetch system audit logs (falls back to localStorage if table doesn't exist)
+   */
+  async getAuditLogs(limit = 200): Promise<AuditLogEntry[]> {
+    try {
+      const { data, error } = await supabase
+        .from('audit_logs')
+        .select('*')
+        .order('timestamp', { ascending: false })
+        .limit(limit);
+
+      if (error || !data) {
+        return this.getLocalAuditLogs();
+      }
+
+      if (data && data.length > 0) {
+        return data.map((d: any) => ({
+          id: d.id,
+          timestamp: d.timestamp,
+          action: d.action,
+          category: d.category,
+          officerId: d.officer_id,
+          officerName: d.officer_name,
+          officerRole: d.officer_role,
+          details: d.details,
+          assetId: d.asset_id,
+          assetName: d.asset_name,
+          serialNumber: d.serial_number,
+          locationName: d.location_name,
+          referenceNo: d.reference_no,
+          metadata: d.metadata,
+        }));
+      }
+      return this.getLocalAuditLogs();
+    } catch {
+      return this.getLocalAuditLogs();
+    }
+  },
+
+  getLocalAuditLogs(): AuditLogEntry[] {
+    try {
+      const saved = localStorage.getItem('himu_audit_logs');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  },
+
+  async recordAuditLog(entry: Omit<AuditLogEntry, 'id'>): Promise<AuditLogEntry> {
+    const newEntry: AuditLogEntry = {
+      ...entry,
+      id: `audit-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    };
+
+    // Always persist to localStorage for instant availability
+    try {
+      const existing = this.getLocalAuditLogs();
+      const updated = [newEntry, ...existing].slice(0, 500);
+      localStorage.setItem('himu_audit_logs', JSON.stringify(updated));
+    } catch (e) {
+      console.warn('Failed to save audit log to localStorage', e);
+    }
+
+    // Attempt Supabase insert
+    try {
+      await supabase.from('audit_logs').insert({
+        id: newEntry.id,
+        timestamp: newEntry.timestamp,
+        action: newEntry.action,
+        category: newEntry.category,
+        officer_id: newEntry.officerId,
+        officer_name: newEntry.officerName,
+        officer_role: newEntry.officerRole,
+        details: newEntry.details,
+        asset_id: newEntry.assetId,
+        asset_name: newEntry.assetName,
+        serial_number: newEntry.serialNumber,
+        location_name: newEntry.locationName,
+        reference_no: newEntry.referenceNo,
+        metadata: newEntry.metadata,
+      });
+    } catch {
+      // Table might not exist yet - graceful ignore
+    }
+
+    return newEntry;
+  },
+
+  /**
+   * Subscribe to Supabase Realtime changes across assets, transfers, users, and audit logs.
    * Enables seamless live multi-device synchronization.
    */
   subscribeToChanges(onChange: () => void) {
@@ -531,6 +620,13 @@ export const supabaseService = {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'app_users' },
+        () => {
+          onChange();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'audit_logs' },
         () => {
           onChange();
         }

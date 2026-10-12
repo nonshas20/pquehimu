@@ -5,7 +5,9 @@ import type {
   AssetCategory, 
   AssetStatus, 
   AssetTransferRecord,
-  AppUser 
+  AppUser,
+  AuditLogEntry,
+  AuditActionType
 } from './types/inventory';
 import { DISPATCH_OFFICERS } from './types/inventory';
 import { PARANAQUE_LOCATIONS, INITIAL_ASSETS, DEFAULT_USERS } from './data/mockData';
@@ -26,6 +28,7 @@ const AddAssetModal = lazy(() => import('./components/AddAssetModal').then(m => 
 const QuickScanModal = lazy(() => import('./components/QuickScanModal').then(m => ({ default: m.QuickScanModal })));
 const AuthModal = lazy(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
 const BorrowChecklistReceiptModal = lazy(() => import('./components/BorrowChecklistReceiptModal').then(m => ({ default: m.BorrowChecklistReceiptModal })));
+const AuditLogModal = lazy(() => import('./components/AuditLogModal').then(m => ({ default: m.AuditLogModal })));
 import { 
   Layers, 
   QrCode, 
@@ -70,6 +73,17 @@ export function App() {
   }, [currentUser]);
 
   const handleLogout = () => {
+    if (currentUser) {
+      supabaseService.recordAuditLog({
+        timestamp: new Date().toISOString(),
+        action: 'AUTH_LOGOUT',
+        category: 'SECURITY',
+        officerId: currentUser.id,
+        officerName: currentUser.name,
+        officerRole: currentUser.role,
+        details: `${currentUser.name} signed out of the system`,
+      }).catch(() => {});
+    }
     localStorage.removeItem('himu_current_user');
     setCurrentUser(null);
   };
@@ -198,14 +212,17 @@ export function App() {
 
     // Sync to Supabase cloud
     await supabaseService.createAppUser(newUser);
+    logAudit('AUTH_PROFILE_UPDATE', 'SECURITY', `Registered new staff account for ${newUser.name} (@${newUser.username}) [${newUser.role}]`);
     return true;
   };
 
   const handleDeleteUser = async (userId: string) => {
+    const targetUser = users.find((u) => u.id === userId);
     setUsers((prev) => prev.filter((u) => u.id !== userId));
 
     // Sync to Supabase cloud
     await supabaseService.deleteAppUser(userId);
+    logAudit('AUTH_PROFILE_UPDATE', 'SECURITY', `Deactivated / deleted account for ${targetUser?.name || userId}`);
     return true;
   };
 
@@ -217,6 +234,7 @@ export function App() {
 
     // Sync to Supabase cloud
     await supabaseService.updateAppUser(updatedUser);
+    logAudit('AUTH_PROFILE_UPDATE', 'SECURITY', `Updated credentials / profile for ${updatedUser.name} (@${updatedUser.username})`);
     return true;
   };
 
@@ -274,6 +292,54 @@ export function App() {
   const [addPresetLocationId, setAddPresetLocationId] = useState<string | undefined>(undefined);
   const [isScanOpen, setIsScanOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [isAuditOpen, setIsAuditOpen] = useState(false);
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(() => supabaseService.getLocalAuditLogs());
+
+  // Load audit logs from Supabase cloud (falls back to local)
+  useEffect(() => {
+    supabaseService.getAuditLogs().then((logs) => {
+      if (logs && logs.length > 0) {
+        setAuditLogs(logs);
+      }
+    });
+  }, []);
+
+  const logAudit = (
+    action: AuditActionType,
+    category: 'SECURITY' | 'DISPATCH' | 'INVENTORY' | 'COMPLIANCE',
+    details: string,
+    extra?: {
+      assetId?: string;
+      assetName?: string;
+      serialNumber?: string;
+      locationName?: string;
+      referenceNo?: string;
+      metadata?: Record<string, any>;
+      officerId?: string;
+      officerName?: string;
+      officerRole?: string;
+    }
+  ) => {
+    const officerName = extra?.officerName || currentUser?.name || 'HIMU OFFICER';
+    const officerRole = extra?.officerRole || currentUser?.role || 'IT_OFFICER';
+    const officerId = extra?.officerId || currentUser?.id;
+
+    supabaseService
+      .recordAuditLog({
+        timestamp: new Date().toISOString(),
+        action,
+        category,
+        officerId,
+        officerName,
+        officerRole,
+        details,
+        ...extra,
+      })
+      .then((newEntry) => {
+        setAuditLogs((prev) => [newEntry, ...prev.filter((p) => p.id !== newEntry.id)]);
+      })
+      .catch((err) => console.error('Failed to record audit log', err));
+  };
 
   // Official A5 Borrow Checklist Receipt Modal state
   const [activeChecklistRecord, setActiveChecklistRecord] = useState<AssetTransferRecord | null>(null);
@@ -387,6 +453,20 @@ export function App() {
       status: 'in_transit',
       custodianName: receivedBy ? receivedBy : `In Transit via ${dispatchedBy}`,
     });
+
+    // Record in Audit Log
+    logAudit(
+      'ASSET_DISPATCHED',
+      'DISPATCH',
+      `Dispatched ${activeAsset?.name || 'Equipment'} to ${destLoc?.name || 'Destination'} for ${purpose}`,
+      {
+        assetId,
+        assetName: activeAsset?.name,
+        serialNumber: activeAsset?.serialNumber,
+        locationName: destLoc?.name,
+        referenceNo: newTransfer.referenceNo,
+      }
+    );
 
     // Auto-open official A5 checklist receipt upon borrow confirmation
     setActiveChecklistRecord(newTransfer);
@@ -505,6 +585,18 @@ export function App() {
     const targetAsset = assets.find((a) => a.history.some((h) => h.id === recordId));
     if (targetAsset) {
       supabaseService.markReturned(recordId, officerName, targetAsset.id, 'loc-himu-hq');
+      logAudit(
+        'ASSET_RETURNED',
+        'DISPATCH',
+        `Returned ${targetAsset.name} (SN: ${targetAsset.serialNumber}) to Central Depot. Inspected by ${officerName}`,
+        {
+          assetId: targetAsset.id,
+          assetName: targetAsset.name,
+          serialNumber: targetAsset.serialNumber,
+          locationName: 'HIMU Central Depot',
+          referenceNo: targetAsset.history.find((h) => h.id === recordId)?.referenceNo,
+        }
+      );
     }
 
     if (activeChecklistRecord && activeChecklistRecord.id === recordId) {
@@ -632,10 +724,41 @@ export function App() {
         ? 'HIMU Central Depot Staging'
         : `${toLoc?.name || 'Barangay'} Health Custodian`,
     });
+
+    // Record in Audit Log
+    logAudit(
+      isReturningToHq ? 'ASSET_RETURNED' : 'ASSET_DISPATCHED',
+      'DISPATCH',
+      isReturningToHq
+        ? `Returned ${asset.name} (SN: ${asset.serialNumber}) to Central Depot from ${fromLoc?.name || 'Barangay'}`
+        : `Dispatched ${asset.name} (SN: ${asset.serialNumber}) to ${toLoc?.name || 'Barangay'} for ${profilingEventName}`,
+      {
+        assetId: asset.id,
+        assetName: asset.name,
+        serialNumber: asset.serialNumber,
+        locationName: toLoc?.name,
+        referenceNo: newTransfer.referenceNo,
+      }
+    );
   };
 
   // 1-Click Delete / Cancel Borrow (Restores asset back to HIMU Depot staging)
   const handleDeleteOrUndoBorrow = (assetId: string) => {
+    const target = assets.find((a) => a.id === assetId);
+    if (target) {
+      logAudit(
+        'ASSET_UPDATED',
+        'DISPATCH',
+        `Cancelled dispatch and returned ${target.name} (SN: ${target.serialNumber}) to Central Depot staging`,
+        {
+          assetId,
+          assetName: target.name,
+          serialNumber: target.serialNumber,
+          locationName: 'HIMU Central Depot Staging',
+        }
+      );
+    }
+
     setAssets((prev) =>
       prev.map((item) => {
         if (item.id === assetId) {
@@ -784,6 +907,19 @@ export function App() {
 
     // Sync new asset to Supabase cloud
     supabaseService.createAsset(newAsset);
+
+    // Record in Audit Log
+    logAudit(
+      'ASSET_CREATED',
+      'INVENTORY',
+      `Registered new hardware ${newAsset.name} (Tag: ${newAsset.assetTag}, SN: ${newAsset.serialNumber})`,
+      {
+        assetId: newAsset.id,
+        assetName: newAsset.name,
+        serialNumber: newAsset.serialNumber,
+        locationName: locations.find((l) => l.id === newAsset.currentLocationId)?.name,
+      }
+    );
   };
 
   const handleOpenAddForLocation = (locationId?: string) => {
@@ -1085,7 +1221,20 @@ export function App() {
     return (
       <LoginScreen
         users={users}
-        onLogin={(user) => setCurrentUser(user)}
+        onLogin={(user) => {
+          setCurrentUser(user);
+          supabaseService.recordAuditLog({
+            timestamp: new Date().toISOString(),
+            action: 'AUTH_LOGIN',
+            category: 'SECURITY',
+            officerId: user.id,
+            officerName: user.name,
+            officerRole: user.role,
+            details: `${user.name} authenticated into the system`,
+          }).then((entry) => {
+            setAuditLogs((prev) => [entry, ...prev.filter((p) => p.id !== entry.id)]);
+          }).catch(() => {});
+        }}
       />
     );
   }
@@ -1100,6 +1249,7 @@ export function App() {
         onOpenScanModal={() => setIsScanOpen(true)}
         onOpenAuthModal={() => setIsAuthOpen(true)}
         onOpenChecklistModal={handleOpenQuickChecklist}
+        onOpenAuditModal={() => setIsAuditOpen(true)}
         currentUser={currentUser}
         onLogout={handleLogout}
         syncStatus={syncStatus}
@@ -1424,6 +1574,15 @@ export function App() {
             asset={activeChecklistAsset}
             location={activeChecklistLocation}
             onMarkReturned={handleMarkChecklistReturned}
+          />
+        )}
+
+        {/* System Audit Trail & Custody Log (COA Compliant) */}
+        {isAuditOpen && (
+          <AuditLogModal
+            isOpen={isAuditOpen}
+            onClose={() => setIsAuditOpen(false)}
+            logs={auditLogs}
           />
         )}
       </Suspense>

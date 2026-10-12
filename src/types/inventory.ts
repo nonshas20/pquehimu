@@ -99,3 +99,33 @@ export const DISPATCH_OFFICERS = [
 ] as const;
 
 export type DispatchOfficer = (typeof DISPATCH_OFFICERS)[number];
+
+export type AuditActionType =
+  | 'AUTH_LOGIN'
+  | 'AUTH_LOGOUT'
+  | 'AUTH_PROFILE_UPDATE'
+  | 'AUTH_PASSWORD_CHANGE'
+  | 'ASSET_CREATED'
+  | 'ASSET_UPDATED'
+  | 'ASSET_DELETED'
+  | 'ASSET_DISPATCHED'
+  | 'ASSET_RETURNED'
+  | 'CHECKLIST_PRINTED'
+  | 'CSV_EXPORTED';
+
+export interface AuditLogEntry {
+  id: string;
+  timestamp: string;
+  action: AuditActionType;
+  category: 'SECURITY' | 'DISPATCH' | 'INVENTORY' | 'COMPLIANCE';
+  officerId?: string;
+  officerName: string;
+  officerRole: string;
+  details: string;
+  assetId?: string;
+  assetName?: string;
+  serialNumber?: string;
+  locationName?: string;
+  referenceNo?: string;
+  metadata?: Record<string, any>;
+}

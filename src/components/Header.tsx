@@ -8,6 +8,7 @@ import {
   UserCheck, 
   ChevronDown,
   Printer,
+  History,
   LogOut 
 } from './HugeIcons';
 
@@ -18,6 +19,7 @@ interface HeaderProps {
   onOpenScanModal: () => void;
   onOpenAuthModal: () => void;
   onOpenChecklistModal?: () => void;
+  onOpenAuditModal?: () => void;
   onLogout?: () => void;
   currentUser: AppUser;
   isScrolled?: boolean;
@@ -31,6 +33,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenScanModal,
   onOpenAuthModal,
   onOpenChecklistModal,
+  onOpenAuditModal,
   onLogout,
   currentUser,
   isScrolled: externalIsScrolled,
@@ -212,6 +215,22 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 <Printer className="h-4 w-4" />
                 <span className="hidden md:inline">A5 Borrow Slip</span>
+              </button>
+            )}
+
+            {/* Official Audit Trail & Custody Log (COA) */}
+            {onOpenAuditModal && (
+              <button
+                onClick={onOpenAuditModal}
+                title="View System Audit Trail & Custody Log (COA Compliant)"
+                className={`hidden sm:inline-flex items-center justify-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-2 text-xs font-semibold shadow-2xs active:scale-95 transition-all ${
+                  isScrolled
+                    ? 'border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900'
+                    : 'border border-white/25 bg-black/40 backdrop-blur-md text-white hover:bg-black/60'
+                }`}
+              >
+                <History className="h-4 w-4" />
+                <span className="hidden md:inline">Audit Log</span>
               </button>
             )}
 
