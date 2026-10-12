@@ -46,7 +46,8 @@ import {
   MapIcon as HugeMapIcon,
   ArrowLeftRightIcon,
   ArrowRight01Icon,
-  Delete01Icon
+  Delete01Icon,
+  Edit01Icon
 } from '@hugeicons/core-free-icons';
 
 export interface HugeIconProps extends React.SVGAttributes<SVGSVGElement> {
@@ -122,3 +123,4 @@ export const MapIcon = createHugeIcon(HugeMapIcon, 'MapIcon');
 export const ArrowRightLeft = createHugeIcon(ArrowLeftRightIcon, 'ArrowRightLeft');
 export const ArrowRight = createHugeIcon(ArrowRight01Icon, 'ArrowRight');
 export const Trash = createHugeIcon(Delete01Icon, 'Trash');
+export const Edit = createHugeIcon(Edit01Icon, 'Edit');

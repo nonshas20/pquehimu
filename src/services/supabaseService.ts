@@ -450,6 +450,47 @@ export const supabaseService = {
   },
 
   /**
+   * Update an existing staff user (profile & password) in Supabase app_users table
+   */
+  async updateAppUser(user: AppUser): Promise<boolean> {
+    try {
+      const payload: {
+        name: string;
+        username: string;
+        role: string;
+        password?: string;
+        email?: string | null;
+      } = {
+        name: user.name,
+        username: user.username.trim().toLowerCase(),
+        role: user.role,
+      };
+
+      if (user.password) {
+        payload.password = user.password;
+      }
+
+      if (user.email !== undefined) {
+        payload.email = user.email || null;
+      }
+
+      const { error } = await supabase
+        .from('app_users')
+        .update(payload)
+        .eq('id', user.id);
+
+      if (error) {
+        console.error('[Supabase] Error updating user:', error);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error('[Supabase] Exception updating user:', err);
+      return false;
+    }
+  },
+
+  /**
    * Delete a staff user from Supabase app_users table
    */
   async deleteAppUser(userId: string): Promise<boolean> {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { AppUser, UserRole } from '../types/inventory';
-import { X, ShieldCheck, UserCheck, Check, Plus, Trash, AlertCircle } from './HugeIcons';
+import { X, ShieldCheck, UserCheck, Check, Plus, Trash, AlertCircle, Edit } from './HugeIcons';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -9,6 +9,7 @@ interface AuthModalProps {
   onSwitchUser: (user: AppUser) => void;
   users: AppUser[];
   onAddUser?: (user: Omit<AppUser, 'id'>) => Promise<boolean> | void;
+  onUpdateUser?: (user: AppUser) => Promise<boolean> | void;
   onDeleteUser?: (userId: string) => Promise<boolean> | void;
 }
 
@@ -19,6 +20,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onSwitchUser,
   users,
   onAddUser,
+  onUpdateUser,
   onDeleteUser,
 }) => {
   const [activeTab, setActiveTab] = useState<'switch' | 'manage'>('switch');
@@ -36,6 +38,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [newRole, setNewRole] = useState<UserRole>('IT_OFFICER');
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Edit Profile / Password State
+  const [editingUser, setEditingUser] = useState<AppUser | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editUsername, setEditUsername] = useState('');
+  const [editPassword, setEditPassword] = useState('');
+  const [editRole, setEditRole] = useState<UserRole>('IT_OFFICER');
+  const [editError, setEditError] = useState<string | null>(null);
+  const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
 
   if (!isOpen) return null;
 
@@ -126,6 +137,70 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
+  const handleStartEdit = (user: AppUser) => {
+    setEditingUser(user);
+    setEditName(user.name);
+    setEditUsername(user.username);
+    setEditPassword('');
+    setEditRole(user.role);
+    setEditError(null);
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+
+    const cleanName = editName.trim().toUpperCase();
+    const cleanUser = editUsername.trim().toLowerCase().replace(/[^a-z0-9._-]/g, '');
+    const cleanPass = editPassword.trim();
+
+    if (!cleanName) {
+      setEditError('Full name is required.');
+      return;
+    }
+
+    if (!cleanUser || cleanUser.length < 3) {
+      setEditError('Username must be at least 3 characters.');
+      return;
+    }
+
+    if (cleanPass && cleanPass.length < 4) {
+      setEditError('New password must be at least 4 characters.');
+      return;
+    }
+
+    const collision = users.some(
+      (u) => u.id !== editingUser.id && u.username.toLowerCase() === cleanUser
+    );
+    if (collision) {
+      setEditError(`Username @${cleanUser} is already in use.`);
+      return;
+    }
+
+    setIsSubmittingEdit(true);
+    setEditError(null);
+
+    try {
+      const updatedUser: AppUser = {
+        ...editingUser,
+        name: cleanName,
+        username: cleanUser,
+        role: editRole,
+        ...(cleanPass ? { password: cleanPass } : {}),
+      };
+
+      if (onUpdateUser) {
+        await onUpdateUser(updatedUser);
+      }
+
+      setEditingUser(null);
+    } catch (err: any) {
+      setEditError(err?.message || 'Failed to update profile.');
+    } finally {
+      setIsSubmittingEdit(false);
+    }
+  };
+
   const handleDelete = async (userId: string, userName: string) => {
     if (userId === currentUser.id) {
       alert('Cannot delete active session.');
@@ -164,38 +239,166 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </button>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="flex border-b border-neutral-200 mt-2 shrink-0">
-          <button
-            onClick={() => setActiveTab('switch')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-bold transition border-b-2 ${
-              activeTab === 'switch'
-                ? 'border-neutral-900 text-neutral-900'
-                : 'border-transparent text-neutral-400 hover:text-neutral-700'
-            }`}
-          >
-            <UserCheck className="h-4 w-4" />
-            <span>Sign In</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('manage')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-bold transition border-b-2 ${
-              activeTab === 'manage'
-                ? 'border-neutral-900 text-neutral-900'
-                : 'border-transparent text-neutral-400 hover:text-neutral-700'
-            }`}
-          >
-            <ShieldCheck className="h-4 w-4" />
-            <span>Team Roster ({users.length})</span>
-          </button>
-        </div>
+        {/* Navigation Tabs (Hidden while editing) */}
+        {!editingUser && (
+          <div className="flex border-b border-neutral-200 mt-2 shrink-0">
+            <button
+              onClick={() => setActiveTab('switch')}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-bold transition border-b-2 ${
+                activeTab === 'switch'
+                  ? 'border-neutral-900 text-neutral-900'
+                  : 'border-transparent text-neutral-400 hover:text-neutral-700'
+              }`}
+            >
+              <UserCheck className="h-4 w-4" />
+              <span>Sign In</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('manage')}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-bold transition border-b-2 ${
+                activeTab === 'manage'
+                  ? 'border-neutral-900 text-neutral-900'
+                  : 'border-transparent text-neutral-400 hover:text-neutral-700'
+              }`}
+            >
+              <ShieldCheck className="h-4 w-4" />
+              <span>Team Roster ({users.length})</span>
+            </button>
+          </div>
+        )}
 
         {/* Content Body */}
         <div className="flex-1 overflow-y-auto min-h-0 py-3 space-y-3">
-          {/* TAB 1: SIGN IN / SWITCH */}
-          {activeTab === 'switch' && (
+          {/* EDIT PROFILE & PASSWORD VIEW */}
+          {editingUser ? (
+            <form
+              onSubmit={handleSaveEdit}
+              className="rounded-xl border border-neutral-200 bg-neutral-50/70 p-3.5 space-y-3 animate-in fade-in"
+            >
+              <div className="flex items-center justify-between pb-2 border-b border-neutral-200">
+                <div>
+                  <div className="text-xs font-bold text-neutral-900">
+                    Edit Profile
+                  </div>
+                  <div className="text-[10px] font-mono text-neutral-500">
+                    @{editingUser.username}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingUser(null);
+                    setEditError(null);
+                  }}
+                  className="text-neutral-400 hover:text-neutral-700 text-xs font-semibold"
+                >
+                  Cancel
+                </button>
+              </div>
+
+              {editError && (
+                <div className="flex items-center gap-1.5 p-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-[11px] font-medium">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                  <span>{editError}</span>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-[10px] font-bold text-neutral-600 mb-0.5 uppercase">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full rounded-lg border border-neutral-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-neutral-900 uppercase focus:outline-none focus:border-neutral-900"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-neutral-600 mb-0.5 uppercase">
+                  Username
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editUsername}
+                  onChange={(e) => setEditUsername(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ''))}
+                  className="w-full rounded-lg border border-neutral-300 bg-white px-2.5 py-1.5 text-xs font-mono text-neutral-900 lowercase focus:outline-none focus:border-neutral-900"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-neutral-600 mb-0.5 uppercase">
+                  New Password
+                </label>
+                <input
+                  type="password"
+                  value={editPassword}
+                  onChange={(e) => setEditPassword(e.target.value)}
+                  placeholder="Leave blank to keep current password"
+                  className="w-full rounded-lg border border-neutral-300 bg-white px-2.5 py-1.5 text-xs font-mono text-neutral-900 focus:outline-none focus:border-neutral-900"
+                />
+                <span className="text-[10px] text-neutral-400 block mt-0.5">
+                  Only enter if updating password (min. 4 characters)
+                </span>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-neutral-600 mb-0.5 uppercase">
+                  Role
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditRole('IT_OFFICER')}
+                    className={`rounded-lg py-1.5 px-2 text-xs font-bold border transition ${
+                      editRole === 'IT_OFFICER'
+                        ? 'border-blue-600 bg-blue-50 text-blue-900 ring-1 ring-blue-600'
+                        : 'border-neutral-200 bg-white text-neutral-600'
+                    }`}
+                  >
+                    IT OFFICER
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditRole('ADMIN')}
+                    className={`rounded-lg py-1.5 px-2 text-xs font-bold border transition ${
+                      editRole === 'ADMIN'
+                        ? 'border-purple-600 bg-purple-50 text-purple-900 ring-1 ring-purple-600'
+                        : 'border-neutral-200 bg-white text-neutral-600'
+                    }`}
+                  >
+                    ADMIN
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingUser(null);
+                    setEditError(null);
+                  }}
+                  className="flex-1 rounded-lg border border-neutral-200 bg-white py-2 text-xs font-bold text-neutral-700 hover:bg-neutral-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingEdit}
+                  className="flex-1 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white py-2 text-xs font-bold transition disabled:opacity-50"
+                >
+                  {isSubmittingEdit ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          ) : activeTab === 'switch' ? (
+            /* TAB 1: SIGN IN / SWITCH */
             <div className="space-y-3">
-              {/* Active User Session Pill */}
+              {/* Active User Session Pill with Edit Action */}
               <div className="rounded-xl bg-neutral-50 p-3 border border-neutral-200 flex items-center justify-between">
                 <div className="min-w-0 pr-2">
                   <div className="text-[10px] uppercase font-bold text-neutral-400 tracking-wider">
@@ -208,15 +411,25 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     @{currentUser.username}
                   </div>
                 </div>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-bold shrink-0 ${
-                    currentUser.role === 'ADMIN'
-                      ? 'bg-purple-100 text-purple-700 border border-purple-200'
-                      : 'bg-blue-100 text-blue-700 border border-blue-200'
-                  }`}
-                >
-                  {currentUser.role}
-                </span>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                      currentUser.role === 'ADMIN'
+                        ? 'bg-purple-100 text-purple-700 border border-purple-200'
+                        : 'bg-blue-100 text-blue-700 border border-blue-200'
+                    }`}
+                  >
+                    {currentUser.role}
+                  </span>
+                  <button
+                    onClick={() => handleStartEdit(currentUser)}
+                    title="Edit my profile & password"
+                    className="rounded p-1 text-neutral-400 hover:text-neutral-900 hover:bg-neutral-200 transition"
+                  >
+                    <Edit className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
 
               {/* Login Credentials Form */}
@@ -346,10 +559,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </div>
               </div>
             </div>
-          )}
-
-          {/* TAB 2: MANAGE TEAM ROSTER */}
-          {activeTab === 'manage' && (
+          ) : (
+            /* TAB 2: MANAGE TEAM ROSTER */
             <div className="space-y-3">
               {/* Register Button or Form */}
               {!isAdding ? (
@@ -509,7 +720,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex items-center gap-1 shrink-0">
                           <span
                             className={`text-[9px] font-bold rounded px-1.5 py-0.5 ${
                               isAdmin
@@ -519,6 +730,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                           >
                             {user.role}
                           </span>
+
+                          <button
+                            onClick={() => handleStartEdit(user)}
+                            title={`Edit ${user.name}`}
+                            className="rounded p-1 text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition"
+                          >
+                            <Edit className="h-3.5 w-3.5" />
+                          </button>
 
                           {onDeleteUser && (
                             <button

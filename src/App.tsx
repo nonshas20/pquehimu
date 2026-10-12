@@ -195,6 +195,17 @@ export function App() {
     return true;
   };
 
+  const handleUpdateUser = async (updatedUser: AppUser) => {
+    setUsers((prev) => prev.map((u) => (u.id === updatedUser.id ? updatedUser : u)));
+    if (currentUser.id === updatedUser.id) {
+      setCurrentUser(updatedUser);
+    }
+
+    // Sync to Supabase cloud
+    await supabaseService.updateAppUser(updatedUser);
+    return true;
+  };
+
   // Dynamic list of dispatch officers (merges custom registered users with default officers)
   const officerNames = useMemo(() => {
     const names = users.map((u) => u.name);
@@ -1373,6 +1384,7 @@ export function App() {
             onSwitchUser={setCurrentUser}
             users={users}
             onAddUser={handleAddUser}
+            onUpdateUser={handleUpdateUser}
             onDeleteUser={handleDeleteUser}
           />
         )}
