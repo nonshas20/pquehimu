@@ -7,7 +7,8 @@ import {
   ShieldCheck, 
   UserCheck, 
   ChevronDown,
-  Printer 
+  Printer,
+  LogOut 
 } from './HugeIcons';
 
 interface HeaderProps {
@@ -17,6 +18,7 @@ interface HeaderProps {
   onOpenScanModal: () => void;
   onOpenAuthModal: () => void;
   onOpenChecklistModal?: () => void;
+  onLogout?: () => void;
   currentUser: AppUser;
   isScrolled?: boolean;
   syncStatus?: 'connected' | 'syncing' | 'offline';
@@ -29,6 +31,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenScanModal,
   onOpenAuthModal,
   onOpenChecklistModal,
+  onLogout,
   currentUser,
   isScrolled: externalIsScrolled,
   syncStatus = 'syncing',
@@ -262,6 +265,21 @@ export const Header: React.FC<HeaderProps> = ({
                 isScrolled ? 'text-neutral-400' : 'text-white/70'
               }`} />
             </button>
+
+            {/* Quick Log Out Action */}
+            {onLogout && (
+              <button
+                onClick={onLogout}
+                title="Sign Out"
+                className={`hidden sm:inline-flex items-center justify-center rounded-xl p-2 shadow-2xs active:scale-95 transition-all ${
+                  isScrolled
+                    ? 'border border-neutral-200 bg-white text-neutral-400 hover:text-rose-600 hover:bg-rose-50'
+                    : 'border border-white/25 bg-black/40 backdrop-blur-md text-white/80 hover:text-rose-300 hover:bg-black/60'
+                }`}
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            )}
           </div>
         </div>
 

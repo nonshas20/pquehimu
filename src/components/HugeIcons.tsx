@@ -47,7 +47,8 @@ import {
   ArrowLeftRightIcon,
   ArrowRight01Icon,
   Delete01Icon,
-  Edit01Icon
+  Edit01Icon,
+  Logout01Icon
 } from '@hugeicons/core-free-icons';
 
 export interface HugeIconProps extends React.SVGAttributes<SVGSVGElement> {
@@ -124,3 +125,4 @@ export const ArrowRightLeft = createHugeIcon(ArrowLeftRightIcon, 'ArrowRightLeft
 export const ArrowRight = createHugeIcon(ArrowRight01Icon, 'ArrowRight');
 export const Trash = createHugeIcon(Delete01Icon, 'Trash');
 export const Edit = createHugeIcon(Edit01Icon, 'Edit');
+export const LogOut = createHugeIcon(Logout01Icon, 'LogOut');

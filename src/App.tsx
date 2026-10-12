@@ -16,6 +16,7 @@ import { BarangayStationsMobileList } from './components/BarangayStationsMobileL
 import { AssetList } from './components/AssetList';
 import type { BorrowChecklistItem } from './types/inventory';
 import { supabaseService } from './services/supabaseService';
+import { LoginScreen } from './components/LoginScreen';
 
 // Code-split heavy interactive map and modal dialogs
 const ParanaqueMap = lazy(() => import('./components/ParanaqueMap').then(m => ({ default: m.ParanaqueMap })));
@@ -36,31 +37,44 @@ import {
 } from './components/HugeIcons';
 
 export function App() {
-  // Current user / role (ADMIN or IT_OFFICER)
-  const [currentUser, setCurrentUser] = useState<AppUser>(() => {
+  // Current user / role (ADMIN or IT_OFFICER) - null when unauthenticated
+  const [currentUser, setCurrentUser] = useState<AppUser | null>(() => {
     try {
       const saved = localStorage.getItem('himu_current_user');
       if (saved) {
         const parsed = JSON.parse(saved);
-        return {
-          ...parsed,
-          username: parsed.username || (parsed.id === 'user-admin' ? 'admin' : parsed.id === 'user-it-officer' ? 'itofficer' : parsed.name.toLowerCase().replace(/[^a-z0-9]/g, '')),
-          password: parsed.password || 'password123',
-        };
+        if (parsed && parsed.id) {
+          return {
+            ...parsed,
+            username: parsed.username || (parsed.id === 'user-admin' ? 'admin' : parsed.id === 'user-it-officer' ? 'itofficer' : parsed.name.toLowerCase().replace(/[^a-z0-9]/g, '')),
+            password: parsed.password || 'password123',
+          };
+        }
       }
     } catch (e) {
       console.error(e);
     }
-    return DEFAULT_USERS[0]; // John Shannon O. Rodriguez (ADMIN)
+    return null; // Requires officer login
   });
 
   useEffect(() => {
     try {
-      localStorage.setItem('himu_current_user', JSON.stringify(currentUser));
+      if (currentUser) {
+        localStorage.setItem('himu_current_user', JSON.stringify(currentUser));
+      } else {
+        localStorage.removeItem('himu_current_user');
+      }
     } catch (e) {
       console.error(e);
     }
   }, [currentUser]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('himu_current_user');
+    setCurrentUser(null);
+  };
+
+  const currentOfficerName = currentUser?.name || 'HIMU IT OFFICER';
 
   // Registered HIMU staff users & administrators
   const [users, setUsers] = useState<AppUser[]>(() => {
@@ -197,7 +211,7 @@ export function App() {
 
   const handleUpdateUser = async (updatedUser: AppUser) => {
     setUsers((prev) => prev.map((u) => (u.id === updatedUser.id ? updatedUser : u)));
-    if (currentUser.id === updatedUser.id) {
+    if (currentUser && currentUser.id === updatedUser.id) {
       setCurrentUser(updatedUser);
     }
 
@@ -421,7 +435,7 @@ export function App() {
         toLocationId: targetLoc.id,
         fromLocationName: 'HIMU Central IT Office (Parañaque City Hall)',
         toLocationName: targetLoc.name,
-        dispatchedBy: currentUser.name,
+        dispatchedBy: currentOfficerName,
         dispatchedAt: now.toISOString(),
         receivedBy: 'MARICEL SANTOS (MIDWIFE II)',
         status: 'in_transit',
@@ -564,7 +578,7 @@ export function App() {
       toLocationId,
       fromLocationName: fromLoc?.name || 'HIMU Central Depot',
       toLocationName: toLoc?.name || (isReturningToHq ? 'HIMU Central IT Office' : 'Assigned Barangay'),
-      dispatchedBy: currentUser.name,
+      dispatchedBy: currentOfficerName,
       dispatchedAt: new Date().toISOString(),
       receivedBy: isReturningToHq
         ? 'HIMU Depot Inventory Custodian'
@@ -660,7 +674,7 @@ export function App() {
           toLocationId: asset.currentLocationId,
           fromLocationName: 'HIMU Central IT Office (Parañaque City Hall)',
           toLocationName: targetLoc?.name || 'Assigned Barangay',
-          dispatchedBy: currentUser.name,
+          dispatchedBy: currentOfficerName,
           dispatchedAt: new Date().toISOString(),
           receivedBy: `${targetLoc?.name || 'BARANGAY'} HEALTH CUSTODIAN`,
           status: 'in_transit',
@@ -728,7 +742,7 @@ export function App() {
       toLocationId: locationId,
       fromLocationName: 'HIMU Central IT Office (Parañaque City Hall)',
       toLocationName: targetLoc.name,
-      dispatchedBy: currentUser.name,
+      dispatchedBy: currentOfficerName,
       dispatchedAt: new Date().toISOString(),
       receivedBy: `${targetLoc.name.toUpperCase()} HEALTH CUSTODIAN`,
       status: 'in_transit',
@@ -758,7 +772,7 @@ export function App() {
           toLocationName:
             locations.find((l) => l.id === newAssetData.currentLocationId)?.name ||
             'Assigned Barangay',
-          dispatchedBy: currentUser.name,
+          dispatchedBy: currentOfficerName,
           dispatchedAt: new Date().toISOString(),
           status: 'received',
           purpose: 'Initial inventory intake and deployment',
@@ -808,7 +822,7 @@ export function App() {
             toLocationId: locationId,
             fromLocationName: 'HIMU Central IT Office (Parañaque City Hall)',
             toLocationName: targetLoc.name,
-            dispatchedBy: currentUser.name,
+            dispatchedBy: currentOfficerName,
             dispatchedAt: new Date().toISOString(),
             status: 'received',
             purpose: 'Standard Barangay Health Center IT Kit Deployment',
@@ -837,7 +851,7 @@ export function App() {
             toLocationId: locationId,
             fromLocationName: 'HIMU Central IT Office (Parañaque City Hall)',
             toLocationName: targetLoc.name,
-            dispatchedBy: currentUser.name,
+            dispatchedBy: currentOfficerName,
             dispatchedAt: new Date().toISOString(),
             status: 'received',
             purpose: 'Standard Barangay Health Center IT Kit Deployment',
@@ -866,7 +880,7 @@ export function App() {
             toLocationId: locationId,
             fromLocationName: 'HIMU Central IT Office (Parañaque City Hall)',
             toLocationName: targetLoc.name,
-            dispatchedBy: currentUser.name,
+            dispatchedBy: currentOfficerName,
             dispatchedAt: new Date().toISOString(),
             status: 'received',
             purpose: 'Standard Barangay Health Center IT Kit Deployment',
@@ -895,7 +909,7 @@ export function App() {
             toLocationId: locationId,
             fromLocationName: 'HIMU Central IT Office (Parañaque City Hall)',
             toLocationName: targetLoc.name,
-            dispatchedBy: currentUser.name,
+            dispatchedBy: currentOfficerName,
             dispatchedAt: new Date().toISOString(),
             status: 'received',
             purpose: 'Standard Barangay Health Center IT Kit Deployment',
@@ -943,7 +957,7 @@ export function App() {
               toLocationId: loc.id,
               fromLocationName: 'HIMU Central IT Office (Parañaque City Hall)',
               toLocationName: loc.name,
-              dispatchedBy: currentUser.name,
+              dispatchedBy: currentOfficerName,
               dispatchedAt: new Date().toISOString(),
               status: 'received',
               purpose: 'City-wide Standard Health Center IT Kit Deployment',
@@ -972,7 +986,7 @@ export function App() {
               toLocationId: loc.id,
               fromLocationName: 'HIMU Central IT Office (Parañaque City Hall)',
               toLocationName: loc.name,
-              dispatchedBy: currentUser.name,
+              dispatchedBy: currentOfficerName,
               dispatchedAt: new Date().toISOString(),
               status: 'received',
               purpose: 'City-wide Standard Health Center IT Kit Deployment',
@@ -1001,7 +1015,7 @@ export function App() {
               toLocationId: loc.id,
               fromLocationName: 'HIMU Central IT Office (Parañaque City Hall)',
               toLocationName: loc.name,
-              dispatchedBy: currentUser.name,
+              dispatchedBy: currentOfficerName,
               dispatchedAt: new Date().toISOString(),
               status: 'received',
               purpose: 'City-wide Standard Health Center IT Kit Deployment',
@@ -1030,7 +1044,7 @@ export function App() {
               toLocationId: loc.id,
               fromLocationName: 'HIMU Central IT Office (Parañaque City Hall)',
               toLocationName: loc.name,
-              dispatchedBy: currentUser.name,
+              dispatchedBy: currentOfficerName,
               dispatchedAt: new Date().toISOString(),
               status: 'received',
               purpose: 'City-wide Standard Health Center IT Kit Deployment',
@@ -1066,6 +1080,16 @@ export function App() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Authentication Gate: Require authorized officer credentials before accessing dashboard
+  if (!currentUser) {
+    return (
+      <LoginScreen
+        users={users}
+        onLogin={(user) => setCurrentUser(user)}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#F8F9FA] pb-28 text-neutral-900 selection:bg-neutral-900 selection:text-white">
       {/* Dynamic Header: Transparent over hero at first, self-manages floating rounded white header on scroll */}
@@ -1077,6 +1101,7 @@ export function App() {
         onOpenAuthModal={() => setIsAuthOpen(true)}
         onOpenChecklistModal={handleOpenQuickChecklist}
         currentUser={currentUser}
+        onLogout={handleLogout}
         syncStatus={syncStatus}
       />
 
@@ -1386,6 +1411,7 @@ export function App() {
             onAddUser={handleAddUser}
             onUpdateUser={handleUpdateUser}
             onDeleteUser={handleDeleteUser}
+            onLogout={handleLogout}
           />
         )}
 

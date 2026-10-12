@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { AppUser, UserRole } from '../types/inventory';
-import { X, ShieldCheck, UserCheck, Check, Plus, Trash, AlertCircle, Edit } from './HugeIcons';
+import { X, ShieldCheck, UserCheck, Check, Plus, Trash, AlertCircle, Edit, LogOut } from './HugeIcons';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -11,6 +11,7 @@ interface AuthModalProps {
   onAddUser?: (user: Omit<AppUser, 'id'>) => Promise<boolean> | void;
   onUpdateUser?: (user: AppUser) => Promise<boolean> | void;
   onDeleteUser?: (userId: string) => Promise<boolean> | void;
+  onLogout?: () => void;
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({
@@ -22,6 +23,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onAddUser,
   onUpdateUser,
   onDeleteUser,
+  onLogout,
 }) => {
   const [activeTab, setActiveTab] = useState<'switch' | 'manage'>('switch');
 
@@ -429,6 +431,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   >
                     <Edit className="h-3.5 w-3.5" />
                   </button>
+                  {onLogout && (
+                    <button
+                      onClick={() => {
+                        onLogout();
+                        onClose();
+                      }}
+                      title="Sign Out"
+                      className="rounded p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-100 transition"
+                    >
+                      <LogOut className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                 </div>
               </div>
 
