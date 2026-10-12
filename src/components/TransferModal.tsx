@@ -9,6 +9,7 @@ interface TransferModalProps {
   asset: AssetItem | null;
   locations: BarangayLocation[];
   defaultDispatcherName?: string;
+  officers?: string[];
   onConfirmTransfer: (
     assetId: string,
     toLocationId: string,
@@ -32,8 +33,10 @@ export const TransferModal: React.FC<TransferModalProps> = ({
   asset,
   locations,
   defaultDispatcherName,
+  officers,
   onConfirmTransfer,
 }) => {
+  const officerList = officers && officers.length > 0 ? officers : (DISPATCH_OFFICERS as readonly string[]);
   const currentLocation = locations.find((l) => l.id === asset?.currentLocationId);
   const eligibleDestinations = locations.filter((l) => l.id !== asset?.currentLocationId);
 
@@ -61,10 +64,10 @@ export const TransferModal: React.FC<TransferModalProps> = ({
 
   // Officer & Datetime
   const [dispatchedBy, setDispatchedBy] = useState<string>(() => {
-    if (defaultDispatcherName && (DISPATCH_OFFICERS as readonly string[]).includes(defaultDispatcherName)) {
+    if (defaultDispatcherName && officerList.includes(defaultDispatcherName)) {
       return defaultDispatcherName;
     }
-    return DISPATCH_OFFICERS[0];
+    return officerList[0] || 'JOHN SHANNON O. RODRIGUEZ';
   });
 
   const [borrowedAt, setBorrowedAt] = useState<string>(() => {
@@ -348,7 +351,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
                 required
                 className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-bold text-neutral-900 shadow-xs focus:border-emerald-500 focus:outline-none"
               >
-                {DISPATCH_OFFICERS.map((name) => (
+                {officerList.map((name) => (
                   <option key={name} value={name}>
                     {name}
                   </option>

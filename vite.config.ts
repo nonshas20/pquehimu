@@ -18,6 +18,9 @@ export default defineConfig({
           if (id.includes('node_modules/@hugeicons')) {
             return 'hugeicons-vendor';
           }
+          if (id.includes('node_modules/html5-qrcode')) {
+            return 'qrcode-vendor';
+          }
           if (id.includes('node_modules/@supabase')) {
             return 'supabase-vendor';
           }

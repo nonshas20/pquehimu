@@ -7,6 +7,7 @@ import type {
   AssetTransferRecord,
   AppUser 
 } from './types/inventory';
+import { DISPATCH_OFFICERS } from './types/inventory';
 import { PARANAQUE_LOCATIONS, INITIAL_ASSETS, DEFAULT_USERS } from './data/mockData';
 import { Header } from './components/Header';
 import { StatsOverview } from './components/StatsOverview';
@@ -53,6 +54,28 @@ export function App() {
       console.error(e);
     }
   }, [currentUser]);
+
+  // Registered HIMU staff users & administrators
+  const [users, setUsers] = useState<AppUser[]>(() => {
+    try {
+      const saved = localStorage.getItem('himu_app_users');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.error('Failed to load local users', e);
+    }
+    return DEFAULT_USERS;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('himu_app_users', JSON.stringify(users));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [users]);
 
   // Locations: 16 Real Parañaque Barangays + HIMU Depot
   const [locations, setLocations] = useState<BarangayLocation[]>(PARANAQUE_LOCATIONS);
@@ -103,6 +126,12 @@ export function App() {
             setSyncStatus('offline');
           }
         }
+
+        // 3. Fetch registered staff users
+        const cloudUsers = await supabaseService.getAppUsers();
+        if (isMounted && cloudUsers && cloudUsers.length > 0) {
+          setUsers(cloudUsers);
+        }
       } catch (err) {
         console.warn('[App] Supabase sync initialization warning:', err);
         if (isMounted) setSyncStatus('offline');
@@ -111,12 +140,17 @@ export function App() {
 
     initCloudSync();
 
-    // 3. Supabase Realtime multi-user subscription
+    // 4. Supabase Realtime multi-user subscription
     const unsubscribe = supabaseService.subscribeToChanges(async () => {
       const freshAssets = await supabaseService.getAssets();
       if (isMounted && freshAssets !== null) {
         setAssets(freshAssets);
         setSyncStatus('connected');
+      }
+
+      const freshUsers = await supabaseService.getAppUsers();
+      if (isMounted && freshUsers && freshUsers.length > 0) {
+        setUsers(freshUsers);
       }
     });
 
@@ -125,6 +159,34 @@ export function App() {
       unsubscribe();
     };
   }, []);
+
+  // Staff User Management Handlers
+  const handleAddUser = async (newUserData: Omit<AppUser, 'id'>) => {
+    const newUser: AppUser = {
+      ...newUserData,
+      id: `user-${Date.now()}`,
+    };
+
+    setUsers((prev) => [...prev, newUser]);
+
+    // Sync to Supabase cloud
+    await supabaseService.createAppUser(newUser);
+    return true;
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    setUsers((prev) => prev.filter((u) => u.id !== userId));
+
+    // Sync to Supabase cloud
+    await supabaseService.deleteAppUser(userId);
+    return true;
+  };
+
+  // Dynamic list of dispatch officers (merges custom registered users with default officers)
+  const officerNames = useMemo(() => {
+    const names = users.map((u) => u.name);
+    return Array.from(new Set([...names, ...DISPATCH_OFFICERS]));
+  }, [users]);
 
   useEffect(() => {
     try {
@@ -1244,6 +1306,7 @@ export function App() {
             asset={activeAsset}
             locations={locations}
             defaultDispatcherName={currentUser.name}
+            officers={officerNames}
             onConfirmTransfer={handleConfirmTransfer}
           />
         )}
@@ -1282,6 +1345,10 @@ export function App() {
               setActiveAsset(found);
               setIsDetailOpen(true);
             }}
+            onOpenAddWithSerial={(_serial) => {
+              setAddPresetLocationId(undefined);
+              setIsAddOpen(true);
+            }}
           />
         )}
 
@@ -1291,6 +1358,9 @@ export function App() {
             onClose={() => setIsAuthOpen(false)}
             currentUser={currentUser}
             onSwitchUser={setCurrentUser}
+            users={users}
+            onAddUser={handleAddUser}
+            onDeleteUser={handleDeleteUser}
           />
         )}
 

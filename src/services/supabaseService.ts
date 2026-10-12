@@ -4,6 +4,7 @@ import type {
   AssetItem,
   AssetTransferRecord,
   BorrowChecklistItem,
+  AppUser,
 } from '../types/inventory';
 
 // Database column mapping interfaces
@@ -58,9 +59,24 @@ interface DbTransfer {
   returned_checked_by: string | null;
 }
 
+interface DbUser {
+  id: string;
+  name: string;
+  role: string;
+  email: string;
+  created_at?: string;
+}
+
 // ---------------------------------------------------------------------------
 // Transformers (PostgreSQL snake_case <-> TypeScript camelCase)
 // ---------------------------------------------------------------------------
+
+export const mapDbUser = (db: DbUser): AppUser => ({
+  id: db.id,
+  name: db.name,
+  role: db.role as AppUser['role'],
+  email: db.email,
+});
 
 export const mapDbLocation = (db: DbLocation): BarangayLocation => ({
   id: db.id,
@@ -380,7 +396,72 @@ export const supabaseService = {
   },
 
   /**
-   * Subscribe to Supabase Realtime changes across assets and transfers.
+   * Fetch all registered HIMU staff users from Supabase app_users table
+   */
+  async getAppUsers(): Promise<AppUser[] | null> {
+    try {
+      const { data, error } = await supabase
+        .from('app_users')
+        .select('*')
+        .order('name', { ascending: true });
+
+      if (error) {
+        console.warn('[Supabase] Failed to fetch users:', error.message);
+        return null;
+      }
+
+      if (!data || data.length === 0) return null;
+      return (data as DbUser[]).map(mapDbUser);
+    } catch (err) {
+      console.warn('[Supabase] Exception fetching users:', err);
+      return null;
+    }
+  },
+
+  /**
+   * Insert a new staff user into Supabase app_users table
+   */
+  async createAppUser(user: AppUser): Promise<boolean> {
+    try {
+      const { error } = await supabase.from('app_users').insert([
+        {
+          id: user.id,
+          name: user.name,
+          role: user.role,
+          email: user.email,
+        },
+      ]);
+
+      if (error) {
+        console.error('[Supabase] Error creating user:', error);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error('[Supabase] Exception creating user:', err);
+      return false;
+    }
+  },
+
+  /**
+   * Delete a staff user from Supabase app_users table
+   */
+  async deleteAppUser(userId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase.from('app_users').delete().eq('id', userId);
+      if (error) {
+        console.error('[Supabase] Error deleting user:', error);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error('[Supabase] Exception deleting user:', err);
+      return false;
+    }
+  },
+
+  /**
+   * Subscribe to Supabase Realtime changes across assets, transfers, and users.
    * Enables seamless live multi-device synchronization.
    */
   subscribeToChanges(onChange: () => void) {
@@ -396,6 +477,13 @@ export const supabaseService = {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'transfer_records' },
+        () => {
+          onChange();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'app_users' },
         () => {
           onChange();
         }
