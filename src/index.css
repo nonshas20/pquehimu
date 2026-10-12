@@ -129,23 +129,40 @@
 @media print {
   @page {
     size: A5 portrait;
-    margin: 8mm;
+    margin: 8mm 10mm;
   }
 
-  body {
+  html, body {
+    background: #FFFFFF !important;
     background-color: #FFFFFF !important;
     color: #000000 !important;
     padding: 0 !important;
     margin: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
-  /* Hide app UI when printing */
+  /* Hide absolutely all regular application UI and background elements */
   header,
   main,
   nav,
+  footer,
+  aside,
   .no-print,
-  button {
+  button,
+  [role="navigation"] {
     display: none !important;
+  }
+
+  /* Reset root containers so they don't add padding or backgrounds */
+  #root,
+  #root > div {
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    min-height: auto !important;
   }
 
   /* Reset modal containers so A5 document prints full size without gray backdrops or scroll clipping */
@@ -153,28 +170,48 @@
   .receipt-modal-dialog,
   .receipt-modal-scroll {
     position: static !important;
+    display: block !important;
     background: transparent !important;
+    background-color: transparent !important;
     padding: 0 !important;
     margin: 0 !important;
     max-height: none !important;
-    max-width: none !important;
+    max-width: 100% !important;
     width: 100% !important;
     overflow: visible !important;
     border: none !important;
+    border-radius: 0 !important;
     box-shadow: none !important;
+    transform: none !important;
   }
 
-  /* Print A5 Document cleanly */
+  /* Print A5 Document cleanly matching physical A5 form */
   .a5-printable-document {
     position: static !important;
+    display: block !important;
     width: 100% !important;
-    max-width: none !important;
+    max-width: 100% !important;
     box-shadow: none !important;
     border: none !important;
+    border-radius: 0 !important;
     padding: 0 !important;
-    margin: 0 !important;
+    margin: 0 auto !important;
     background: #FFFFFF !important;
+    background-color: #FFFFFF !important;
     color: #000000 !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .a5-printable-document table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+
+  .a5-printable-document table,
+  .a5-printable-document th,
+  .a5-printable-document td {
+    border-color: #000000 !important;
   }
 
   .a5-printable-document input {

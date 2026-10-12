@@ -123,7 +123,7 @@ export const BorrowChecklistReceiptModal: React.FC<BorrowChecklistReceiptModalPr
       <div className="receipt-modal-dialog relative w-full max-w-[660px] rounded-t-[32px] sm:rounded-3xl bg-white border-t sm:border border-neutral-200/90 shadow-2xl p-4 sm:p-6 text-neutral-900 max-h-[94vh] flex flex-col">
         
         {/* Mobile Native Drag Pill Handle */}
-        <div className="w-12 h-1.5 bg-neutral-300 rounded-full mx-auto mb-2.5 shrink-0 sm:hidden" />
+        <div className="no-print w-12 h-1.5 bg-neutral-300 rounded-full mx-auto mb-2.5 shrink-0 sm:hidden" />
 
         {/* Top Control Bar (Hidden during print) */}
         <div className="no-print flex items-center justify-between pb-3 mb-2.5 border-b border-black/[0.06] shrink-0">
@@ -177,16 +177,16 @@ export const BorrowChecklistReceiptModal: React.FC<BorrowChecklistReceiptModalPr
               backgroundColor: '#FFFFFF',
             }}
           >
-            {/* 1. Header Logos (4 Logos in exact horizontal alignment) */}
-            <div className="flex items-center justify-between gap-1.5 sm:gap-3 pt-1 pb-3 mb-1 border-b border-neutral-100">
+            {/* 1. Header Logos (4 Logos in exact horizontal centered alignment matching physical A5 form) */}
+            <div className="flex items-center justify-center gap-3.5 sm:gap-6 pt-1 pb-2">
               {/* Logo 1: City of Parañaque Official Seal */}
               <div className="flex items-center justify-center shrink-0">
                 <img
                   src="/logo-paranaque-seal.webp"
                   alt="City of Parañaque"
-                  width={56}
-                  height={56}
-                  className="h-10 w-10 sm:h-14 sm:w-14 object-contain"
+                  width={52}
+                  height={52}
+                  className="h-10 w-10 sm:h-12 sm:w-12 object-contain"
                   loading="eager"
                 />
               </div>
@@ -196,21 +196,21 @@ export const BorrowChecklistReceiptModal: React.FC<BorrowChecklistReceiptModalPr
                 <img
                   src="/logo-bagong-pilipinas.webp"
                   alt="Bagong Pilipinas"
-                  width={56}
-                  height={56}
-                  className="h-10 w-10 sm:h-14 sm:w-14 object-contain"
+                  width={52}
+                  height={52}
+                  className="h-10 w-10 sm:h-12 sm:w-12 object-contain"
                   loading="eager"
                 />
               </div>
 
               {/* Logo 3: Parañaque A Mega City By The Bay */}
-              <div className="flex items-center justify-center shrink-0 max-w-[95px] sm:max-w-[145px]">
+              <div className="flex items-center justify-center shrink-0 max-w-[120px] sm:max-w-[140px]">
                 <img
                   src="/logo-paranaque-megacity.webp"
                   alt="Parañaque A Mega City By The Bay"
-                  width={145}
-                  height={44}
-                  className="h-8 sm:h-11 object-contain"
+                  width={130}
+                  height={38}
+                  className="h-7.5 sm:h-9 object-contain"
                   loading="eager"
                 />
               </div>
@@ -220,9 +220,9 @@ export const BorrowChecklistReceiptModal: React.FC<BorrowChecklistReceiptModalPr
                 <img
                   src="/logo-city-health-office.webp"
                   alt="City Health Office"
-                  width={56}
-                  height={56}
-                  className="h-10 w-10 sm:h-14 sm:w-14 object-contain"
+                  width={52}
+                  height={52}
+                  className="h-10 w-10 sm:h-12 sm:w-12 object-contain"
                   loading="eager"
                 />
               </div>

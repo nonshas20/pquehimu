@@ -913,7 +913,7 @@ export function App() {
       />
 
       {/* Full-Width 21:9 HIMU Team Background Header with 3D Parallax Effect */}
-      <div className="relative w-full overflow-hidden bg-neutral-950 aspect-[21/9] min-h-[260px] sm:min-h-[380px] lg:min-h-[480px] max-h-[580px] shadow-xs">
+      <div className="no-print relative w-full overflow-hidden bg-neutral-950 aspect-[21/9] min-h-[260px] sm:min-h-[380px] lg:min-h-[480px] max-h-[580px] shadow-xs">
         <picture>
           <source
             type="image/webp"
@@ -939,7 +939,7 @@ export function App() {
       </div>
 
       {/* Main Content Container with Stat Cards Overlapping Banner */}
-      <main className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 space-y-6">
+      <main className="no-print mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 space-y-6">
         
         {/* 4 Stat Cards sitting slightly on top of the banner image with no gradient */}
         <div className="relative z-20 -mt-10 sm:-mt-14 lg:-mt-18">
@@ -1063,7 +1063,7 @@ export function App() {
       {/* Mobile Native Docked Bottom Navigation Bar */}
       <nav 
         aria-label="Mobile Bottom Navigation"
-        className="fixed bottom-0 inset-x-0 z-40 sm:hidden bg-white/95 backdrop-blur-md border-t border-neutral-200/90 shadow-2xl px-2 pt-1.5 pb-[max(0.6rem,env(safe-area-inset-bottom))]"
+        className="no-print fixed bottom-0 inset-x-0 z-40 sm:hidden bg-white/95 backdrop-blur-md border-t border-neutral-200/90 shadow-2xl px-2 pt-1.5 pb-[max(0.6rem,env(safe-area-inset-bottom))]"
       >
         <div className="flex items-center justify-around text-xs max-w-md mx-auto">
           {/* 1. Assets Tab */}
