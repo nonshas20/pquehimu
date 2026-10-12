@@ -100,23 +100,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         <div className="w-12 h-1.5 bg-neutral-300 rounded-full mx-auto mb-2.5 shrink-0 sm:hidden" />
 
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-black/[0.06] shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-neutral-900 text-white shadow-xs shrink-0">
-              <ShieldCheck className="h-5 w-5 text-emerald-400" />
+        <div className="flex items-center justify-between pb-3 border-b border-neutral-100 shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-neutral-900 text-white shadow-xs shrink-0">
+              <ShieldCheck className="h-4.5 w-4.5 text-emerald-400" />
             </div>
-            <div>
-              <h3 className="text-sm sm:text-base font-bold tracking-tight text-neutral-900">
-                HIMU Security & Access Control
-              </h3>
-              <p className="text-[11px] sm:text-xs text-neutral-500">
-                {users.length} Authorized System Users • City of Parañaque
-              </p>
-            </div>
+            <h3 className="text-sm font-bold text-neutral-900">
+              User Accounts
+            </h3>
           </div>
           <button
             onClick={onClose}
-            className="rounded-full p-2 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 transition active:scale-95"
+            className="rounded-full p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 transition"
             aria-label="Close"
           >
             <X className="h-4 w-4" />
@@ -124,31 +119,28 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex border-b border-neutral-200/80 mt-3 shrink-0">
+        <div className="flex border-b border-neutral-200 mt-2 shrink-0">
           <button
             onClick={() => setActiveTab('switch')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold transition-all border-b-2 ${
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-bold transition-all border-b-2 ${
               activeTab === 'switch'
                 ? 'border-neutral-900 text-neutral-900'
                 : 'border-transparent text-neutral-400 hover:text-neutral-700'
             }`}
           >
             <UserCheck className="h-4 w-4" />
-            <span>Switch Active User</span>
+            <span>Switch User</span>
           </button>
           <button
             onClick={() => setActiveTab('manage')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold transition-all border-b-2 ${
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-bold transition-all border-b-2 ${
               activeTab === 'manage'
                 ? 'border-neutral-900 text-neutral-900'
                 : 'border-transparent text-neutral-400 hover:text-neutral-700'
             }`}
           >
             <ShieldCheck className="h-4 w-4" />
-            <span>Manage Accounts</span>
-            <span className="ml-1 rounded-full bg-neutral-100 px-1.5 py-0.2 text-[10px] font-bold text-neutral-600">
-              {users.length}
-            </span>
+            <span>Manage Team ({users.length})</span>
           </button>
         </div>
 
@@ -435,11 +427,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </div>
           )}
         </div>
-
-        {/* Security Note Footer */}
-        <p className="mt-2 text-[10.5px] text-neutral-400 text-center leading-relaxed shrink-0">
-          Integrated with City of Parañaque Health Information Management Unit access policies.
-        </p>
       </div>
     </div>
   );

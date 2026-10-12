@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import type { AssetItem } from '../types/inventory';
-import { X, Camera, AlertCircle, Check, Search, RotateCcw } from './HugeIcons';
+import { X, Camera, RotateCcw } from './HugeIcons';
+
+// Crisp 2400Hz hardware laser scanner beep (audio/wav base64)
+const SCANNER_BEEP_WAV =
+  'data:audio/wav;base64,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';
 
 interface QuickScanModalProps {
   isOpen: boolean;
@@ -19,96 +23,90 @@ export const QuickScanModal: React.FC<QuickScanModalProps> = ({
   onOpenAddWithSerial,
 }) => {
   const [scanInput, setScanInput] = useState('');
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [isScanning, setIsScanning] = useState(false);
+  const [notFoundCode, setNotFoundCode] = useState<string | null>(null);
+  const [foundAsset, setFoundAsset] = useState<AssetItem | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
-  const [lastScannedCode, setLastScannedCode] = useState<string | null>(null);
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
-  const scannerContainerId = 'himu-barcode-scanner-viewport';
+  const containerId = 'himu-barcode-scanner-viewport';
 
-  // Play audio chime on successful scan
-  const playScanBeep = () => {
+  // Crisp, loud hardware scanner beep (dual: HTML5 Audio + Web Audio fallback)
+  const playBeep = () => {
     try {
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(880, audioCtx.currentTime); // A5 note
-      gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start();
-      osc.stop(audioCtx.currentTime + 0.15);
-    } catch {
-      // AudioContext not allowed or not supported; ignore safely
-    }
+      const audio = new Audio(SCANNER_BEEP_WAV);
+      audio.volume = 0.9;
+      audio.play().catch(() => {});
+    } catch {}
+
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtx) {
+        const ctx = new AudioCtx();
+        if (ctx.state === 'suspended') ctx.resume();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(2400, ctx.currentTime);
+        gain.gain.setValueAtTime(0.4, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.09);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.09);
+      }
+    } catch {}
   };
 
-  // Match scanned value against assets
-  const matchAsset = (rawVal: string): AssetItem | null => {
+  const lookupCode = (rawVal: string) => {
     const clean = rawVal.trim().toLowerCase();
-    if (!clean) return null;
+    if (!clean) return;
 
-    return (
-      assets.find(
-        (a) =>
-          a.serialNumber.toLowerCase() === clean ||
-          a.assetTag.toLowerCase() === clean ||
-          clean.includes(a.serialNumber.toLowerCase()) ||
-          clean.includes(a.assetTag.toLowerCase())
-      ) || null
+    playBeep();
+
+    const match = assets.find(
+      (a) =>
+        a.serialNumber.toLowerCase() === clean ||
+        a.assetTag.toLowerCase() === clean ||
+        clean.includes(a.serialNumber.toLowerCase()) ||
+        clean.includes(a.assetTag.toLowerCase())
     );
-  };
 
-  const handleSuccessfulScan = (decodedText: string) => {
-    setLastScannedCode(decodedText);
-    playScanBeep();
-
-    const matched = matchAsset(decodedText);
-    if (matched) {
-      setSuccessMsg(`Identified: ${matched.name} (${matched.serialNumber})`);
-      setErrorMsg(null);
+    if (match) {
+      setNotFoundCode(null);
+      setFoundAsset(match);
       setTimeout(() => {
-        onFoundAsset(matched);
+        onFoundAsset(match);
         onClose();
-      }, 700);
+      }, 550);
     } else {
-      setErrorMsg(`No hardware found with tag/serial "${decodedText}".`);
-      setSuccessMsg(null);
+      setNotFoundCode(rawVal.trim());
+      setFoundAsset(null);
     }
   };
 
-  // Initialize and start live camera when modal opens
   useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
+    if (!isOpen) return;
 
     let isMounted = true;
     let html5QrCode: Html5Qrcode | null = null;
 
-    const startCamera = async () => {
+    const initCamera = async () => {
       setCameraError(null);
-      setErrorMsg(null);
-      setSuccessMsg(null);
+      setNotFoundCode(null);
+      setFoundAsset(null);
 
       try {
-        // Wait for DOM element to mount
-        await new Promise((r) => setTimeout(r, 150));
-        const el = document.getElementById(scannerContainerId);
+        await new Promise((r) => setTimeout(r, 120));
+        const el = document.getElementById(containerId);
         if (!el || !isMounted) return;
 
-        html5QrCode = new Html5Qrcode(scannerContainerId, {
+        html5QrCode = new Html5Qrcode(containerId, {
           formatsToSupport: [
             Html5QrcodeSupportedFormats.QR_CODE,
             Html5QrcodeSupportedFormats.CODE_128,
             Html5QrcodeSupportedFormats.CODE_39,
             Html5QrcodeSupportedFormats.EAN_13,
             Html5QrcodeSupportedFormats.UPC_A,
-            Html5QrcodeSupportedFormats.UPC_E,
             Html5QrcodeSupportedFormats.DATA_MATRIX,
           ],
           verbose: false,
@@ -120,41 +118,25 @@ export const QuickScanModal: React.FC<QuickScanModalProps> = ({
           { facingMode: 'environment' },
           {
             fps: 15,
-            qrbox: (viewfinderWidth, viewfinderHeight) => {
-              const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-              return {
-                width: Math.floor(minEdge * 0.85),
-                height: Math.floor(minEdge * 0.55),
-              };
+            qrbox: (w, h) => {
+              const edge = Math.min(w, h);
+              return { width: Math.floor(edge * 0.8), height: Math.floor(edge * 0.5) };
             },
             aspectRatio: 1.333,
           },
-          (decodedText) => {
-            if (isMounted) {
-              handleSuccessfulScan(decodedText);
-            }
+          (decoded) => {
+            if (isMounted) lookupCode(decoded);
           },
-          () => {
-            // Frame evaluation callback (no code found in frame, normal)
-          }
+          () => {}
         );
-
-        if (isMounted) {
-          setIsScanning(true);
-        }
       } catch (err: any) {
-        console.warn('[BarcodeScanner] Camera start error:', err);
         if (isMounted) {
-          setCameraError(
-            err?.message ||
-              'Unable to access camera. Please allow camera permissions or enter the serial manually below.'
-          );
-          setIsScanning(false);
+          setCameraError(err?.message || 'Camera unavailable');
         }
       }
     };
 
-    startCamera();
+    initCamera();
 
     return () => {
       isMounted = false;
@@ -162,167 +144,107 @@ export const QuickScanModal: React.FC<QuickScanModalProps> = ({
         html5QrCode
           .stop()
           .then(() => html5QrCode?.clear())
-          .catch((e) => console.warn('[BarcodeScanner] Cleanup warning:', e));
+          .catch(() => {});
       }
-      setIsScanning(false);
     };
   }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const handleManualLookup = (value: string) => {
-    const matched = matchAsset(value);
-    if (matched) {
-      setErrorMsg(null);
-      setSuccessMsg(`Found: ${matched.name}`);
-      playScanBeep();
-      setTimeout(() => {
-        onFoundAsset(matched);
-        onClose();
-      }, 500);
-    } else {
-      setLastScannedCode(value);
-      setErrorMsg(`No equipment found matching "${value}". Verify serial number.`);
-      setSuccessMsg(null);
-    }
-  };
-
   return (
-    <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md rounded-t-[32px] sm:rounded-3xl bg-white border-t sm:border border-neutral-200/90 p-5 sm:p-6 shadow-2xl transition-all pb-[max(1.25rem,env(safe-area-inset-bottom))] max-h-[92vh] flex flex-col">
-        {/* Mobile Native Drag Pill Handle */}
-        <div className="w-12 h-1.5 bg-neutral-300 rounded-full mx-auto mb-2.5 shrink-0 sm:hidden" />
+    <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-150">
+      <div className="relative w-full max-w-sm rounded-t-3xl sm:rounded-2xl bg-white border border-neutral-200 p-4 sm:p-5 shadow-2xl transition-all pb-[max(1rem,env(safe-area-inset-bottom))] flex flex-col space-y-3">
+        
+        {/* Mobile handle */}
+        <div className="w-10 h-1 bg-neutral-300 rounded-full mx-auto sm:hidden" />
 
-        {/* Header */}
-        <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-black/[0.06] shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-neutral-900 text-white shadow-xs shrink-0">
-              <Camera className="h-5 w-5 text-emerald-400" />
+        {/* Minimal Header */}
+        <div className="flex items-center justify-between pb-2 border-b border-neutral-100">
+          <div className="flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-neutral-900 text-white">
+              <Camera className="h-4 w-4" />
             </div>
-            <div>
-              <h3 className="text-sm sm:text-base font-bold tracking-tight text-neutral-900">
-                Live Hardware Barcode & QR Scanner
-              </h3>
-              <p className="text-[11px] sm:text-xs text-neutral-500">
-                1D Serial Barcodes • 2D QR Codes • Real-Time Lens
-              </p>
-            </div>
+            <h3 className="text-sm font-bold text-neutral-900">Scanner</h3>
           </div>
           <button
             onClick={onClose}
-            className="rounded-full p-2 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 transition active:scale-95"
+            className="rounded-full p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 transition"
             aria-label="Close"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        {/* Scrollable Scanner Body */}
-        <div className="flex-1 overflow-y-auto min-h-0 py-3 space-y-3">
-          {/* Camera Viewport Container */}
-          <div className="relative overflow-hidden rounded-2xl bg-neutral-950 min-h-[220px] sm:min-h-[240px] flex flex-col items-center justify-center text-white border border-neutral-800 shadow-inner">
-            {/* HTML5 QR Code Mount Element */}
-            <div
-              id={scannerContainerId}
-              className="w-full h-full min-h-[220px] sm:min-h-[240px] overflow-hidden rounded-2xl"
-            />
+        {/* Camera Feed */}
+        <div className="relative overflow-hidden rounded-xl bg-neutral-950 aspect-[4/3] flex items-center justify-center text-white border border-neutral-800">
+          <div id={containerId} className="w-full h-full overflow-hidden rounded-xl" />
 
-            {/* Viewfinder Overlay Targeting Reticle */}
-            {isScanning && !cameraError && (
-              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                <div className="relative h-28 w-56 rounded-xl border-2 border-dashed border-emerald-400/80 flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.2)]">
-                  {/* Laser scan line animation */}
-                  <div className="absolute inset-x-0 top-0 h-0.5 bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,1)] animate-pulse" />
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-300/80 bg-black/60 px-2 py-0.5 rounded-full backdrop-blur-xs">
-                    Align Barcode or QR
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* Camera Error / Permission Fallback State */}
-            {cameraError && (
-              <div className="p-6 text-center max-w-xs space-y-2">
-                <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-rose-500/20 text-rose-400">
-                  <AlertCircle className="h-5 w-5" />
-                </div>
-                <h4 className="text-xs font-bold text-white">Camera Access Notice</h4>
-                <p className="text-[11px] text-neutral-400 leading-relaxed">
-                  {cameraError}
-                </p>
-                <button
-                  onClick={() => {
-                    setCameraError(null);
-                    window.location.reload();
-                  }}
-                  className="mt-2 inline-flex items-center gap-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 text-xs font-semibold transition"
-                >
-                  <RotateCcw className="h-3.5 w-3.5" />
-                  <span>Retry Camera</span>
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Feedback alerts */}
-          {successMsg && (
-            <div className="flex items-center gap-2 p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-bold animate-in fade-in">
-              <Check className="h-4 w-4 text-emerald-600 shrink-0" />
-              <span>{successMsg}</span>
-            </div>
+          {/* Clean scanning laser line */}
+          {!cameraError && !foundAsset && (
+            <div className="pointer-events-none absolute inset-x-8 top-1/2 -translate-y-1/2 h-0.5 bg-emerald-400/90 shadow-[0_0_12px_rgba(52,211,153,1)] animate-pulse" />
           )}
 
-          {errorMsg && (
-            <div className="space-y-2 p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs">
-              <div className="flex items-center gap-2 font-bold">
-                <AlertCircle className="h-4 w-4 text-rose-600 shrink-0" />
-                <span>{errorMsg}</span>
-              </div>
-              {onOpenAddWithSerial && lastScannedCode && (
-                <button
-                  onClick={() => {
-                    onClose();
-                    onOpenAddWithSerial(lastScannedCode);
-                  }}
-                  className="w-full mt-1.5 rounded-xl bg-rose-900 hover:bg-rose-800 text-white py-1.5 px-3 font-semibold text-[11px] transition text-center block"
-                >
-                  + Register New Asset with Serial "{lastScannedCode}"
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Manual Input Search Fallback */}
-          <div className="pt-1">
-            <label className="block text-[11px] font-semibold text-neutral-600 mb-1">
-              Or Type Serial / Tag Directly (or Scan with USB Laser Gun):
-            </label>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
-                <input
-                  type="text"
-                  value={scanInput}
-                  onChange={(e) => {
-                    setScanInput(e.target.value);
-                    setErrorMsg(null);
-                    setSuccessMsg(null);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleManualLookup(scanInput);
-                  }}
-                  placeholder="e.g. SN-EPS-2026-8812"
-                  className="w-full rounded-xl border border-neutral-200 bg-white pl-9 pr-3 py-2.5 sm:py-2 font-mono text-xs text-neutral-900 shadow-xs focus:border-neutral-400 focus:outline-none min-h-[44px] sm:min-h-0"
-                />
-              </div>
+          {cameraError && (
+            <div className="p-4 text-center space-y-2">
+              <p className="text-xs text-neutral-400">{cameraError}</p>
               <button
-                onClick={() => handleManualLookup(scanInput)}
-                className="rounded-xl bg-neutral-900 px-4 py-2.5 sm:py-2 text-xs font-semibold text-white hover:bg-neutral-800 transition active:scale-95 shadow-xs min-h-[44px] sm:min-h-0 shrink-0"
+                onClick={() => window.location.reload()}
+                className="inline-flex items-center gap-1 rounded-lg bg-white/10 px-2.5 py-1 text-xs text-white hover:bg-white/20 transition"
               >
-                Lookup
+                <RotateCcw className="h-3 w-3" />
+                <span>Retry</span>
               </button>
             </div>
+          )}
+        </div>
+
+        {/* Match Result */}
+        {foundAsset && (
+          <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2 text-xs font-semibold text-emerald-900 flex items-center justify-between animate-in fade-in">
+            <span className="truncate">{foundAsset.name}</span>
+            <span className="font-mono text-[11px] text-emerald-700 shrink-0">{foundAsset.serialNumber}</span>
           </div>
+        )}
+
+        {/* Unmatched Code Card */}
+        {notFoundCode && (
+          <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-2.5 flex items-center justify-between gap-2 text-xs">
+            <div className="min-w-0">
+              <div className="font-mono text-xs font-bold text-neutral-800 truncate">{notFoundCode}</div>
+              <div className="text-[10px] text-neutral-400">Not in inventory</div>
+            </div>
+            {onOpenAddWithSerial && (
+              <button
+                onClick={() => {
+                  onClose();
+                  onOpenAddWithSerial(notFoundCode);
+                }}
+                className="rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white px-2.5 py-1 text-xs font-bold shrink-0 transition"
+              >
+                Register
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Clean Manual Input */}
+        <div className="flex gap-1.5 pt-1">
+          <input
+            type="text"
+            value={scanInput}
+            onChange={(e) => setScanInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') lookupCode(scanInput);
+            }}
+            placeholder="Type serial or tag..."
+            className="flex-1 rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 font-mono text-xs text-neutral-900 focus:bg-white focus:outline-none focus:border-neutral-400"
+          />
+          <button
+            onClick={() => lookupCode(scanInput)}
+            className="rounded-xl bg-neutral-900 px-3.5 py-2 text-xs font-bold text-white hover:bg-neutral-800 transition shrink-0"
+          >
+            Find
+          </button>
         </div>
       </div>
     </div>
