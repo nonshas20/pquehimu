@@ -19,6 +19,7 @@ interface HeaderProps {
   onOpenChecklistModal?: () => void;
   currentUser: AppUser;
   isScrolled?: boolean;
+  syncStatus?: 'connected' | 'syncing' | 'offline';
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -30,6 +31,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenChecklistModal,
   currentUser,
   isScrolled: externalIsScrolled,
+  syncStatus = 'syncing',
 }) => {
   const [internalScrolled, setInternalScrolled] = React.useState(false);
 
@@ -96,6 +98,45 @@ export const Header: React.FC<HeaderProps> = ({
                   isScrolled ? 'text-neutral-900' : 'text-white drop-shadow-md'
                 }`}>
                   HIMU IT Tracker
+                </span>
+                <span
+                  title={
+                    syncStatus === 'connected'
+                      ? 'Live Supabase Cloud Database Connected'
+                      : syncStatus === 'syncing'
+                      ? 'Syncing with Supabase...'
+                      : 'Local Cache Mode (Run supabase/schema.sql to connect)'
+                  }
+                  className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-tight transition-all shrink-0 ${
+                    syncStatus === 'connected'
+                      ? isScrolled 
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        : 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 backdrop-blur-sm'
+                      : syncStatus === 'syncing'
+                      ? isScrolled
+                        ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                        : 'bg-amber-500/20 text-amber-300 border border-amber-400/30 backdrop-blur-sm'
+                      : isScrolled
+                        ? 'bg-neutral-100 text-neutral-600 border border-neutral-200'
+                        : 'bg-white/10 text-white/80 border border-white/20 backdrop-blur-sm'
+                  }`}
+                >
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      syncStatus === 'connected'
+                        ? 'bg-emerald-500 animate-pulse'
+                        : syncStatus === 'syncing'
+                        ? 'bg-amber-500 animate-ping'
+                        : 'bg-neutral-400'
+                    }`}
+                  />
+                  <span className="hidden xs:inline">
+                    {syncStatus === 'connected'
+                      ? 'Cloud Synced'
+                      : syncStatus === 'syncing'
+                      ? 'Syncing'
+                      : 'Local Cache'}
+                  </span>
                 </span>
               </div>
               <p className={`truncate text-[11px] sm:text-xs font-medium transition-colors duration-300 ${

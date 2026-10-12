@@ -18,6 +18,9 @@ export default defineConfig({
           if (id.includes('node_modules/@hugeicons')) {
             return 'hugeicons-vendor';
           }
+          if (id.includes('node_modules/@supabase')) {
+            return 'supabase-vendor';
+          }
           if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
             return 'react-vendor';
           }

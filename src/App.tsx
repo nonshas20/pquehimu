@@ -14,6 +14,7 @@ import { BarangaySelector } from './components/BarangaySelector';
 import { BarangayStationsMobileList } from './components/BarangayStationsMobileList';
 import { AssetList } from './components/AssetList';
 import type { BorrowChecklistItem } from './types/inventory';
+import { supabaseService } from './services/supabaseService';
 
 // Code-split heavy interactive map and modal dialogs
 const ParanaqueMap = lazy(() => import('./components/ParanaqueMap').then(m => ({ default: m.ParanaqueMap })));
@@ -54,9 +55,12 @@ export function App() {
   }, [currentUser]);
 
   // Locations: 16 Real Parañaque Barangays + HIMU Depot
-  const [locations] = useState<BarangayLocation[]>(PARANAQUE_LOCATIONS);
+  const [locations, setLocations] = useState<BarangayLocation[]>(PARANAQUE_LOCATIONS);
 
-  // Assets: Clean initial slate with localStorage persistence
+  // Cloud sync status with Supabase
+  const [syncStatus, setSyncStatus] = useState<'connected' | 'syncing' | 'offline'>('syncing');
+
+  // Assets: Clean initial slate with Supabase sync + localStorage persistence
   const [assets, setAssets] = useState<AssetItem[]>(() => {
     try {
       const savedV2 = localStorage.getItem('himu_assets_pque_v2');
@@ -74,6 +78,53 @@ export function App() {
     }
     return INITIAL_ASSETS;
   });
+
+  // Fetch live Supabase data on mount and subscribe to real-time changes
+  useEffect(() => {
+    let isMounted = true;
+
+    async function initCloudSync() {
+      try {
+        setSyncStatus('syncing');
+
+        // 1. Fetch locations
+        const cloudLocations = await supabaseService.getLocations();
+        if (isMounted && cloudLocations && cloudLocations.length > 0) {
+          setLocations(cloudLocations);
+        }
+
+        // 2. Fetch assets
+        const cloudAssets = await supabaseService.getAssets();
+        if (isMounted) {
+          if (cloudAssets !== null) {
+            setAssets(cloudAssets);
+            setSyncStatus('connected');
+          } else {
+            setSyncStatus('offline');
+          }
+        }
+      } catch (err) {
+        console.warn('[App] Supabase sync initialization warning:', err);
+        if (isMounted) setSyncStatus('offline');
+      }
+    }
+
+    initCloudSync();
+
+    // 3. Supabase Realtime multi-user subscription
+    const unsubscribe = supabaseService.subscribeToChanges(async () => {
+      const freshAssets = await supabaseService.getAssets();
+      if (isMounted && freshAssets !== null) {
+        setAssets(freshAssets);
+        setSyncStatus('connected');
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     try {
@@ -230,6 +281,13 @@ export function App() {
       })
     );
 
+    // Sync dispatch and asset updates to Supabase
+    supabaseService.recordDispatch(newTransfer, {
+      locationId: toLocationId,
+      status: 'in_transit',
+      custodianName: receivedBy ? receivedBy : `In Transit via ${dispatchedBy}`,
+    });
+
     // Auto-open official A5 checklist receipt upon borrow confirmation
     setActiveChecklistRecord(newTransfer);
     setIsReceiptOpen(true);
@@ -342,6 +400,12 @@ export function App() {
         };
       })
     );
+
+    // Sync return to Supabase
+    const targetAsset = assets.find((a) => a.history.some((h) => h.id === recordId));
+    if (targetAsset) {
+      supabaseService.markReturned(recordId, officerName, targetAsset.id, 'loc-himu-hq');
+    }
 
     if (activeChecklistRecord && activeChecklistRecord.id === recordId) {
       setActiveChecklistRecord((prev) =>
@@ -459,6 +523,15 @@ export function App() {
         return item;
       })
     );
+
+    // Sync quick relocate dispatch to Supabase
+    supabaseService.recordDispatch(newTransfer, {
+      locationId: toLocationId,
+      status: 'in_service',
+      custodianName: isReturningToHq
+        ? 'HIMU Central Depot Staging'
+        : `${toLoc?.name || 'Barangay'} Health Custodian`,
+    });
   };
 
   // 1-Click Delete / Cancel Borrow (Restores asset back to HIMU Depot staging)
@@ -608,6 +681,9 @@ export function App() {
     };
 
     setAssets((prev) => [newAsset, ...prev]);
+
+    // Sync new asset to Supabase cloud
+    supabaseService.createAsset(newAsset);
   };
 
   const handleOpenAddForLocation = (locationId?: string) => {
@@ -743,6 +819,11 @@ export function App() {
     ];
 
     setAssets((prev) => [...newKitItems, ...prev]);
+
+    // Sync deployed health kit items to Supabase cloud
+    newKitItems.forEach((item) => {
+      supabaseService.createAsset(item);
+    });
   };
 
   // 1-Click Deploy to All 16 Barangays
@@ -910,6 +991,7 @@ export function App() {
         onOpenAuthModal={() => setIsAuthOpen(true)}
         onOpenChecklistModal={handleOpenQuickChecklist}
         currentUser={currentUser}
+        syncStatus={syncStatus}
       />
 
       {/* Full-Width 21:9 HIMU Team Background Header with 3D Parallax Effect */}
@@ -941,6 +1023,29 @@ export function App() {
       {/* Main Content Container with Stat Cards Overlapping Banner */}
       <main className="no-print mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 space-y-6">
         
+        {/* Supabase Cloud Setup Banner (shown only if database tables are pending creation) */}
+        {syncStatus === 'offline' && (
+          <div className="relative z-30 -mt-6 sm:-mt-8 rounded-2xl bg-amber-500/10 border border-amber-500/30 backdrop-blur-md p-3.5 sm:p-4 text-neutral-900 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-2.5 w-2.5 rounded-full bg-amber-500 animate-ping shrink-0" />
+              <div className="text-xs">
+                <strong className="text-amber-950 font-bold block sm:inline">Supabase Cloud Ready: </strong>
+                <span className="text-amber-900">
+                  Run <code className="font-mono bg-amber-100/80 px-1 py-0.5 rounded text-[11px] font-bold">supabase/schema.sql</code> in your Supabase SQL Editor to enable live database storage and multi-device real-time sync.
+                </span>
+              </div>
+            </div>
+            <a
+              href="https://supabase.com/dashboard/project/obwygaccpfekzjmutjeo/sql"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-amber-900 hover:bg-amber-800 text-white px-3 py-1.5 text-xs font-bold transition shrink-0 shadow-xs"
+            >
+              Open SQL Editor ↗
+            </a>
+          </div>
+        )}
+
         {/* 4 Stat Cards sitting slightly on top of the banner image with no gradient */}
         <div className="relative z-20 -mt-10 sm:-mt-14 lg:-mt-18">
           <StatsOverview
