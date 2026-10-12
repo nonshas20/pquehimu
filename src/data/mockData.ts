@@ -4,12 +4,16 @@ export const DEFAULT_USERS: AppUser[] = [
   {
     id: 'user-admin',
     name: 'JOHN SHANNON O. RODRIGUEZ',
+    username: 'admin',
+    password: 'password123',
     role: 'ADMIN',
     email: 'john.rodriguez@paranaque.gov.ph',
   },
   {
     id: 'user-it-officer',
     name: 'HIMU IT OFFICER',
+    username: 'itofficer',
+    password: 'password123',
     role: 'IT_OFFICER',
     email: 'it.officer@paranaque.gov.ph',
   },

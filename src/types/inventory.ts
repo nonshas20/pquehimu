@@ -3,8 +3,10 @@ export type UserRole = 'ADMIN' | 'IT_OFFICER';
 export interface AppUser {
   id: string;
   name: string;
+  username: string;
+  password?: string;
   role: UserRole;
-  email: string;
+  email?: string;
 }
 
 export type AssetCategory =

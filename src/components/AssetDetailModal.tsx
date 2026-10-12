@@ -93,10 +93,10 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
                 </div>
                 <div>
                   <div className="font-bold text-blue-950">
-                    Hardware Currently In Transit
+                    Hardware In Transit
                   </div>
                   <div className="text-[11px] text-blue-700">
-                    Awaiting arrival verification at destination barangay.
+                    Awaiting arrival verification.
                   </div>
                 </div>
               </div>

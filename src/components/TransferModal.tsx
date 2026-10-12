@@ -210,19 +210,14 @@ export const TransferModal: React.FC<TransferModalProps> = ({
         <div className="w-12 h-1.5 bg-neutral-300 rounded-full mx-auto mb-2 shrink-0 sm:hidden" />
 
         {/* Header */}
-        <div className="flex items-center justify-between pb-3.5 border-b border-black/[0.06] shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-sm shrink-0">
-              <Printer className="h-5 w-5" />
+        <div className="flex items-center justify-between pb-2.5 border-b border-neutral-100 shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-600 text-white">
+              <Printer className="h-4 w-4" />
             </div>
-            <div>
-              <h3 className="text-sm sm:text-base font-extrabold tracking-tight text-neutral-900">
-                Event Equipment Borrowing & Dispatch
-              </h3>
-              <p className="text-[11px] sm:text-xs text-neutral-500 font-medium">
-                Generates 1:1 Official A5 Borrowing Checklist Slip
-              </p>
-            </div>
+            <h3 className="text-sm font-bold text-neutral-900">
+              Dispatch Equipment
+            </h3>
           </div>
           <button
             onClick={onClose}

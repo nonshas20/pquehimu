@@ -68,14 +68,14 @@ export const AddAssetModal: React.FC<AddAssetModalProps> = ({
         <div className="w-12 h-1.5 bg-neutral-300 rounded-full mx-auto mb-2 shrink-0 sm:hidden" />
 
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-black/[0.06] shrink-0">
-          <div>
-            <h3 className="text-sm sm:text-base font-bold tracking-tight text-neutral-900">
-              Register New Hardware Item
+        <div className="flex items-center justify-between pb-2.5 border-b border-neutral-100 shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-neutral-900 text-white">
+              <Plus className="h-4 w-4" />
+            </div>
+            <h3 className="text-sm font-bold text-neutral-900">
+              New Asset
             </h3>
-            <p className="text-[11px] sm:text-xs text-neutral-500">
-              Health Information Management Unit • Inventory Intake
-            </p>
           </div>
           <button
             onClick={onClose}

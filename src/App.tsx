@@ -40,7 +40,14 @@ export function App() {
   const [currentUser, setCurrentUser] = useState<AppUser>(() => {
     try {
       const saved = localStorage.getItem('himu_current_user');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          ...parsed,
+          username: parsed.username || (parsed.id === 'user-admin' ? 'admin' : parsed.id === 'user-it-officer' ? 'itofficer' : parsed.name.toLowerCase().replace(/[^a-z0-9]/g, '')),
+          password: parsed.password || 'password123',
+        };
+      }
     } catch (e) {
       console.error(e);
     }
@@ -61,7 +68,13 @@ export function App() {
       const saved = localStorage.getItem('himu_app_users');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((u: any) => ({
+            ...u,
+            username: u.username || (u.id === 'user-admin' ? 'admin' : u.id === 'user-it-officer' ? 'itofficer' : u.name.toLowerCase().replace(/[^a-z0-9]/g, '')),
+            password: u.password || 'password123',
+          }));
+        }
       }
     } catch (e) {
       console.error('Failed to load local users', e);

@@ -75,8 +75,10 @@ CREATE TABLE IF NOT EXISTS transfer_records (
 CREATE TABLE IF NOT EXISTS app_users (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
+  username TEXT NOT NULL UNIQUE,
+  password TEXT NOT NULL DEFAULT 'password123',
   role TEXT NOT NULL DEFAULT 'IT_OFFICER',
-  email TEXT NOT NULL UNIQUE,
+  email TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -87,6 +89,7 @@ CREATE INDEX IF NOT EXISTS idx_assets_status ON assets(status);
 CREATE INDEX IF NOT EXISTS idx_transfers_asset ON transfer_records(asset_id);
 CREATE INDEX IF NOT EXISTS idx_transfers_reference ON transfer_records(reference_no);
 CREATE INDEX IF NOT EXISTS idx_transfers_status ON transfer_records(status);
+CREATE INDEX IF NOT EXISTS idx_users_username ON app_users(username);
 
 -- 8. ROW LEVEL SECURITY (RLS) POLICIES
 ALTER TABLE locations ENABLE ROW LEVEL SECURITY;
@@ -135,6 +138,13 @@ BEGIN
   ) THEN
     ALTER PUBLICATION supabase_realtime ADD TABLE transfer_records;
   END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND tablename = 'app_users'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE app_users;
+  END IF;
 END $$;
 
 -- 10. SEED AUTHENTIC PARAÑAQUE LOCATIONS (Central HQ + 16 Barangays)
@@ -151,7 +161,7 @@ VALUES
   ('loc-tambo', 'BRGY-TMB', 'Tambo', 1, 'barangay', 'Barangay Health Center', '+63 917 001 0007', 'Quirino Ave. cor. NAIA Rd., Tambo, Parañaque City'),
   ('loc-vitalez', 'BRGY-VTZ', 'Vitalez', 1, 'barangay', 'Barangay Health Station', '+63 917 001 0008', 'Airport Village, Vitalez, Parañaque City'),
   -- District 2
-  ('loc-bf-homes', 'BRGY-BFH', 'B.F. Homes', 2, 'barangay', 'BF Health Center / Satellite Station', '+63 917 002 0001', 'President''s Ave., BF Homes, Parañaque City'),
+  ('loc-bf-homes', 'BRGY-BFH', 'BF Homes', 2, 'barangay', 'BF Health Center / Satellite Station', '+63 917 002 0001', 'President''s Ave., BF Homes, Parañaque City'),
   ('loc-don-bosco', 'BRGY-DBC', 'Don Bosco', 2, 'barangay', 'Barangay Health Center', '+63 917 002 0002', 'Don Bosco St. cor. Armstrong Ave., Parañaque City'),
   ('loc-marcelo-green', 'BRGY-MCL', 'Marcelo Green', 2, 'barangay', 'Barangay Health Center', '+63 917 002 0003', 'Severina Diamond Subd., Marcelo Green, Parañaque City'),
   ('loc-merville', 'BRGY-MRV', 'Merville', 2, 'barangay', 'Barangay Health Center', '+63 917 002 0004', 'Merville Park Subd., Parañaque City'),
@@ -167,10 +177,14 @@ ON CONFLICT (id) DO UPDATE SET
   contact_phone = EXCLUDED.contact_phone;
 
 -- 11. SEED DEFAULT AUTHORIZED SYSTEM USERS
-INSERT INTO app_users (id, name, role, email)
+INSERT INTO app_users (id, name, username, password, role, email)
 VALUES
-  ('user-admin', 'JOHN SHANNON O. RODRIGUEZ', 'ADMIN', 'john.rodriguez@paranaque.gov.ph'),
-  ('user-it-officer', 'HIMU IT OFFICER', 'IT_OFFICER', 'it.officer@paranaque.gov.ph')
-ON CONFLICT (id) DO NOTHING;
+  ('user-admin', 'JOHN SHANNON O. RODRIGUEZ', 'admin', 'password123', 'ADMIN', 'john.rodriguez@paranaque.gov.ph'),
+  ('user-it-officer', 'HIMU IT OFFICER', 'itofficer', 'password123', 'IT_OFFICER', 'it.officer@paranaque.gov.ph')
+ON CONFLICT (id) DO UPDATE SET
+  name = EXCLUDED.name,
+  username = EXCLUDED.username,
+  password = EXCLUDED.password,
+  role = EXCLUDED.role;
 
 -- Complete! Tables and official Parañaque locations are ready for real IT equipment entries.

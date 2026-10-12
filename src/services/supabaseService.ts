@@ -62,8 +62,10 @@ interface DbTransfer {
 interface DbUser {
   id: string;
   name: string;
+  username?: string;
+  password?: string;
   role: string;
-  email: string;
+  email?: string | null;
   created_at?: string;
 }
 
@@ -74,8 +76,10 @@ interface DbUser {
 export const mapDbUser = (db: DbUser): AppUser => ({
   id: db.id,
   name: db.name,
+  username: db.username || (db.id === 'user-admin' ? 'admin' : db.id === 'user-it-officer' ? 'itofficer' : db.name.toLowerCase().replace(/[^a-z0-9]/g, '')),
+  password: db.password || 'password123',
   role: db.role as AppUser['role'],
-  email: db.email,
+  email: db.email || undefined,
 });
 
 export const mapDbLocation = (db: DbLocation): BarangayLocation => ({
@@ -427,8 +431,10 @@ export const supabaseService = {
         {
           id: user.id,
           name: user.name,
+          username: user.username.trim().toLowerCase(),
+          password: user.password || 'password123',
           role: user.role,
-          email: user.email,
+          email: user.email || null,
         },
       ]);
 
