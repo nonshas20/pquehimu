@@ -82,6 +82,11 @@ CREATE TABLE IF NOT EXISTS app_users (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Ensure columns exist if table was already created in an earlier run
+ALTER TABLE app_users ADD COLUMN IF NOT EXISTS username TEXT;
+ALTER TABLE app_users ADD COLUMN IF NOT EXISTS password TEXT NOT NULL DEFAULT 'password123';
+ALTER TABLE app_users ALTER COLUMN email DROP NOT NULL;
+
 -- 7. PERFORMANCE INDEXES
 CREATE INDEX IF NOT EXISTS idx_assets_location ON assets(current_location_id);
 CREATE INDEX IF NOT EXISTS idx_assets_category ON assets(category);
