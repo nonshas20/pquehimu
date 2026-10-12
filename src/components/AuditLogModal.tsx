@@ -49,6 +49,16 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
     });
   }, [logs, selectedCategory, searchQuery]);
 
+  const escapeCsvField = (val: string | null | undefined): string => {
+    if (val === null || val === undefined) return '""';
+    let str = String(val).trim();
+    // Neutralize spreadsheet formula injection (CWE-1236) if cell starts with =, +, -, @, tab, or carriage return
+    if (/^[=\+\-@\t\r]/.test(str)) {
+      str = "'" + str;
+    }
+    return `"${str.replace(/"/g, '""')}"`;
+  };
+
   const handleExportCSV = () => {
     if (filteredLogs.length === 0) return;
 
@@ -72,24 +82,27 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
         timeStyle: 'short',
       });
       return [
-        `"${l.timestamp}"`,
-        `"${dt}"`,
-        `"${l.referenceNo || 'N/A'}"`,
-        `"${l.category}"`,
-        `"${l.action}"`,
-        `"${l.officerName}"`,
-        `"${l.officerRole}"`,
-        `"${l.assetName || 'N/A'}"`,
-        `"${l.serialNumber || 'N/A'}"`,
-        `"${l.locationName || 'N/A'}"`,
-        `"${l.details.replace(/"/g, '""')}"`,
+        escapeCsvField(l.timestamp),
+        escapeCsvField(dt),
+        escapeCsvField(l.referenceNo || 'N/A'),
+        escapeCsvField(l.category),
+        escapeCsvField(l.action),
+        escapeCsvField(l.officerName),
+        escapeCsvField(l.officerRole),
+        escapeCsvField(l.assetName || 'N/A'),
+        escapeCsvField(l.serialNumber || 'N/A'),
+        escapeCsvField(l.locationName || 'N/A'),
+        escapeCsvField(l.details),
       ].join(',');
     });
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows].join('\n');
-    const encodedUri = encodeURI(csvContent);
+    // UTF-8 BOM ensures Excel on Windows/PH locale parses special characters correctly
+    const bom = '\uFEFF';
+    const csvContent = bom + [headers.map(escapeCsvField).join(','), ...rows].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const blobUrl = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
+    link.setAttribute('href', blobUrl);
     link.setAttribute(
       'download',
       `COA_HIMU_Audit_Log_${new Date().toISOString().slice(0, 10)}.csv`
@@ -97,6 +110,7 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(blobUrl);
   };
 
   const handlePrint = () => {

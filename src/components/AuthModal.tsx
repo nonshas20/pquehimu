@@ -140,6 +140,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   const handleStartEdit = (user: AppUser) => {
+    // RBAC: Non-admin officers may only edit their own profile
+    if (currentUser.role !== 'ADMIN' && currentUser.id !== user.id) {
+      alert('Access Denied: You may only modify your own staff profile.');
+      return;
+    }
     setEditingUser(user);
     setEditName(user.name);
     setEditUsername(user.username);
@@ -182,12 +187,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setIsSubmittingEdit(true);
     setEditError(null);
 
+    // Enforce role preservation if editor is not admin
+    const finalRole: UserRole = currentUser.role === 'ADMIN' ? editRole : editingUser.role;
+
     try {
       const updatedUser: AppUser = {
         ...editingUser,
         name: cleanName,
         username: cleanUser,
-        role: editRole,
+        role: finalRole,
         ...(cleanPass ? { password: cleanPass } : {}),
       };
 
@@ -204,6 +212,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   const handleDelete = async (userId: string, userName: string) => {
+    if (currentUser.role !== 'ADMIN') {
+      alert('Access Denied: Only administrators can remove staff accounts.');
+      return;
+    }
+
     if (userId === currentUser.id) {
       alert('Cannot delete active session.');
       return;
@@ -351,30 +364,37 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <label className="block text-[10px] font-bold text-neutral-600 mb-0.5 uppercase">
                   Role
                 </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setEditRole('IT_OFFICER')}
-                    className={`rounded-lg py-1.5 px-2 text-xs font-bold border transition ${
-                      editRole === 'IT_OFFICER'
-                        ? 'border-blue-600 bg-blue-50 text-blue-900 ring-1 ring-blue-600'
-                        : 'border-neutral-200 bg-white text-neutral-600'
-                    }`}
-                  >
-                    IT OFFICER
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEditRole('ADMIN')}
-                    className={`rounded-lg py-1.5 px-2 text-xs font-bold border transition ${
-                      editRole === 'ADMIN'
-                        ? 'border-purple-600 bg-purple-50 text-purple-900 ring-1 ring-purple-600'
-                        : 'border-neutral-200 bg-white text-neutral-600'
-                    }`}
-                  >
-                    ADMIN
-                  </button>
-                </div>
+                {currentUser.role === 'ADMIN' ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditRole('IT_OFFICER')}
+                      className={`rounded-lg py-1.5 px-2 text-xs font-bold border transition ${
+                        editRole === 'IT_OFFICER'
+                          ? 'border-blue-600 bg-blue-50 text-blue-900 ring-1 ring-blue-600'
+                          : 'border-neutral-200 bg-white text-neutral-600'
+                      }`}
+                    >
+                      IT OFFICER
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditRole('ADMIN')}
+                      className={`rounded-lg py-1.5 px-2 text-xs font-bold border transition ${
+                        editRole === 'ADMIN'
+                          ? 'border-purple-600 bg-purple-50 text-purple-900 ring-1 ring-purple-600'
+                          : 'border-neutral-200 bg-white text-neutral-600'
+                      }`}
+                    >
+                      ADMIN
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between rounded-lg border border-neutral-200 bg-neutral-100/80 px-3 py-2 text-xs text-neutral-600">
+                    <span className="font-bold text-neutral-800">{editRole}</span>
+                    <span className="text-[10px] font-medium text-neutral-400">Locked (Admin Only)</span>
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-2 pt-1">
@@ -576,123 +596,132 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           ) : (
             /* TAB 2: MANAGE TEAM ROSTER */
             <div className="space-y-3">
-              {/* Register Button or Form */}
-              {!isAdding ? (
-                <button
-                  onClick={() => setIsAdding(true)}
-                  className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white py-2.5 text-xs font-bold transition shadow-xs active:scale-95"
-                >
-                  <Plus className="h-4 w-4" />
-                  <span>Register Officer</span>
-                </button>
-              ) : (
-                <form
-                  onSubmit={handleCreateUser}
-                  className="rounded-xl border border-neutral-200 bg-neutral-50 p-3 space-y-2.5 animate-in fade-in"
-                >
-                  <div className="flex items-center justify-between pb-1.5 border-b border-neutral-200">
-                    <span className="text-xs font-bold text-neutral-900">
-                      Register Officer
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsAdding(false);
-                        setFormError(null);
-                      }}
-                      className="text-neutral-400 hover:text-neutral-700 text-xs font-semibold"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-
-                  {formError && (
-                    <div className="flex items-center gap-1.5 p-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-[11px] font-medium">
-                      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                      <span>{formError}</span>
-                    </div>
-                  )}
-
-                  <div>
-                    <label className="block text-[10px] font-bold text-neutral-600 mb-0.5 uppercase">
-                      Full Name
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={newName}
-                      onChange={(e) => setNewName(e.target.value)}
-                      placeholder="e.g. CHAN PEREZ"
-                      className="w-full rounded-lg border border-neutral-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-neutral-900 uppercase focus:outline-none focus:border-neutral-900"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-bold text-neutral-600 mb-0.5 uppercase">
-                      Username
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={newUsername}
-                      onChange={(e) => setNewUsername(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ''))}
-                      placeholder="e.g. chanperez"
-                      className="w-full rounded-lg border border-neutral-300 bg-white px-2.5 py-1.5 text-xs font-mono text-neutral-900 lowercase focus:outline-none focus:border-neutral-900"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-bold text-neutral-600 mb-0.5 uppercase">
-                      Password
-                    </label>
-                    <input
-                      type="password"
-                      required
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="Min. 4 characters"
-                      className="w-full rounded-lg border border-neutral-300 bg-white px-2.5 py-1.5 text-xs font-mono text-neutral-900 focus:outline-none focus:border-neutral-900"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-bold text-neutral-600 mb-0.5 uppercase">
-                      Role
-                    </label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setNewRole('IT_OFFICER')}
-                        className={`rounded-lg py-1.5 px-2 text-xs font-bold border transition ${
-                          newRole === 'IT_OFFICER'
-                            ? 'border-blue-600 bg-blue-50 text-blue-900 ring-1 ring-blue-600'
-                            : 'border-neutral-200 bg-white text-neutral-600'
-                        }`}
-                      >
-                        IT OFFICER
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setNewRole('ADMIN')}
-                        className={`rounded-lg py-1.5 px-2 text-xs font-bold border transition ${
-                          newRole === 'ADMIN'
-                            ? 'border-purple-600 bg-purple-50 text-purple-900 ring-1 ring-purple-600'
-                            : 'border-neutral-200 bg-white text-neutral-600'
-                        }`}
-                      >
-                        ADMIN
-                      </button>
-                    </div>
-                  </div>
-
+              {/* Register Button or Form (Admin Only) */}
+              {currentUser.role === 'ADMIN' ? (
+                !isAdding ? (
                   <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="w-full rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white py-2 text-xs font-bold transition disabled:opacity-50"
+                    onClick={() => setIsAdding(true)}
+                    className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white py-2.5 text-xs font-bold transition shadow-xs active:scale-95"
                   >
-                    {isSubmitting ? 'Saving...' : 'Register Officer'}
+                    <Plus className="h-4 w-4" />
+                    <span>Register Officer</span>
                   </button>
-                </form>
+                ) : (
+                  <form
+                    onSubmit={handleCreateUser}
+                    className="rounded-xl border border-neutral-200 bg-neutral-50 p-3 space-y-2.5 animate-in fade-in"
+                  >
+                    <div className="flex items-center justify-between pb-1.5 border-b border-neutral-200">
+                      <span className="text-xs font-bold text-neutral-900">
+                        Register Officer
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsAdding(false);
+                          setFormError(null);
+                        }}
+                        className="text-neutral-400 hover:text-neutral-700 text-xs font-semibold"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+
+                    {formError && (
+                      <div className="flex items-center gap-1.5 p-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-[11px] font-medium">
+                        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                        <span>{formError}</span>
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-neutral-600 mb-0.5 uppercase">
+                        Full Name
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={newName}
+                        onChange={(e) => setNewName(e.target.value)}
+                        placeholder="e.g. CHAN PEREZ"
+                        className="w-full rounded-lg border border-neutral-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-neutral-900 uppercase focus:outline-none focus:border-neutral-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-neutral-600 mb-0.5 uppercase">
+                        Username
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={newUsername}
+                        onChange={(e) => setNewUsername(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ''))}
+                        placeholder="e.g. chanperez"
+                        className="w-full rounded-lg border border-neutral-300 bg-white px-2.5 py-1.5 text-xs font-mono text-neutral-900 lowercase focus:outline-none focus:border-neutral-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-neutral-600 mb-0.5 uppercase">
+                        Password
+                      </label>
+                      <input
+                        type="password"
+                        required
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="Min. 4 characters"
+                        className="w-full rounded-lg border border-neutral-300 bg-white px-2.5 py-1.5 text-xs font-mono text-neutral-900 focus:outline-none focus:border-neutral-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-neutral-600 mb-0.5 uppercase">
+                        Role
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setNewRole('IT_OFFICER')}
+                          className={`rounded-lg py-1.5 px-2 text-xs font-bold border transition ${
+                            newRole === 'IT_OFFICER'
+                              ? 'border-blue-600 bg-blue-50 text-blue-900 ring-1 ring-blue-600'
+                              : 'border-neutral-200 bg-white text-neutral-600'
+                          }`}
+                        >
+                          IT OFFICER
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setNewRole('ADMIN')}
+                          className={`rounded-lg py-1.5 px-2 text-xs font-bold border transition ${
+                            newRole === 'ADMIN'
+                              ? 'border-purple-600 bg-purple-50 text-purple-900 ring-1 ring-purple-600'
+                              : 'border-neutral-200 bg-white text-neutral-600'
+                          }`}
+                        >
+                          ADMIN
+                        </button>
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white py-2 text-xs font-bold transition disabled:opacity-50"
+                    >
+                      {isSubmitting ? 'Saving...' : 'Register Officer'}
+                    </button>
+                  </form>
+                )
+              ) : (
+                <div className="rounded-xl border border-neutral-200 bg-neutral-50/80 p-2.5 text-center">
+                  <div className="text-xs font-bold text-neutral-700">Staff Roster Directory</div>
+                  <div className="text-[10px] text-neutral-400 mt-0.5">
+                    Registering new officers requires Administrator privileges.
+                  </div>
+                </div>
               )}
 
               {/* Roster List */}
@@ -745,15 +774,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                             {user.role}
                           </span>
 
-                          <button
-                            onClick={() => handleStartEdit(user)}
-                            title={`Edit ${user.name}`}
-                            className="rounded p-1 text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition"
-                          >
-                            <Edit className="h-3.5 w-3.5" />
-                          </button>
+                          {(currentUser.role === 'ADMIN' || isSelf) && (
+                            <button
+                              onClick={() => handleStartEdit(user)}
+                              title={isSelf ? 'Edit my profile' : `Edit ${user.name}`}
+                              className="rounded p-1 text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition"
+                            >
+                              <Edit className="h-3.5 w-3.5" />
+                            </button>
+                          )}
 
-                          {onDeleteUser && (
+                          {currentUser.role === 'ADMIN' && onDeleteUser && (
                             <button
                               onClick={() => handleDelete(user.id, user.name)}
                               disabled={isSelf}

@@ -62,7 +62,9 @@ export function App() {
   useEffect(() => {
     try {
       if (currentUser) {
-        localStorage.setItem('himu_current_user', JSON.stringify(currentUser));
+        // Strip sensitive password before serializing active session in localStorage
+        const { password: _pw, ...safeUser } = currentUser;
+        localStorage.setItem('himu_current_user', JSON.stringify(safeUser));
       } else {
         localStorage.removeItem('himu_current_user');
       }
@@ -200,8 +202,13 @@ export function App() {
     };
   }, []);
 
-  // Staff User Management Handlers
+  // Staff User Management Handlers (Enforce Role-Based Access Control)
   const handleAddUser = async (newUserData: Omit<AppUser, 'id'>) => {
+    if (currentUser?.role !== 'ADMIN') {
+      alert('Access Denied: Only Administrator accounts can register new staff.');
+      return false;
+    }
+
     const newUser: AppUser = {
       ...newUserData,
       id: `user-${Date.now()}`,
@@ -216,6 +223,11 @@ export function App() {
   };
 
   const handleDeleteUser = async (userId: string) => {
+    if (currentUser?.role !== 'ADMIN') {
+      alert('Access Denied: Only Administrator accounts can remove staff accounts.');
+      return false;
+    }
+
     const targetUser = users.find((u) => u.id === userId);
     setUsers((prev) => prev.filter((u) => u.id !== userId));
 
@@ -226,6 +238,18 @@ export function App() {
   };
 
   const handleUpdateUser = async (updatedUser: AppUser) => {
+    // If not admin, you may only edit your own user account, and cannot escalate role to ADMIN
+    if (currentUser?.role !== 'ADMIN') {
+      if (currentUser?.id !== updatedUser.id) {
+        alert('Access Denied: You may only modify your own staff profile.');
+        return false;
+      }
+      if (updatedUser.role !== currentUser?.role) {
+        alert('Access Denied: Only administrators can modify security roles.');
+        return false;
+      }
+    }
+
     setUsers((prev) => prev.map((u) => (u.id === updatedUser.id ? updatedUser : u)));
     if (currentUser && currentUser.id === updatedUser.id) {
       setCurrentUser(updatedUser);

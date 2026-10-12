@@ -87,7 +87,26 @@ ALTER TABLE app_users ADD COLUMN IF NOT EXISTS username TEXT;
 ALTER TABLE app_users ADD COLUMN IF NOT EXISTS password TEXT NOT NULL DEFAULT 'password123';
 ALTER TABLE app_users ALTER COLUMN email DROP NOT NULL;
 
--- 7. PERFORMANCE INDEXES
+-- 7. AUDIT LOGS TABLE (Commission on Audit COA-Compliant Immutable Ledger)
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id TEXT PRIMARY KEY,
+  timestamp TIMESTAMPTZ NOT NULL DEFAULT now(),
+  action TEXT NOT NULL,
+  category TEXT NOT NULL,
+  officer_id TEXT NOT NULL,
+  officer_name TEXT NOT NULL,
+  officer_role TEXT NOT NULL,
+  details TEXT NOT NULL,
+  asset_id TEXT,
+  asset_name TEXT,
+  serial_number TEXT,
+  location_name TEXT,
+  reference_no TEXT,
+  metadata JSONB,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- 8. PERFORMANCE INDEXES
 CREATE INDEX IF NOT EXISTS idx_assets_location ON assets(current_location_id);
 CREATE INDEX IF NOT EXISTS idx_assets_category ON assets(category);
 CREATE INDEX IF NOT EXISTS idx_assets_status ON assets(status);
@@ -95,12 +114,16 @@ CREATE INDEX IF NOT EXISTS idx_transfers_asset ON transfer_records(asset_id);
 CREATE INDEX IF NOT EXISTS idx_transfers_reference ON transfer_records(reference_no);
 CREATE INDEX IF NOT EXISTS idx_transfers_status ON transfer_records(status);
 CREATE INDEX IF NOT EXISTS idx_users_username ON app_users(username);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_officer ON audit_logs(officer_id);
 
--- 8. ROW LEVEL SECURITY (RLS) POLICIES
+-- 9. ROW LEVEL SECURITY (RLS) POLICIES
 ALTER TABLE locations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE assets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transfer_records ENABLE ROW LEVEL SECURITY;
 ALTER TABLE app_users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 
 -- Allow read & write for authorized client operations
 DROP POLICY IF EXISTS "Public read locations" ON locations;
@@ -127,7 +150,14 @@ CREATE POLICY "Public read app_users" ON app_users FOR SELECT USING (true);
 DROP POLICY IF EXISTS "Public modify app_users" ON app_users;
 CREATE POLICY "Public modify app_users" ON app_users FOR ALL USING (true) WITH CHECK (true);
 
--- 9. REALTIME PUBLICATION CONFIGURATION
+-- Immutable Audit Log RLS (Append-only: SELECT and INSERT permitted; UPDATE and DELETE denied)
+DROP POLICY IF EXISTS "Public read audit_logs" ON audit_logs;
+CREATE POLICY "Public read audit_logs" ON audit_logs FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public append audit_logs" ON audit_logs;
+CREATE POLICY "Public append audit_logs" ON audit_logs FOR INSERT WITH CHECK (true);
+
+-- 10. REALTIME PUBLICATION CONFIGURATION
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -149,6 +179,13 @@ BEGIN
     WHERE pubname = 'supabase_realtime' AND tablename = 'app_users'
   ) THEN
     ALTER PUBLICATION supabase_realtime ADD TABLE app_users;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND tablename = 'audit_logs'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE audit_logs;
   END IF;
 END $$;
 
