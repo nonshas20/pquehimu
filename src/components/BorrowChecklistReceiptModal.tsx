@@ -178,15 +178,15 @@ export const BorrowChecklistReceiptModal: React.FC<BorrowChecklistReceiptModalPr
             }}
           >
             {/* 1. Header Logos (4 Logos in exact horizontal centered alignment matching physical A5 form) */}
-            <div className="flex items-center justify-center gap-3.5 sm:gap-6 pt-1 pb-2">
+            <div className="a5-header-logos-container flex items-center justify-center gap-4 sm:gap-6 pt-1.5 pb-2.5">
               {/* Logo 1: City of Parañaque Official Seal */}
               <div className="flex items-center justify-center shrink-0">
                 <img
                   src="/logo-paranaque-seal.webp"
                   alt="City of Parañaque"
-                  width={52}
-                  height={52}
-                  className="h-10 w-10 sm:h-12 sm:w-12 object-contain"
+                  width={64}
+                  height={64}
+                  className="a5-header-logo-seal h-12 w-12 sm:h-15 sm:w-15 object-contain"
                   loading="eager"
                 />
               </div>
@@ -196,21 +196,21 @@ export const BorrowChecklistReceiptModal: React.FC<BorrowChecklistReceiptModalPr
                 <img
                   src="/logo-bagong-pilipinas.webp"
                   alt="Bagong Pilipinas"
-                  width={52}
-                  height={52}
-                  className="h-10 w-10 sm:h-12 sm:w-12 object-contain"
+                  width={64}
+                  height={64}
+                  className="a5-header-logo-seal h-12 w-12 sm:h-15 sm:w-15 object-contain"
                   loading="eager"
                 />
               </div>
 
               {/* Logo 3: Parañaque A Mega City By The Bay */}
-              <div className="flex items-center justify-center shrink-0 max-w-[120px] sm:max-w-[140px]">
+              <div className="flex items-center justify-center shrink-0 max-w-[140px] sm:max-w-[175px]">
                 <img
                   src="/logo-paranaque-megacity.webp"
                   alt="Parañaque A Mega City By The Bay"
-                  width={130}
-                  height={38}
-                  className="h-7.5 sm:h-9 object-contain"
+                  width={160}
+                  height={46}
+                  className="a5-header-logo-banner h-9 sm:h-11 object-contain"
                   loading="eager"
                 />
               </div>
@@ -220,9 +220,9 @@ export const BorrowChecklistReceiptModal: React.FC<BorrowChecklistReceiptModalPr
                 <img
                   src="/logo-city-health-office.webp"
                   alt="City Health Office"
-                  width={52}
-                  height={52}
-                  className="h-10 w-10 sm:h-12 sm:w-12 object-contain"
+                  width={64}
+                  height={64}
+                  className="a5-header-logo-seal h-12 w-12 sm:h-15 sm:w-15 object-contain"
                   loading="eager"
                 />
               </div>
