@@ -231,25 +231,25 @@
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    gap: 1.25rem !important;
+    gap: 1.5rem !important;
     padding-top: 2px !important;
-    padding-bottom: 8px !important;
+    padding-bottom: 6px !important;
     margin-bottom: 2px !important;
   }
 
   .a5-printable-document .a5-header-logo-seal {
-    height: 54px !important;
-    width: 54px !important;
-    max-height: 54px !important;
-    max-width: 54px !important;
+    height: 68px !important;
+    width: 68px !important;
+    max-height: 68px !important;
+    max-width: 68px !important;
     object-fit: contain !important;
   }
 
   .a5-printable-document .a5-header-logo-banner {
-    height: 38px !important;
+    height: 48px !important;
     width: auto !important;
-    max-height: 38px !important;
-    max-width: 155px !important;
+    max-height: 48px !important;
+    max-width: 190px !important;
     object-fit: contain !important;
   }
 }
