@@ -128,18 +128,42 @@ export function App() {
   // Cloud sync status with Supabase
   const [syncStatus, setSyncStatus] = useState<'connected' | 'syncing' | 'offline'>('syncing');
 
+  // Helper to reconcile any asset where latest active transfer was to a station but currentLocationId was out of sync
+  const reconcileAssetLocations = (items: AssetItem[]): AssetItem[] => {
+    return items.map((item) => {
+      if (item.history && item.history.length > 0) {
+        const latest = item.history[0];
+        if (
+          latest.toLocationId &&
+          latest.status !== 'returned' &&
+          latest.toLocationId !== item.currentLocationId
+        ) {
+          return {
+            ...item,
+            currentLocationId: latest.toLocationId,
+          };
+        }
+      }
+      return item;
+    });
+  };
+
   // Assets: Clean initial slate with Supabase sync + localStorage persistence
   const [assets, setAssets] = useState<AssetItem[]>(() => {
     try {
       const savedV2 = localStorage.getItem('himu_assets_pque_v2');
       if (savedV2) {
         const parsed = JSON.parse(savedV2);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return reconcileAssetLocations(parsed);
+        }
       }
       const savedV1 = localStorage.getItem('himu_assets_pque_v1');
       if (savedV1) {
         const parsedV1 = JSON.parse(savedV1);
-        if (Array.isArray(parsedV1) && parsedV1.length > 0) return parsedV1;
+        if (Array.isArray(parsedV1) && parsedV1.length > 0) {
+          return reconcileAssetLocations(parsedV1);
+        }
       }
     } catch (e) {
       console.error('Failed to load localStorage', e);
@@ -165,7 +189,7 @@ export function App() {
         const cloudAssets = await supabaseService.getAssets();
         if (isMounted) {
           if (cloudAssets !== null) {
-            setAssets(cloudAssets);
+            setAssets(reconcileAssetLocations(cloudAssets));
             setSyncStatus('connected');
           } else {
             setSyncStatus('offline');
@@ -467,6 +491,7 @@ export function App() {
         if (item.id === assetId) {
           return {
             ...item,
+            currentLocationId: toLocationId,
             status: 'in_transit',
             custodianName: receivedBy ? receivedBy : `In Transit via ${dispatchedBy}`,
             history: [newTransfer, ...item.history],
@@ -475,6 +500,21 @@ export function App() {
         return item;
       })
     );
+
+    setActiveAsset((prev) =>
+      prev && prev.id === assetId
+        ? {
+            ...prev,
+            currentLocationId: toLocationId,
+            status: 'in_transit',
+            custodianName: receivedBy ? receivedBy : `In Transit via ${dispatchedBy}`,
+            history: [newTransfer, ...prev.history],
+          }
+        : prev
+    );
+
+    // Auto-focus map and station drawer on destination barangay
+    setSelectedLocationId(toLocationId);
 
     // Sync dispatch and asset updates to Supabase
     supabaseService.recordDispatch(newTransfer, {
@@ -547,13 +587,14 @@ export function App() {
       };
     });
 
-    // Bulk update assets in active state
+    // Bulk update assets in active state with new destination location
     setAssets((prev) =>
       prev.map((item) => {
         const record = transferRecords.find((r) => r.assetId === item.id);
         if (record) {
           return {
             ...item,
+            currentLocationId: toLocationId,
             status: 'in_transit',
             custodianName: receivedBy ? receivedBy : `In Transit via ${dispatchedBy}`,
             history: [record, ...item.history],
@@ -562,6 +603,9 @@ export function App() {
         return item;
       })
     );
+
+    // Auto-focus map and station drawer on destination barangay
+    setSelectedLocationId(toLocationId);
 
     // Sync all transfer records to Supabase
     transferRecords.forEach((record) => {
@@ -771,6 +815,27 @@ export function App() {
         return item;
       })
     );
+
+    setActiveAsset((prev) => {
+      if (prev && prev.id === assetId && prev.history.length > 0) {
+        const latest = prev.history[0];
+        return {
+          ...prev,
+          status: 'in_service',
+          currentLocationId: latest.toLocationId,
+          history: [
+            {
+              ...latest,
+              status: 'received',
+              receivedAt: new Date().toISOString(),
+              receivedBy: prev.custodianName || 'Barangay Health Staff',
+            },
+            ...prev.history.slice(1),
+          ],
+        };
+      }
+      return prev;
+    });
   };
 
   // Quick Drag-and-Drop Relocation Handler (every drag to a barangay is a borrow!)
