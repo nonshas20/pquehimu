@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { AssetItem, BarangayLocation, BorrowChecklistItem } from '../types/inventory';
 import { DISPATCH_OFFICERS } from '../types/inventory';
-import { X, ArrowRight, Printer, Plus } from './HugeIcons';
+import { X, ArrowRight, Printer, Plus, Trash, Check } from './HugeIcons';
 
 interface TransferModalProps {
   isOpen: boolean;
@@ -67,7 +67,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
   });
 
   const selectedDestination = locations.find((l) => l.id === toLocationId);
-  const destinationCleanName = selectedDestination?.name?.replace(/^Barangay\s+/i, '') || 'BARANGAY';
+  const destinationCleanName = selectedDestination?.name?.replace(/^Barangay\s+/i, '') || 'Barangay';
 
   // Event & Profiling Activity
   const [selectedEventPreset, setSelectedEventPreset] = useState<string>('PhilHealth YAKAP Profiling');
@@ -78,8 +78,8 @@ export const TransferModal: React.FC<TransferModalProps> = ({
   // Auto-update event title and requesting office when destination or event preset changes
   useEffect(() => {
     if (selectedDestination) {
-      setEventName(`${selectedEventPreset} ${destinationCleanName}`.toUpperCase());
-      setRequestingOffice(`${selectedDestination.name} HEALTH CENTER`.toUpperCase());
+      setEventName(`${selectedEventPreset} - ${destinationCleanName}`);
+      setRequestingOffice(`${selectedDestination.name} Health Center`);
     }
   }, [selectedDestination, selectedEventPreset, destinationCleanName]);
 
@@ -106,17 +106,17 @@ export const TransferModal: React.FC<TransferModalProps> = ({
   const createDefaultItems = (targets: AssetItem[]): BorrowChecklistItem[] => {
     if (!targets.length) return [];
     const list: BorrowChecklistItem[] = targets.map((t) => ({
-      itemEquipment: (t.name || t.brandModel || 'IT EQUIPMENT').toUpperCase(),
+      itemEquipment: (t.name || t.brandModel || 'IT Equipment').toUpperCase(),
       serialNo: t.serialNumber || 'N/A',
       quantity: 1,
       remarks: t.category === 'Printer' ? 'WITH POWER AND CABLE' : 'WITH POWER',
     }));
     if (targets.some((t) => t.category === 'Printer')) {
       list.push({
-        itemEquipment: '2 EXTENSIONS',
+        itemEquipment: '2 EXTENSION CORDS',
         serialNo: 'N/A',
         quantity: 2,
-        remarks: '',
+        remarks: 'HEAVY DUTY',
       });
     }
     return list;
@@ -141,19 +141,19 @@ export const TransferModal: React.FC<TransferModalProps> = ({
     setIncludeExtensions(checked);
     if (checked) {
       setItemsList((prev) => {
-        if (prev.some((item) => item.itemEquipment.includes('EXTENSION'))) return prev;
+        if (prev.some((item) => item.itemEquipment.toUpperCase().includes('EXTENSION'))) return prev;
         return [
           ...prev,
           {
-            itemEquipment: '2 EXTENSIONS',
+            itemEquipment: '2 EXTENSION CORDS',
             serialNo: 'N/A',
             quantity: 2,
-            remarks: '',
+            remarks: 'HEAVY DUTY',
           },
         ];
       });
     } else {
-      setItemsList((prev) => prev.filter((item) => !item.itemEquipment.includes('EXTENSION')));
+      setItemsList((prev) => prev.filter((item) => !item.itemEquipment.toUpperCase().includes('EXTENSION')));
     }
   };
 
@@ -161,19 +161,19 @@ export const TransferModal: React.FC<TransferModalProps> = ({
     setIncludeRouter(checked);
     if (checked) {
       setItemsList((prev) => {
-        if (prev.some((item) => item.itemEquipment.includes('ROUTER'))) return prev;
+        if (prev.some((item) => item.itemEquipment.toUpperCase().includes('ROUTER'))) return prev;
         return [
           ...prev,
           {
-            itemEquipment: 'D-LINK WIFI ROUTER',
-            serialNo: '',
+            itemEquipment: 'D-LINK WI-FI 6 ROUTER',
+            serialNo: 'N/A',
             quantity: 1,
-            remarks: 'WITH POWER',
+            remarks: 'WITH POWER ADAPTER',
           },
         ];
       });
     } else {
-      setItemsList((prev) => prev.filter((item) => !item.itemEquipment.includes('ROUTER')));
+      setItemsList((prev) => prev.filter((item) => !item.itemEquipment.toUpperCase().includes('ROUTER')));
     }
   };
 
@@ -201,9 +201,9 @@ export const TransferModal: React.FC<TransferModalProps> = ({
     e.preventDefault();
     if (!toLocationId || !dispatchedBy.trim()) return;
 
-    const finalEventName = eventName.trim() || `${selectedEventPreset} ${destinationCleanName}`.toUpperCase();
-    const finalOffice = requestingOffice.trim() || `${selectedDestination?.name || 'BARANGAY'} HEALTH CENTER`.toUpperCase();
-    const finalBorrower = borrowerName.trim() || `${selectedDestination?.name || 'BARANGAY'} HEALTH CENTER STAFF`.toUpperCase();
+    const finalEventName = (eventName.trim() || `${selectedEventPreset} - ${destinationCleanName}`).toUpperCase();
+    const finalOffice = (requestingOffice.trim() || `${selectedDestination?.name || 'BARANGAY'} HEALTH CENTER`).toUpperCase();
+    const finalBorrower = (borrowerName.trim() || `${selectedDestination?.name || 'BARANGAY'} HEALTH CENTER STAFF`).toUpperCase();
 
     const checklistData = {
       eventName: finalEventName,
@@ -238,325 +238,387 @@ export const TransferModal: React.FC<TransferModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200">
-      <div className="relative w-full max-w-xl rounded-t-[32px] sm:rounded-3xl bg-white border-t sm:border border-neutral-200/90 p-5 sm:p-6 shadow-2xl transition-all max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="relative w-full sm:max-w-2xl lg:max-w-3xl rounded-t-[28px] sm:rounded-2xl bg-white border-t sm:border border-neutral-200 shadow-2xl flex flex-col max-h-[92vh] sm:max-h-[88vh] overflow-hidden">
         
         {/* Mobile Native Drag Pill Handle */}
-        <div className="w-12 h-1.5 bg-neutral-300 rounded-full mx-auto mb-2 shrink-0 sm:hidden" />
+        <div className="w-10 h-1 bg-neutral-300 rounded-full mx-auto my-2.5 shrink-0 sm:hidden" />
 
-        {/* Header */}
-        <div className="flex items-center justify-between pb-2.5 border-b border-neutral-100 shrink-0">
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-600 text-white">
-              <Printer className="h-4 w-4" />
+        {/* Modal Header (Fixed at top) */}
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-neutral-100 shrink-0 bg-white">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-xs shrink-0">
+              <Printer className="h-4.5 w-4.5" />
             </div>
-            <div>
-              <h3 className="text-sm font-bold text-neutral-900">
-                {isBatch ? `Batch Dispatch (${activeAssets.length} Items)` : 'Dispatch Equipment'}
-              </h3>
-              {isBatch && (
-                <p className="text-[10px] text-emerald-700 font-medium">
-                  Continuous Mobile Scan Batch
-                </p>
-              )}
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm sm:text-base font-bold text-neutral-900 truncate">
+                  {isBatch ? `Batch Equipment Dispatch` : 'Dispatch Equipment'}
+                </h3>
+                {isBatch && (
+                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800 shrink-0">
+                    {activeAssets.length} items
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-neutral-400 font-medium truncate">
+                Property Custody Slip & A5 Borrowing Checklist
+              </p>
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="rounded-full p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 transition"
+            className="rounded-full p-2 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 transition shrink-0 cursor-pointer"
+            aria-label="Close"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        {/* Scrollable Form Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto pr-1 py-3 space-y-4 text-xs">
+        {/* Form Enclosure (Scrollable Body + Sticky Footer) */}
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
           
-          {/* Visual Route Card */}
-          <div className="rounded-2xl bg-neutral-50 p-3 border border-neutral-200/70 text-xs space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="truncate max-w-[190px]">
-                <span className="text-[10px] text-neutral-400 block font-semibold uppercase">Origin</span>
-                <span className="font-bold text-neutral-800 truncate block">
-                  {currentLocation?.name || 'HIMU IT Depot'}
-                </span>
+          {/* Scrollable Form Body */}
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-4 sm:space-y-5 text-xs">
+            
+            {/* 1. Unified Dispatch Route Card */}
+            <div className="rounded-2xl bg-neutral-50/90 border border-neutral-200/90 p-3 sm:p-4 space-y-2.5">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">
+                1. Dispatch Route
               </div>
-              <ArrowRight className="h-4 w-4 text-emerald-600 shrink-0 mx-2" />
-              <div className="truncate max-w-[190px] text-right">
-                <span className="text-[10px] text-neutral-400 block font-semibold uppercase">Destination Barangay</span>
-                <span className="font-extrabold text-emerald-700 truncate block">
-                  {selectedDestination?.name || 'Select destination'}
-                </span>
+
+              <div className="grid grid-cols-1 sm:grid-cols-[1fr,auto,1fr] items-center gap-2 sm:gap-3">
+                {/* Origin */}
+                <div className="rounded-xl bg-white border border-neutral-200/80 p-2.5 sm:p-3">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 block">
+                    Origin (Current Depot)
+                  </span>
+                  <span className="text-xs sm:text-sm font-bold text-neutral-800 block truncate mt-0.5">
+                    {currentLocation?.name || 'HIMU Central IT Depot'}
+                  </span>
+                </div>
+
+                {/* Arrow indicator */}
+                <div className="flex items-center justify-center my-0.5 sm:my-0">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 shadow-2xs rotate-90 sm:rotate-0">
+                    <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.2} />
+                  </div>
+                </div>
+
+                {/* Destination Dropdown */}
+                <div className="rounded-xl bg-white border-2 border-emerald-500/80 p-2 sm:p-2.5 shadow-2xs focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-500/15 transition">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 block">
+                    Destination Station <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={toLocationId}
+                    onChange={(e) => setToLocationId(e.target.value)}
+                    required
+                    className="w-full bg-transparent text-xs sm:text-sm font-bold text-emerald-950 outline-none cursor-pointer mt-0.5"
+                  >
+                    {eligibleDestinations.map((loc) => (
+                      <option key={loc.id} value={loc.id}>
+                        {loc.district > 0 ? `District ${loc.district} • ` : ''}{loc.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Batch Staged Assets Chips */}
+              {isBatch && (
+                <div className="pt-2 border-t border-neutral-200/70 flex flex-wrap items-center gap-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">
+                    Staged Batch ({activeAssets.length}):
+                  </span>
+                  {activeAssets.map((a) => (
+                    <span
+                      key={a.id}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-white border border-neutral-200 px-2 py-0.5 text-[10px] font-semibold text-neutral-800 shadow-2xs"
+                    >
+                      <span className="font-mono font-bold text-emerald-700">{a.assetTag}</span>
+                      <span className="text-neutral-500 truncate max-w-[110px]">{a.name}</span>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 2. Mission & Custody Information */}
+            <div className="space-y-3">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">
+                2. Mission & Custody Details
+              </div>
+
+              {/* Event Activity & Preset Pills */}
+              <div>
+                <label className="block text-[11px] font-bold text-neutral-700 mb-1">
+                  Event / Profiling Activity <span className="text-rose-500">*</span>
+                </label>
+
+                {/* Preset Chips (Scrollable on mobile, wrap on desktop) */}
+                <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none sm:flex-wrap mb-2">
+                  {[
+                    'PhilHealth YAKAP Profiling',
+                    'Health Center EMR Operations',
+                    'Community Medical Mission',
+                    'National Immunization Day',
+                    'Maternal Health Intake',
+                  ].map((preset) => (
+                    <button
+                      type="button"
+                      key={preset}
+                      onClick={() => setSelectedEventPreset(preset)}
+                      className={`shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-semibold transition active:scale-95 cursor-pointer ${
+                        selectedEventPreset === preset
+                          ? 'bg-neutral-900 text-white shadow-xs'
+                          : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                      }`}
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+
+                <input
+                  type="text"
+                  value={eventName}
+                  onChange={(e) => setEventName(e.target.value)}
+                  required
+                  placeholder="e.g. PhilHealth YAKAP Profiling Marcelo Green"
+                  className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-bold text-neutral-900 shadow-2xs focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15 focus:outline-none"
+                />
+              </div>
+
+              {/* Requesting Office & Borrower in 2 columns */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-neutral-700 mb-1">
+                    Requesting Office / Health Station
+                  </label>
+                  <input
+                    type="text"
+                    value={requestingOffice}
+                    onChange={(e) => setRequestingOffice(e.target.value)}
+                    placeholder="e.g. Marcelo Green Health Center"
+                    className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-800 shadow-2xs focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-neutral-700 mb-1">
+                    Borrower / Responsible Person
+                  </label>
+                  <input
+                    type="text"
+                    value={borrowerName}
+                    onChange={(e) => setBorrowerName(e.target.value)}
+                    placeholder="Name of health worker or nurse"
+                    className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-800 shadow-2xs focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Officer & Date Time in 2 columns */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-neutral-700 mb-1">
+                    Released by HIMU (IT Officer) <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={dispatchedBy}
+                    onChange={(e) => setDispatchedBy(e.target.value)}
+                    required
+                    className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-bold text-neutral-900 shadow-2xs focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15 focus:outline-none cursor-pointer"
+                  >
+                    {officerList.map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-neutral-700 mb-1">
+                    Date & Time Borrowed <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={borrowedAt}
+                    onChange={(e) => setBorrowedAt(e.target.value)}
+                    required
+                    className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-800 shadow-2xs focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15 focus:outline-none font-mono"
+                  />
+                </div>
               </div>
             </div>
 
-            {isBatch && (
-              <div className="border-t border-neutral-200/60 pt-2 flex flex-wrap gap-1.5 items-center">
-                <span className="text-[10px] font-bold text-neutral-400 uppercase">Batch Items:</span>
-                {activeAssets.map((a) => (
-                  <span key={a.id} className="inline-flex items-center gap-1 rounded-md bg-white border border-neutral-200 px-2 py-0.5 text-[10px] font-bold text-neutral-700 font-mono">
-                    <span className="text-emerald-700">{a.assetTag}</span>
-                    <span className="text-neutral-500 font-sans font-normal truncate max-w-[100px]">{a.name}</span>
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Destination Barangay Selection */}
-          <div>
-            <label className="block font-bold text-neutral-800 mb-1">
-              Destination Barangay / Health Station <span className="text-rose-500">*</span>
-            </label>
-            <select
-              value={toLocationId}
-              onChange={(e) => setToLocationId(e.target.value)}
-              required
-              className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-800 shadow-xs focus:border-emerald-500 focus:outline-none"
-            >
-              {eligibleDestinations.map((loc) => (
-                <option key={loc.id} value={loc.id}>
-                  {loc.district > 0 ? `District ${loc.district} • ` : ''}{loc.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Event / Profiling Activity Preset Pills */}
-          <div>
-            <label className="block font-bold text-neutral-800 mb-1">
-              Event / Profiling Activity <span className="text-rose-500">*</span>
-            </label>
-            <div className="flex flex-wrap gap-1.5 mb-2">
-              {[
-                'PhilHealth YAKAP Profiling',
-                'Health Center EMR Operations',
-                'Community Medical Mission',
-                'National Immunization Day',
-                'Maternal Health Intake',
-              ].map((preset) => (
+            {/* 3. Equipment & Checklist Table */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">
+                  3. Equipment & Accessories Checklist
+                </div>
                 <button
                   type="button"
-                  key={preset}
-                  onClick={() => setSelectedEventPreset(preset)}
-                  className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition ${
-                    selectedEventPreset === preset
-                      ? 'bg-neutral-900 text-white shadow-xs'
-                      : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-                  }`}
+                  onClick={handleAddItemRow}
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:text-emerald-800 hover:underline cursor-pointer"
                 >
-                  {preset}
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>Add Item Row</span>
                 </button>
-              ))}
-            </div>
-            <input
-              type="text"
-              value={eventName}
-              onChange={(e) => setEventName(e.target.value)}
-              required
-              placeholder="e.g. PHILHEALTH YAKAP PROFILING MARCELO GREEN"
-              className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-bold text-neutral-900 shadow-xs focus:border-emerald-500 focus:outline-none uppercase"
-            />
-          </div>
+              </div>
 
-          {/* Requesting Office & Borrower Information */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block font-bold text-neutral-800 mb-1">
-                Requesting Office / Unit
-              </label>
-              <input
-                type="text"
-                value={requestingOffice}
-                onChange={(e) => setRequestingOffice(e.target.value)}
-                placeholder="e.g. MARCELO GREEN HEALTH CENTER"
-                className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-800 shadow-xs focus:border-emerald-500 focus:outline-none uppercase"
-              />
-            </div>
+              {/* Quick Accessories Checkbox Pills */}
+              <div className="rounded-xl bg-neutral-50/90 border border-neutral-200/80 p-2.5 sm:p-3">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 block mb-2">
+                  Quick Accessories Bundles:
+                </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleToggleExtensions(!includeExtensions)}
+                    className={`inline-flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-semibold border transition active:scale-95 cursor-pointer ${
+                      includeExtensions
+                        ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-2xs ring-1 ring-emerald-400'
+                        : 'bg-white border-neutral-200 text-neutral-600 hover:border-neutral-300'
+                    }`}
+                  >
+                    <div
+                      className={`flex h-4 w-4 items-center justify-center rounded-md border ${
+                        includeExtensions ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-neutral-300 bg-white'
+                      }`}
+                    >
+                      {includeExtensions && <Check className="h-3 w-3" />}
+                    </div>
+                    <span>Include 2x Extension Cords (Heavy Duty)</span>
+                  </button>
 
-            <div>
-              <label className="block font-bold text-neutral-800 mb-1">
-                Borrower / Person Responsible
-              </label>
-              <input
-                type="text"
-                value={borrowerName}
-                onChange={(e) => setBorrowerName(e.target.value)}
-                placeholder="Name of health worker or nurse"
-                className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-800 shadow-xs focus:border-emerald-500 focus:outline-none uppercase"
-              />
-            </div>
-          </div>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleRouter(!includeRouter)}
+                    className={`inline-flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-semibold border transition active:scale-95 cursor-pointer ${
+                      includeRouter
+                        ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-2xs ring-1 ring-emerald-400'
+                        : 'bg-white border-neutral-200 text-neutral-600 hover:border-neutral-300'
+                    }`}
+                  >
+                    <div
+                      className={`flex h-4 w-4 items-center justify-center rounded-md border ${
+                        includeRouter ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-neutral-300 bg-white'
+                      }`}
+                    >
+                      {includeRouter && <Check className="h-3 w-3" />}
+                    </div>
+                    <span>Include Wi-Fi 6 Router</span>
+                  </button>
+                </div>
+              </div>
 
-          {/* Authorized Officer & Date Time */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block font-bold text-neutral-800 mb-1">
-                Released by HIMU (IT Officer) <span className="text-rose-500">*</span>
-              </label>
-              <select
-                value={dispatchedBy}
-                onChange={(e) => setDispatchedBy(e.target.value)}
-                required
-                className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-bold text-neutral-900 shadow-xs focus:border-emerald-500 focus:outline-none"
-              >
-                {officerList.map((name) => (
-                  <option key={name} value={name}>
-                    {name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block font-bold text-neutral-800 mb-1">
-                Date & Time Borrowed <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="datetime-local"
-                value={borrowedAt}
-                onChange={(e) => setBorrowedAt(e.target.value)}
-                required
-                className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-800 shadow-xs focus:border-emerald-500 focus:outline-none font-mono"
-              />
-            </div>
-          </div>
-
-          {/* Quick Accessories Bundles Checkboxes */}
-          <div className="rounded-2xl bg-emerald-50/60 border border-emerald-200/80 p-3 space-y-2">
-            <span className="text-[11px] font-extrabold uppercase text-emerald-950 block">
-              Quick Accessories Check:
-            </span>
-            <div className="flex flex-wrap items-center gap-3">
-              <label className="inline-flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-neutral-800">
-                <input
-                  type="checkbox"
-                  checked={includeExtensions}
-                  onChange={(e) => handleToggleExtensions(e.target.checked)}
-                  className="rounded text-emerald-600 focus:ring-emerald-500"
-                />
-                <span>Include 2x Extension Cords (Heavy Duty)</span>
-              </label>
-
-              <label className="inline-flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-neutral-800">
-                <input
-                  type="checkbox"
-                  checked={includeRouter}
-                  onChange={(e) => handleToggleRouter(e.target.checked)}
-                  className="rounded text-emerald-600 focus:ring-emerald-500"
-                />
-                <span>Include Wi-Fi 6 Router</span>
-              </label>
-            </div>
-          </div>
-
-          {/* Items Table Builder */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="font-extrabold text-neutral-900 uppercase tracking-wider text-[11px]">
-                Items Borrowed (A5 Checklist Table):
-              </span>
-              <button
-                type="button"
-                onClick={handleAddItemRow}
-                className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:text-emerald-800"
-              >
-                <Plus size={13} />
-                <span>Add Item Row</span>
-              </button>
-            </div>
-
-            <div className="border border-neutral-300 rounded-xl overflow-hidden shadow-xs">
-              <table className="w-full border-collapse text-[11px]">
-                <thead className="bg-neutral-100 border-b border-neutral-300 font-bold uppercase text-neutral-700">
-                  <tr>
-                    <th className="p-1.5 text-left w-[36%]">Item / Equipment</th>
-                    <th className="p-1.5 text-left w-[24%]">Serial #</th>
-                    <th className="p-1.5 text-center w-[10%]">Qty</th>
-                    <th className="p-1.5 text-left w-[24%]">Remarks</th>
-                    <th className="p-1.5 text-center w-[6%]"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-200 bg-white">
-                  {itemsList.map((row, idx) => (
-                    <tr key={idx}>
-                      <td className="p-1">
+              {/* Items Card List (Adaptive Mobile & Desktop Card Layout) */}
+              <div className="space-y-2">
+                {itemsList.map((row, idx) => (
+                  <div
+                    key={idx}
+                    className="rounded-xl border border-neutral-200/90 bg-white p-2.5 sm:p-3 shadow-2xs transition hover:border-neutral-300"
+                  >
+                    {/* Top Row: Item Title + Quantity + Remove */}
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="flex-1 min-w-0">
                         <input
                           type="text"
                           value={row.itemEquipment}
                           onChange={(e) => handleUpdateItemRow(idx, 'itemEquipment', e.target.value)}
-                          placeholder="e.g. EPSON L5190"
-                          className="w-full px-1.5 py-1 rounded border border-neutral-200 text-[11px] font-bold uppercase"
+                          placeholder="Item / Equipment Name (e.g. EPSON L5190)"
+                          className="w-full rounded-lg border border-neutral-200 bg-neutral-50/50 px-2.5 py-1.5 text-xs font-bold text-neutral-900 placeholder:text-neutral-400 focus:bg-white focus:border-emerald-500 focus:outline-none uppercase"
                         />
-                      </td>
-                      <td className="p-1">
-                        <input
-                          type="text"
-                          value={row.serialNo || ''}
-                          onChange={(e) => handleUpdateItemRow(idx, 'serialNo', e.target.value)}
-                          placeholder="SERIAL #"
-                          className="w-full px-1.5 py-1 rounded border border-neutral-200 text-[11px] font-mono uppercase"
-                        />
-                      </td>
-                      <td className="p-1 text-center">
+                      </div>
+
+                      {/* Quantity input */}
+                      <div className="flex items-center gap-1 rounded-lg border border-neutral-200 bg-neutral-50 px-1.5 py-0.5 shrink-0">
+                        <span className="text-[10px] font-bold text-neutral-400 uppercase">Qty</span>
                         <input
                           type="number"
                           min={1}
                           value={row.quantity}
                           onChange={(e) => handleUpdateItemRow(idx, 'quantity', parseInt(e.target.value) || 1)}
-                          className="w-12 mx-auto text-center px-1 py-1 rounded border border-neutral-200 text-[11px] font-bold"
+                          className="w-9 text-center rounded bg-white py-0.5 text-xs font-bold text-neutral-900 border border-neutral-200/80 outline-none"
                         />
-                      </td>
-                      <td className="p-1">
+                      </div>
+
+                      {/* Remove item button */}
+                      {itemsList.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveItemRow(idx)}
+                          className="rounded-lg p-1.5 text-neutral-400 hover:text-rose-600 hover:bg-rose-50 transition shrink-0 cursor-pointer"
+                          title="Remove item"
+                        >
+                          <Trash className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Bottom Row: Serial Number & Remarks in 2 Columns */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div className="flex items-center rounded-lg border border-neutral-200/80 bg-neutral-50/50 px-2.5 py-1 focus-within:bg-white focus-within:border-emerald-500">
+                        <span className="text-[10px] font-mono font-bold text-neutral-400 shrink-0 mr-1.5 uppercase">
+                          S/N:
+                        </span>
+                        <input
+                          type="text"
+                          value={row.serialNo || ''}
+                          onChange={(e) => handleUpdateItemRow(idx, 'serialNo', e.target.value)}
+                          placeholder="Serial Number or N/A"
+                          className="w-full bg-transparent text-xs font-mono font-medium text-neutral-800 placeholder:text-neutral-400 outline-none uppercase"
+                        />
+                      </div>
+
+                      <div className="flex items-center rounded-lg border border-neutral-200/80 bg-neutral-50/50 px-2.5 py-1 focus-within:bg-white focus-within:border-emerald-500">
+                        <span className="text-[10px] font-bold text-neutral-400 shrink-0 mr-1.5 uppercase">
+                          Remarks:
+                        </span>
                         <input
                           type="text"
                           value={row.remarks || ''}
                           onChange={(e) => handleUpdateItemRow(idx, 'remarks', e.target.value)}
-                          placeholder="WITH POWER..."
-                          className="w-full px-1.5 py-1 rounded border border-neutral-200 text-[11px] uppercase font-medium"
+                          placeholder="e.g. Complete with power cable"
+                          className="w-full bg-transparent text-xs font-medium text-neutral-700 placeholder:text-neutral-400 outline-none"
                         />
-                      </td>
-                      <td className="p-1 text-center">
-                        {itemsList.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveItemRow(idx)}
-                            className="text-neutral-400 hover:text-rose-600 font-bold px-1 transition"
-                            title="Remove item"
-                          >
-                            ×
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
+
           </div>
 
-          {/* Bottom Form Actions */}
-          <div className="pt-3 border-t border-black/[0.06] flex items-center justify-between gap-2.5 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+          {/* Fixed Sticky Footer (Always Visible!) */}
+          <div className="shrink-0 border-t border-neutral-200/90 bg-white px-4 sm:px-6 py-3 sm:py-3.5 flex items-center justify-between gap-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-4px_16px_rgba(0,0,0,0.03)]">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-neutral-200 bg-white px-4 py-2.5 sm:py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 transition active:scale-95"
+              className="rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-xs font-semibold text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition active:scale-95 cursor-pointer"
             >
               Cancel
             </button>
 
             <button
               type="submit"
-              className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 sm:py-2 text-xs font-bold shadow-md transition active:scale-95 flex-1 sm:flex-initial"
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-5 sm:px-6 py-2.5 text-xs font-bold shadow-md shadow-emerald-600/20 hover:shadow-emerald-600/30 transition active:scale-95 cursor-pointer"
             >
               <Printer className="h-4 w-4" />
               <span>
                 {isBatch
-                  ? `Confirm Batch Dispatch (${activeAssets.length} Items) & Generate A5`
-                  : 'Confirm & Generate A5'}
+                  ? `Confirm Batch (${activeAssets.length}) & Print A5`
+                  : 'Confirm Dispatch & Print A5'}
               </span>
             </button>
           </div>
+
         </form>
 
       </div>
