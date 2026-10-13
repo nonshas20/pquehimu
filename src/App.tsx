@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
+import { useState, useEffect, useMemo, useRef, Suspense } from 'react';
 import type { 
   AssetItem, 
   BarangayLocation, 
@@ -19,16 +19,18 @@ import { AssetList } from './components/AssetList';
 import type { BorrowChecklistItem } from './types/inventory';
 import { supabaseService } from './services/supabaseService';
 import { LoginScreen } from './components/LoginScreen';
+import { lazyWithRetry } from './utils/lazyWithRetry';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
-// Code-split heavy interactive map and modal dialogs
-const ParanaqueMap = lazy(() => import('./components/ParanaqueMap').then(m => ({ default: m.ParanaqueMap })));
-const TransferModal = lazy(() => import('./components/TransferModal').then(m => ({ default: m.TransferModal })));
-const AssetDetailModal = lazy(() => import('./components/AssetDetailModal').then(m => ({ default: m.AssetDetailModal })));
-const AddAssetModal = lazy(() => import('./components/AddAssetModal').then(m => ({ default: m.AddAssetModal })));
-const QuickScanModal = lazy(() => import('./components/QuickScanModal').then(m => ({ default: m.QuickScanModal })));
-const AuthModal = lazy(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
-const BorrowChecklistReceiptModal = lazy(() => import('./components/BorrowChecklistReceiptModal').then(m => ({ default: m.BorrowChecklistReceiptModal })));
-const AuditLogModal = lazy(() => import('./components/AuditLogModal').then(m => ({ default: m.AuditLogModal })));
+// Code-split heavy interactive map and modal dialogs with automatic stale-chunk retry
+const ParanaqueMap = lazyWithRetry(() => import('./components/ParanaqueMap').then(m => ({ default: m.ParanaqueMap })));
+const TransferModal = lazyWithRetry(() => import('./components/TransferModal').then(m => ({ default: m.TransferModal })));
+const AssetDetailModal = lazyWithRetry(() => import('./components/AssetDetailModal').then(m => ({ default: m.AssetDetailModal })));
+const AddAssetModal = lazyWithRetry(() => import('./components/AddAssetModal').then(m => ({ default: m.AddAssetModal })));
+const QuickScanModal = lazyWithRetry(() => import('./components/QuickScanModal').then(m => ({ default: m.QuickScanModal })));
+const AuthModal = lazyWithRetry(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
+const BorrowChecklistReceiptModal = lazyWithRetry(() => import('./components/BorrowChecklistReceiptModal').then(m => ({ default: m.BorrowChecklistReceiptModal })));
+const AuditLogModal = lazyWithRetry(() => import('./components/AuditLogModal').then(m => ({ default: m.AuditLogModal })));
 import { 
   Layers, 
   QrCode, 
@@ -1373,29 +1375,31 @@ export function App() {
         {/* Interactive Parañaque Leaflet Map - Desktop, Tablet & Mobile */}
         {showMap && (isDesktop || mobileTab === 'map') && (
           <div id="paranaque-map-section" className="scroll-mt-24">
-            <Suspense
-              fallback={
-                <div className="h-[460px] w-full rounded-3xl bg-white border border-neutral-200/90 flex flex-col items-center justify-center gap-2 text-xs font-semibold text-neutral-400 shadow-xs">
-                  <div className="h-6 w-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-                  <span>Loading Parañaque GeoMap...</span>
-                </div>
-              }
-            >
-              <ParanaqueMap
-                locations={locations}
-                assets={assets}
-                selectedLocationId={selectedLocationId}
-                onSelectLocation={setSelectedLocationId}
-                onOpenTransfer={handleOpenTransfer}
-                onOpenAddModal={handleOpenAddForLocation}
-                onDeployKit={handleDeployHealthKit}
-                onDeployAllKits={handleDeployAllBarangaysKit}
-                onQuickRelocate={handleQuickRelocateAsset}
-                onPrintA5ForAsset={handlePrintA5ForAsset}
-                onPrintA5ForBarangay={handlePrintA5ForBarangay}
-                onDeleteBorrow={handleDeleteOrUndoBorrow}
-              />
-            </Suspense>
+            <ErrorBoundary>
+              <Suspense
+                fallback={
+                  <div className="h-[460px] w-full rounded-3xl bg-white border border-neutral-200/90 flex flex-col items-center justify-center gap-2 text-xs font-semibold text-neutral-400 shadow-xs">
+                    <div className="h-6 w-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                    <span>Loading Parañaque GeoMap...</span>
+                  </div>
+                }
+              >
+                <ParanaqueMap
+                  locations={locations}
+                  assets={assets}
+                  selectedLocationId={selectedLocationId}
+                  onSelectLocation={setSelectedLocationId}
+                  onOpenTransfer={handleOpenTransfer}
+                  onOpenAddModal={handleOpenAddForLocation}
+                  onDeployKit={handleDeployHealthKit}
+                  onDeployAllKits={handleDeployAllBarangaysKit}
+                  onQuickRelocate={handleQuickRelocateAsset}
+                  onPrintA5ForAsset={handlePrintA5ForAsset}
+                  onPrintA5ForBarangay={handlePrintA5ForBarangay}
+                  onDeleteBorrow={handleDeleteOrUndoBorrow}
+                />
+              </Suspense>
+            </ErrorBoundary>
           </div>
         )}
 
@@ -1545,96 +1549,98 @@ export function App() {
         </div>
       </nav>
 
-      {/* Lazy-loaded Modals wrapped in Suspense */}
-      <Suspense fallback={null}>
-        {isTransferOpen && (
-          <TransferModal
-            isOpen={isTransferOpen}
-            onClose={() => setIsTransferOpen(false)}
-            asset={activeAsset}
-            locations={locations}
-            defaultDispatcherName={currentUser.name}
-            officers={officerNames}
-            onConfirmTransfer={handleConfirmTransfer}
-          />
-        )}
+      {/* Lazy-loaded Modals wrapped in ErrorBoundary and Suspense */}
+      <ErrorBoundary>
+        <Suspense fallback={null}>
+          {isTransferOpen && (
+            <TransferModal
+              isOpen={isTransferOpen}
+              onClose={() => setIsTransferOpen(false)}
+              asset={activeAsset}
+              locations={locations}
+              defaultDispatcherName={currentUser.name}
+              officers={officerNames}
+              onConfirmTransfer={handleConfirmTransfer}
+            />
+          )}
 
-        {isDetailOpen && (
-          <AssetDetailModal
-            isOpen={isDetailOpen}
-            onClose={() => setIsDetailOpen(false)}
-            asset={activeAsset}
-            locations={locations}
-            onOpenTransfer={handleOpenTransfer}
-            onAcknowledgeReceipt={handleAcknowledgeReceipt}
-            onViewChecklist={handleOpenReceiptForRecord}
-          />
-        )}
+          {isDetailOpen && (
+            <AssetDetailModal
+              isOpen={isDetailOpen}
+              onClose={() => setIsDetailOpen(false)}
+              asset={activeAsset}
+              locations={locations}
+              onOpenTransfer={handleOpenTransfer}
+              onAcknowledgeReceipt={handleAcknowledgeReceipt}
+              onViewChecklist={handleOpenReceiptForRecord}
+            />
+          )}
 
-        {isAddOpen && (
-          <AddAssetModal
-            isOpen={isAddOpen}
-            onClose={() => {
-              setIsAddOpen(false);
-              setAddPresetLocationId(undefined);
-            }}
-            locations={locations}
-            onAddAsset={handleAddAsset}
-            initialLocationId={addPresetLocationId}
-          />
-        )}
+          {isAddOpen && (
+            <AddAssetModal
+              isOpen={isAddOpen}
+              onClose={() => {
+                setIsAddOpen(false);
+                setAddPresetLocationId(undefined);
+              }}
+              locations={locations}
+              onAddAsset={handleAddAsset}
+              initialLocationId={addPresetLocationId}
+            />
+          )}
 
-        {isScanOpen && (
-          <QuickScanModal
-            isOpen={isScanOpen}
-            onClose={() => setIsScanOpen(false)}
-            assets={assets}
-            onFoundAsset={(found) => {
-              setActiveAsset(found);
-              setIsDetailOpen(true);
-            }}
-            onOpenAddWithSerial={(_serial) => {
-              setAddPresetLocationId(undefined);
-              setIsAddOpen(true);
-            }}
-          />
-        )}
+          {isScanOpen && (
+            <QuickScanModal
+              isOpen={isScanOpen}
+              onClose={() => setIsScanOpen(false)}
+              assets={assets}
+              onFoundAsset={(found: AssetItem) => {
+                setActiveAsset(found);
+                setIsDetailOpen(true);
+              }}
+              onOpenAddWithSerial={(_serial: string) => {
+                setAddPresetLocationId(undefined);
+                setIsAddOpen(true);
+              }}
+            />
+          )}
 
-        {isAuthOpen && (
-          <AuthModal
-            isOpen={isAuthOpen}
-            onClose={() => setIsAuthOpen(false)}
-            currentUser={currentUser}
-            onSwitchUser={setCurrentUser}
-            users={users}
-            onAddUser={handleAddUser}
-            onUpdateUser={handleUpdateUser}
-            onDeleteUser={handleDeleteUser}
-            onLogout={handleLogout}
-          />
-        )}
+          {isAuthOpen && (
+            <AuthModal
+              isOpen={isAuthOpen}
+              onClose={() => setIsAuthOpen(false)}
+              currentUser={currentUser}
+              onSwitchUser={setCurrentUser}
+              users={users}
+              onAddUser={handleAddUser}
+              onUpdateUser={handleUpdateUser}
+              onDeleteUser={handleDeleteUser}
+              onLogout={handleLogout}
+            />
+          )}
 
-        {/* 1:1 Physical A5 Borrow Checklist Receipt Modal */}
-        {isReceiptOpen && (
-          <BorrowChecklistReceiptModal
-            isOpen={isReceiptOpen}
-            onClose={() => setIsReceiptOpen(false)}
-            record={activeChecklistRecord}
-            asset={activeChecklistAsset}
-            location={activeChecklistLocation}
-            onMarkReturned={handleMarkChecklistReturned}
-          />
-        )}
+          {/* 1:1 Physical A5 Borrow Checklist Receipt Modal */}
+          {isReceiptOpen && (
+            <BorrowChecklistReceiptModal
+              isOpen={isReceiptOpen}
+              onClose={() => setIsReceiptOpen(false)}
+              record={activeChecklistRecord}
+              asset={activeChecklistAsset}
+              location={activeChecklistLocation}
+              onMarkReturned={handleMarkChecklistReturned}
+            />
+          )}
 
-        {/* System Audit Trail & Custody Log (COA Compliant) */}
-        {isAuditOpen && (
-          <AuditLogModal
-            isOpen={isAuditOpen}
-            onClose={() => setIsAuditOpen(false)}
-            logs={auditLogs}
-          />
-        )}
-      </Suspense>
+          {/* System Audit Trail & Custody Log (COA Compliant) */}
+          {isAuditOpen && (
+            <AuditLogModal
+              isOpen={isAuditOpen}
+              onClose={() => setIsAuditOpen(false)}
+              logs={auditLogs}
+            />
+          )}
+        </Suspense>
+      </ErrorBoundary>
     </div>
   );
 }
