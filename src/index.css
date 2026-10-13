@@ -2,14 +2,14 @@
 @import "leaflet/dist/leaflet.css";
 
 @theme {
-  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-mono: "Space Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-sans: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 @layer base {
   :root {
-    --font-primary: "Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    --font-code: "Space Mono", ui-monospace, SFMono-Regular, monospace;
+    --font-primary: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-code: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   }
 
   html {
@@ -23,7 +23,7 @@
     color: #1D1D1F;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    letter-spacing: -0.015em;
+    letter-spacing: -0.011em;
     overscroll-behavior-y: none;
   }
 
