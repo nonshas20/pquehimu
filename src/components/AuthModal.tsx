@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import type { AppUser, UserRole } from '../types/inventory';
 import { X, ShieldCheck, UserCheck, Check, Plus, Trash, AlertCircle, Edit, LogOut } from './HugeIcons';
+import { verifyPassword, hashPassword, isPasswordHashed } from '../utils/security';
+import { supabase } from '../lib/supabase';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -58,7 +60,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setLoginError(null);
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanUser = loginUsername.trim().toLowerCase();
     const cleanPass = loginPassword.trim();
@@ -77,14 +79,57 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
-    // Verify password (default 'password123' if not yet defined)
-    const expectedPassword = matched.password || 'password123';
-    if (cleanPass !== expectedPassword) {
+    // Enterprise PBKDF2 constant-time verification
+    const isPasswordValid = await verifyPassword(cleanPass, matched.password || 'password123');
+    if (!isPasswordValid) {
       setLoginError('Incorrect password');
       return;
     }
 
-    onSwitchUser(matched);
+    // Auto-upgrade legacy plaintext password if needed
+    let activeUser = matched;
+    if (!isPasswordHashed(matched.password)) {
+      try {
+        const secureHash = await hashPassword(cleanPass);
+        activeUser = { ...matched, password: secureHash };
+        if (onUpdateUser) {
+          await onUpdateUser(activeUser);
+        }
+      } catch (err) {
+        console.warn('[Security] Failed to auto-upgrade password hash:', err);
+      }
+    }
+
+    // Synchronize Supabase Auth session
+    try {
+      const userEmail = activeUser.email || `${cleanUser}@himu.paranaque.gov.ph`;
+      const { error: sbAuthError } = await supabase.auth.signInWithPassword({
+        email: userEmail,
+        password: cleanPass,
+      });
+
+      if (
+        sbAuthError &&
+        (sbAuthError.message?.toLowerCase().includes('invalid login credentials') ||
+          sbAuthError.message?.toLowerCase().includes('user not found'))
+      ) {
+        await supabase.auth.signUp({
+          email: userEmail,
+          password: cleanPass,
+          options: {
+            data: {
+              role: activeUser.role,
+              name: activeUser.name,
+              username: cleanUser,
+            },
+          },
+        });
+      }
+    } catch (authErr) {
+      console.warn('[Supabase Auth] Session notice:', authErr);
+    }
+
+    onSwitchUser(activeUser);
     onClose();
   };
 
@@ -118,12 +163,33 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setFormError(null);
 
     try {
+      const hashedPassword = await hashPassword(cleanPass);
+      const userEmail = `${cleanUser}@himu.paranaque.gov.ph`;
+
+      // Enroll in Supabase Auth if online
+      try {
+        await supabase.auth.signUp({
+          email: userEmail,
+          password: cleanPass,
+          options: {
+            data: {
+              role: newRole,
+              name: cleanName,
+              username: cleanUser,
+            },
+          },
+        });
+      } catch (sbErr) {
+        console.warn('[Supabase Auth] Registration sync notice:', sbErr);
+      }
+
       if (onAddUser) {
         await onAddUser({
           name: cleanName,
           username: cleanUser,
-          password: cleanPass,
+          password: hashedPassword,
           role: newRole,
+          email: userEmail,
         });
       }
 
@@ -191,12 +257,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     const finalRole: UserRole = currentUser.role === 'ADMIN' ? editRole : editingUser.role;
 
     try {
+      let hashedPassword: string | undefined = undefined;
+      if (cleanPass) {
+        hashedPassword = await hashPassword(cleanPass);
+
+        // If user is editing their own active session, sync password to Supabase Auth
+        if (currentUser.id === editingUser.id) {
+          try {
+            await supabase.auth.updateUser({ password: cleanPass });
+          } catch (sbErr) {
+            console.warn('[Supabase Auth] Password change sync notice:', sbErr);
+          }
+        }
+      }
+
       const updatedUser: AppUser = {
         ...editingUser,
         name: cleanName,
         username: cleanUser,
         role: finalRole,
-        ...(cleanPass ? { password: cleanPass } : {}),
+        ...(hashedPassword ? { password: hashedPassword } : {}),
       };
 
       if (onUpdateUser) {

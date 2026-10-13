@@ -18,6 +18,8 @@ import { BarangayStationsMobileList } from './components/BarangayStationsMobileL
 import { AssetList } from './components/AssetList';
 import type { BorrowChecklistItem } from './types/inventory';
 import { supabaseService } from './services/supabaseService';
+import { supabase } from './lib/supabase';
+import { hashPassword, isPasswordHashed, sanitizeUser } from './utils/security';
 import { LoginScreen } from './components/LoginScreen';
 import { lazyWithRetry } from './utils/lazyWithRetry';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -49,10 +51,10 @@ export function App() {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed && parsed.id) {
+          const safe = sanitizeUser(parsed) as AppUser;
           return {
-            ...parsed,
-            username: parsed.username || (parsed.id === 'user-admin' ? 'admin' : parsed.id === 'user-it-officer' ? 'itofficer' : parsed.name.toLowerCase().replace(/[^a-z0-9]/g, '')),
-            password: parsed.password || 'password123',
+            ...safe,
+            username: safe.username || (safe.id === 'user-admin' ? 'admin' : safe.id === 'user-it-officer' ? 'itofficer' : safe.name.toLowerCase().replace(/[^a-z0-9]/g, '')),
           };
         }
       }
@@ -66,7 +68,7 @@ export function App() {
     try {
       if (currentUser) {
         // Strip sensitive password before serializing active session in localStorage
-        const { password: _pw, ...safeUser } = currentUser;
+        const safeUser = sanitizeUser(currentUser);
         localStorage.setItem('himu_current_user', JSON.stringify(safeUser));
       } else {
         localStorage.removeItem('himu_current_user');
@@ -88,6 +90,8 @@ export function App() {
         details: `${currentUser.name} signed out of the system`,
       }).catch(() => {});
     }
+    // Revoke Supabase Auth session token
+    supabase.auth.signOut().catch(() => {});
     localStorage.removeItem('himu_current_user');
     setCurrentUser(null);
   };
@@ -236,8 +240,16 @@ export function App() {
       return false;
     }
 
+    let securePassword = newUserData.password;
+    if (securePassword && !isPasswordHashed(securePassword)) {
+      securePassword = await hashPassword(securePassword);
+    } else if (!securePassword) {
+      securePassword = await hashPassword('password123');
+    }
+
     const newUser: AppUser = {
       ...newUserData,
+      password: securePassword,
       id: `user-${Date.now()}`,
     };
 
@@ -277,14 +289,20 @@ export function App() {
       }
     }
 
-    setUsers((prev) => prev.map((u) => (u.id === updatedUser.id ? updatedUser : u)));
-    if (currentUser && currentUser.id === updatedUser.id) {
-      setCurrentUser(updatedUser);
+    let userToSave = updatedUser;
+    if (updatedUser.password && !isPasswordHashed(updatedUser.password)) {
+      const securePassword = await hashPassword(updatedUser.password);
+      userToSave = { ...updatedUser, password: securePassword };
+    }
+
+    setUsers((prev) => prev.map((u) => (u.id === userToSave.id ? userToSave : u)));
+    if (currentUser && currentUser.id === userToSave.id) {
+      setCurrentUser(userToSave);
     }
 
     // Sync to Supabase cloud
-    await supabaseService.updateAppUser(updatedUser);
-    logAudit('AUTH_PROFILE_UPDATE', 'SECURITY', `Updated credentials / profile for ${updatedUser.name} (@${updatedUser.username})`);
+    await supabaseService.updateAppUser(userToSave);
+    logAudit('AUTH_PROFILE_UPDATE', 'SECURITY', `Updated credentials / profile for ${userToSave.name} (@${userToSave.username})`);
     return true;
   };
 

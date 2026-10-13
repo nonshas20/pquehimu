@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import type { AppUser } from '../types/inventory';
 import { User, Lock, Eye, EyeOff, ArrowRight, AlertCircle } from './HugeIcons';
+import { verifyPassword, hashPassword, isPasswordHashed } from '../utils/security';
+import { supabase } from '../lib/supabase';
+import { supabaseService } from '../services/supabaseService';
 
 interface LoginScreenProps {
   users: AppUser[];
@@ -14,7 +17,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ users, onLogin }) => {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanUser = username.trim().toLowerCase();
     const cleanPass = password.trim();
@@ -27,28 +30,79 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ users, onLogin }) => {
     setIsSubmitting(true);
     setError(null);
 
-    // Look up user (case-insensitive)
-    const matched = users.find(
-      (u) => u.username.toLowerCase() === cleanUser
-    );
+    try {
+      // Look up user (case-insensitive)
+      const matched = users.find(
+        (u) => u.username.toLowerCase() === cleanUser
+      );
 
-    if (!matched) {
+      if (!matched) {
+        setIsSubmitting(false);
+        setError('User not found. Check username or contact administrator.');
+        return;
+      }
+
+      // Enterprise PBKDF2 constant-time verification (with legacy fallback)
+      const isPasswordValid = await verifyPassword(cleanPass, matched.password || 'password123');
+      if (!isPasswordValid) {
+        setIsSubmitting(false);
+        setError('Incorrect password.');
+        return;
+      }
+
+      // Auto-upgrade legacy plaintext password to PBKDF2 hash
+      let activeUser = matched;
+      if (!isPasswordHashed(matched.password)) {
+        try {
+          const secureHash = await hashPassword(cleanPass);
+          activeUser = { ...matched, password: secureHash };
+          // Persist upgraded PBKDF2 hash to database asynchronously
+          supabaseService.updateAppUser(activeUser).catch((err) => {
+            console.warn('[Security] Background hash upgrade sync notice:', err);
+          });
+        } catch (hashErr) {
+          console.warn('[Security] Failed to hash legacy password:', hashErr);
+        }
+      }
+
+      // Synchronize with Supabase Auth session for authenticated RLS
+      try {
+        const userEmail = activeUser.email || `${cleanUser}@himu.paranaque.gov.ph`;
+        const { error: sbAuthError } = await supabase.auth.signInWithPassword({
+          email: userEmail,
+          password: cleanPass,
+        });
+
+        // If user account is not yet enrolled in Supabase Auth, enroll them automatically
+        if (
+          sbAuthError &&
+          (sbAuthError.message?.toLowerCase().includes('invalid login credentials') ||
+            sbAuthError.message?.toLowerCase().includes('user not found'))
+        ) {
+          await supabase.auth.signUp({
+            email: userEmail,
+            password: cleanPass,
+            options: {
+              data: {
+                role: activeUser.role,
+                name: activeUser.name,
+                username: cleanUser,
+              },
+            },
+          });
+        }
+      } catch (authErr) {
+        console.warn('[Supabase Auth] Session synchronization note:', authErr);
+      }
+
+      // Success!
+      setTimeout(() => {
+        onLogin(activeUser);
+      }, 150);
+    } catch (err: any) {
       setIsSubmitting(false);
-      setError('User not found. Check username or contact administrator.');
-      return;
+      setError(err?.message || 'Authentication failed. Please try again.');
     }
-
-    const expectedPassword = matched.password || 'password123';
-    if (cleanPass !== expectedPassword) {
-      setIsSubmitting(false);
-      setError('Incorrect password.');
-      return;
-    }
-
-    // Success!
-    setTimeout(() => {
-      onLogin(matched);
-    }, 150);
   };
 
   return (

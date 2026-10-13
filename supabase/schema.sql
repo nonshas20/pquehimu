@@ -6,6 +6,7 @@
 
 -- 1. EXTENSIONS
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- 2. DROP TABLES IF NEEDED (Clean slate setup)
 -- DROP TABLE IF EXISTS transfer_records CASCADE;
@@ -118,44 +119,146 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(timestamp DESC
 CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_officer ON audit_logs(officer_id);
 
--- 9. ROW LEVEL SECURITY (RLS) POLICIES
+-- 9. ROW LEVEL SECURITY (RLS) POLICIES & SERVER-SIDE AUTHORIZATION
 ALTER TABLE locations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE assets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transfer_records ENABLE ROW LEVEL SECURITY;
 ALTER TABLE app_users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 
--- Allow read & write for authorized client operations
+-- Server-side Helper Function: Verify Admin Role in PostgreSQL
+CREATE OR REPLACE FUNCTION is_admin() 
+RETURNS boolean 
+LANGUAGE plpgsql 
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN (
+    auth.role() = 'authenticated' AND (
+      COALESCE((auth.jwt() ->> 'role'), '') = 'ADMIN' OR
+      COALESCE((auth.jwt() -> 'user_metadata' ->> 'role'), '') = 'ADMIN' OR
+      COALESCE((auth.jwt() -> 'app_metadata' ->> 'role'), '') = 'ADMIN' OR
+      EXISTS (
+        SELECT 1 FROM app_users 
+        WHERE app_users.id = (auth.uid())::text 
+          AND app_users.role = 'ADMIN'
+      )
+    )
+  );
+END;
+$$;
+
+-- Server-side COA-Compliance Trigger: Prevent Tampering with Audit Logs
+CREATE OR REPLACE FUNCTION prevent_audit_log_modification()
+RETURNS TRIGGER 
+LANGUAGE plpgsql 
+AS $$
+BEGIN
+  RAISE EXCEPTION 'COA Compliance Security Violation: Audit logs are immutable append-only ledgers. UPDATE and DELETE operations are prohibited.';
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_audit_logs_immutable ON audit_logs;
+CREATE TRIGGER trg_audit_logs_immutable
+BEFORE UPDATE OR DELETE ON audit_logs
+FOR EACH ROW EXECUTE FUNCTION prevent_audit_log_modification();
+
+-- ---------------------------------------------------------------------------
+-- Locations RLS (Public read, admin-only modify)
+-- ---------------------------------------------------------------------------
 DROP POLICY IF EXISTS "Public read locations" ON locations;
-CREATE POLICY "Public read locations" ON locations FOR SELECT USING (true);
+CREATE POLICY "Public read locations" ON locations 
+  FOR SELECT USING (true);
 
 DROP POLICY IF EXISTS "Public modify locations" ON locations;
-CREATE POLICY "Public modify locations" ON locations FOR ALL USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Authenticated admin modify locations" ON locations;
+CREATE POLICY "Authenticated admin modify locations" ON locations 
+  FOR ALL TO authenticated 
+  USING (is_admin()) 
+  WITH CHECK (is_admin());
 
+-- ---------------------------------------------------------------------------
+-- Assets RLS (Public read, authenticated write, admin-only delete)
+-- ---------------------------------------------------------------------------
 DROP POLICY IF EXISTS "Public read assets" ON assets;
-CREATE POLICY "Public read assets" ON assets FOR SELECT USING (true);
+CREATE POLICY "Public read assets" ON assets 
+  FOR SELECT USING (true);
 
 DROP POLICY IF EXISTS "Public modify assets" ON assets;
-CREATE POLICY "Public modify assets" ON assets FOR ALL USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Authenticated insert assets" ON assets;
+CREATE POLICY "Authenticated insert assets" ON assets 
+  FOR INSERT TO authenticated 
+  WITH CHECK (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Authenticated update assets" ON assets;
+CREATE POLICY "Authenticated update assets" ON assets 
+  FOR UPDATE TO authenticated 
+  USING (auth.role() = 'authenticated') 
+  WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Authenticated delete assets" ON assets;
+CREATE POLICY "Authenticated delete assets" ON assets 
+  FOR DELETE TO authenticated 
+  USING (is_admin());
+
+-- ---------------------------------------------------------------------------
+-- Transfer Records RLS (Public read, authenticated write, admin-only delete)
+-- ---------------------------------------------------------------------------
 DROP POLICY IF EXISTS "Public read transfer_records" ON transfer_records;
-CREATE POLICY "Public read transfer_records" ON transfer_records FOR SELECT USING (true);
+CREATE POLICY "Public read transfer_records" ON transfer_records 
+  FOR SELECT USING (true);
 
 DROP POLICY IF EXISTS "Public modify transfer_records" ON transfer_records;
-CREATE POLICY "Public modify transfer_records" ON transfer_records FOR ALL USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Authenticated insert transfer_records" ON transfer_records;
+CREATE POLICY "Authenticated insert transfer_records" ON transfer_records 
+  FOR INSERT TO authenticated 
+  WITH CHECK (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Authenticated update transfer_records" ON transfer_records;
+CREATE POLICY "Authenticated update transfer_records" ON transfer_records 
+  FOR UPDATE TO authenticated 
+  USING (auth.role() = 'authenticated') 
+  WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Authenticated delete transfer_records" ON transfer_records;
+CREATE POLICY "Authenticated delete transfer_records" ON transfer_records 
+  FOR DELETE TO authenticated 
+  USING (is_admin());
+
+-- ---------------------------------------------------------------------------
+-- App Users RLS (Public read, admin-only create/delete, admin or self update)
+-- ---------------------------------------------------------------------------
 DROP POLICY IF EXISTS "Public read app_users" ON app_users;
-CREATE POLICY "Public read app_users" ON app_users FOR SELECT USING (true);
+CREATE POLICY "Public read app_users" ON app_users 
+  FOR SELECT USING (true);
 
 DROP POLICY IF EXISTS "Public modify app_users" ON app_users;
-CREATE POLICY "Public modify app_users" ON app_users FOR ALL USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Admin insert app_users" ON app_users;
+CREATE POLICY "Admin insert app_users" ON app_users 
+  FOR INSERT TO authenticated 
+  WITH CHECK (is_admin());
 
--- Immutable Audit Log RLS (Append-only: SELECT and INSERT permitted; UPDATE and DELETE denied)
+DROP POLICY IF EXISTS "Admin or self update app_users" ON app_users;
+CREATE POLICY "Admin or self update app_users" ON app_users 
+  FOR UPDATE TO authenticated 
+  USING (is_admin() OR (auth.uid())::text = id) 
+  WITH CHECK (is_admin() OR (auth.uid())::text = id);
+
+DROP POLICY IF EXISTS "Admin delete app_users" ON app_users;
+CREATE POLICY "Admin delete app_users" ON app_users 
+  FOR DELETE TO authenticated 
+  USING (is_admin());
+
+-- ---------------------------------------------------------------------------
+-- Audit Logs RLS (Immutable Ledger: Public read, append-only, UPDATE/DELETE denied)
+-- ---------------------------------------------------------------------------
 DROP POLICY IF EXISTS "Public read audit_logs" ON audit_logs;
-CREATE POLICY "Public read audit_logs" ON audit_logs FOR SELECT USING (true);
+CREATE POLICY "Public read audit_logs" ON audit_logs 
+  FOR SELECT USING (true);
 
 DROP POLICY IF EXISTS "Public append audit_logs" ON audit_logs;
-CREATE POLICY "Public append audit_logs" ON audit_logs FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public append audit_logs" ON audit_logs 
+  FOR INSERT WITH CHECK (true);
 
 -- 10. REALTIME PUBLICATION CONFIGURATION
 DO $$
@@ -218,11 +321,11 @@ ON CONFLICT (id) DO UPDATE SET
   contact_person = EXCLUDED.contact_person,
   contact_phone = EXCLUDED.contact_phone;
 
--- 11. SEED DEFAULT AUTHORIZED SYSTEM USERS
+-- 11. SEED DEFAULT AUTHORIZED SYSTEM USERS (PBKDF2-HMAC-SHA256 Hashed Passwords)
 INSERT INTO app_users (id, name, username, password, role, email)
 VALUES
-  ('user-admin', 'JOHN SHANNON O. RODRIGUEZ', 'admin', 'password123', 'ADMIN', 'john.rodriguez@paranaque.gov.ph'),
-  ('user-it-officer', 'HIMU IT OFFICER', 'itofficer', 'password123', 'IT_OFFICER', 'it.officer@paranaque.gov.ph')
+  ('user-admin', 'JOHN SHANNON O. RODRIGUEZ', 'admin', 'pbkdf2:100000:2d7094803f299ed42341976bba969a38:02b3fccb157ecdf26fb74275087684335f6de5adc78a0ed0f5d46820129f0bc2', 'ADMIN', 'john.rodriguez@paranaque.gov.ph'),
+  ('user-it-officer', 'HIMU IT OFFICER', 'itofficer', 'pbkdf2:100000:2d7094803f299ed42341976bba969a38:02b3fccb157ecdf26fb74275087684335f6de5adc78a0ed0f5d46820129f0bc2', 'IT_OFFICER', 'it.officer@paranaque.gov.ph')
 ON CONFLICT (id) DO UPDATE SET
   name = EXCLUDED.name,
   username = EXCLUDED.username,
