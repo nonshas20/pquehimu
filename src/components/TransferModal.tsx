@@ -7,11 +7,27 @@ interface TransferModalProps {
   isOpen: boolean;
   onClose: () => void;
   asset: AssetItem | null;
+  batchAssets?: AssetItem[];
   locations: BarangayLocation[];
   defaultDispatcherName?: string;
   officers?: string[];
   onConfirmTransfer: (
     assetId: string,
+    toLocationId: string,
+    purpose: string,
+    dispatchedBy: string,
+    receivedBy: string,
+    notes: string,
+    checklistData?: {
+      eventName: string;
+      requestingOffice: string;
+      borrowerName: string;
+      borrowedAt: string;
+      borrowedItemsList: BorrowChecklistItem[];
+    }
+  ) => void;
+  onConfirmBatchTransfer?: (
+    assetIds: string[],
     toLocationId: string,
     purpose: string,
     dispatchedBy: string,
@@ -31,18 +47,23 @@ export const TransferModal: React.FC<TransferModalProps> = ({
   isOpen,
   onClose,
   asset,
+  batchAssets,
   locations,
   defaultDispatcherName,
   officers,
   onConfirmTransfer,
+  onConfirmBatchTransfer,
 }) => {
+  const isBatch = Boolean(batchAssets && batchAssets.length > 0);
+  const activeAssets = isBatch ? (batchAssets || []) : (asset ? [asset] : []);
+  const primaryAsset = activeAssets[0] || null;
+
   const officerList = officers && officers.length > 0 ? officers : (DISPATCH_OFFICERS as readonly string[]);
-  const currentLocation = locations.find((l) => l.id === asset?.currentLocationId);
-  const eligibleDestinations = locations.filter((l) => l.id !== asset?.currentLocationId);
+  const currentLocation = locations.find((l) => l.id === primaryAsset?.currentLocationId);
+  const eligibleDestinations = locations.filter((l) => !activeAssets.every((a) => a.currentLocationId === l.id));
 
   const [toLocationId, setToLocationId] = useState<string>(() => {
-    const eligible = locations.filter((l) => l.id !== asset?.currentLocationId);
-    return eligible[0]?.id || '';
+    return eligibleDestinations[0]?.id || '';
   });
 
   const selectedDestination = locations.find((l) => l.id === toLocationId);
@@ -76,21 +97,21 @@ export const TransferModal: React.FC<TransferModalProps> = ({
   });
 
   // Standard Accessories Quick Add Toggles
-  const [includeExtensions, setIncludeExtensions] = useState<boolean>(() => asset?.category === 'Printer');
+  const [includeExtensions, setIncludeExtensions] = useState<boolean>(() =>
+    activeAssets.some((a) => a.category === 'Printer')
+  );
   const [includeRouter, setIncludeRouter] = useState<boolean>(false);
 
   // Helper to build initial item rows
-  const createDefaultItems = (targetAsset: AssetItem | null): BorrowChecklistItem[] => {
-    if (!targetAsset) return [];
-    const list: BorrowChecklistItem[] = [
-      {
-        itemEquipment: (targetAsset.name || targetAsset.brandModel || 'IT EQUIPMENT').toUpperCase(),
-        serialNo: targetAsset.serialNumber || 'N/A',
-        quantity: 1,
-        remarks: targetAsset.category === 'Printer' ? 'WITH POWER AND CABLE' : 'WITH POWER',
-      },
-    ];
-    if (targetAsset.category === 'Printer') {
+  const createDefaultItems = (targets: AssetItem[]): BorrowChecklistItem[] => {
+    if (!targets.length) return [];
+    const list: BorrowChecklistItem[] = targets.map((t) => ({
+      itemEquipment: (t.name || t.brandModel || 'IT EQUIPMENT').toUpperCase(),
+      serialNo: t.serialNumber || 'N/A',
+      quantity: 1,
+      remarks: t.category === 'Printer' ? 'WITH POWER AND CABLE' : 'WITH POWER',
+    }));
+    if (targets.some((t) => t.category === 'Printer')) {
       list.push({
         itemEquipment: '2 EXTENSIONS',
         serialNo: 'N/A',
@@ -102,18 +123,18 @@ export const TransferModal: React.FC<TransferModalProps> = ({
   };
 
   // Items Borrowed Checklist Rows (Matching 1-to-1 with A5 table)
-  const [itemsList, setItemsList] = useState<BorrowChecklistItem[]>(() => createDefaultItems(asset));
+  const [itemsList, setItemsList] = useState<BorrowChecklistItem[]>(() => createDefaultItems(activeAssets));
 
-  // Reset form state cleanly when a different asset is selected
+  // Reset form state cleanly when a different asset or batch is selected
   useEffect(() => {
-    if (asset) {
-      const eligible = locations.filter((l) => l.id !== asset.currentLocationId);
+    if (activeAssets.length > 0) {
+      const eligible = locations.filter((l) => !activeAssets.every((a) => a.currentLocationId === l.id));
       setToLocationId(eligible[0]?.id || '');
-      setIncludeExtensions(asset.category === 'Printer');
+      setIncludeExtensions(activeAssets.some((a) => a.category === 'Printer'));
       setIncludeRouter(false);
-      setItemsList(createDefaultItems(asset));
+      setItemsList(createDefaultItems(activeAssets));
     }
-  }, [asset?.id, locations]);
+  }, [asset?.id, batchAssets?.length, locations]);
 
   // Non-destructive accessory toggles that preserve user edits and custom rows
   const handleToggleExtensions = (checked: boolean) => {
@@ -156,7 +177,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
     }
   };
 
-  if (!isOpen || !asset) return null;
+  if (!isOpen || activeAssets.length === 0) return null;
 
   const handleAddItemRow = () => {
     setItemsList((prev) => [
@@ -184,21 +205,35 @@ export const TransferModal: React.FC<TransferModalProps> = ({
     const finalOffice = requestingOffice.trim() || `${selectedDestination?.name || 'BARANGAY'} HEALTH CENTER`.toUpperCase();
     const finalBorrower = borrowerName.trim() || `${selectedDestination?.name || 'BARANGAY'} HEALTH CENTER STAFF`.toUpperCase();
 
-    onConfirmTransfer(
-      asset.id,
-      toLocationId,
-      finalEventName,
-      dispatchedBy,
-      finalBorrower,
-      `A5 Borrowing Checklist generated for ${finalEventName}`,
-      {
-        eventName: finalEventName,
-        requestingOffice: finalOffice,
-        borrowerName: finalBorrower,
-        borrowedAt: new Date(borrowedAt).toISOString(),
-        borrowedItemsList: itemsList.filter((item) => item.itemEquipment.trim() !== ''),
-      }
-    );
+    const checklistData = {
+      eventName: finalEventName,
+      requestingOffice: finalOffice,
+      borrowerName: finalBorrower,
+      borrowedAt: new Date(borrowedAt).toISOString(),
+      borrowedItemsList: itemsList.filter((item) => item.itemEquipment.trim() !== ''),
+    };
+
+    if (isBatch && onConfirmBatchTransfer) {
+      onConfirmBatchTransfer(
+        activeAssets.map((a) => a.id),
+        toLocationId,
+        finalEventName,
+        dispatchedBy,
+        finalBorrower,
+        `A5 Batch Borrowing Checklist generated for ${finalEventName} (${activeAssets.length} items)`,
+        checklistData
+      );
+    } else if (onConfirmTransfer) {
+      onConfirmTransfer(
+        primaryAsset!.id,
+        toLocationId,
+        finalEventName,
+        dispatchedBy,
+        finalBorrower,
+        `A5 Borrowing Checklist generated for ${finalEventName}`,
+        checklistData
+      );
+    }
     onClose();
   };
 
@@ -215,9 +250,16 @@ export const TransferModal: React.FC<TransferModalProps> = ({
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-600 text-white">
               <Printer className="h-4 w-4" />
             </div>
-            <h3 className="text-sm font-bold text-neutral-900">
-              Dispatch Equipment
-            </h3>
+            <div>
+              <h3 className="text-sm font-bold text-neutral-900">
+                {isBatch ? `Batch Dispatch (${activeAssets.length} Items)` : 'Dispatch Equipment'}
+              </h3>
+              {isBatch && (
+                <p className="text-[10px] text-emerald-700 font-medium">
+                  Continuous Mobile Scan Batch
+                </p>
+              )}
+            </div>
           </div>
           <button
             onClick={onClose}
@@ -231,12 +273,12 @@ export const TransferModal: React.FC<TransferModalProps> = ({
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto pr-1 py-3 space-y-4 text-xs">
           
           {/* Visual Route Card */}
-          <div className="rounded-2xl bg-neutral-50 p-3 border border-neutral-200/70 text-xs">
+          <div className="rounded-2xl bg-neutral-50 p-3 border border-neutral-200/70 text-xs space-y-2">
             <div className="flex items-center justify-between">
               <div className="truncate max-w-[190px]">
                 <span className="text-[10px] text-neutral-400 block font-semibold uppercase">Origin</span>
                 <span className="font-bold text-neutral-800 truncate block">
-                  {currentLocation?.name}
+                  {currentLocation?.name || 'HIMU IT Depot'}
                 </span>
               </div>
               <ArrowRight className="h-4 w-4 text-emerald-600 shrink-0 mx-2" />
@@ -247,6 +289,18 @@ export const TransferModal: React.FC<TransferModalProps> = ({
                 </span>
               </div>
             </div>
+
+            {isBatch && (
+              <div className="border-t border-neutral-200/60 pt-2 flex flex-wrap gap-1.5 items-center">
+                <span className="text-[10px] font-bold text-neutral-400 uppercase">Batch Items:</span>
+                {activeAssets.map((a) => (
+                  <span key={a.id} className="inline-flex items-center gap-1 rounded-md bg-white border border-neutral-200 px-2 py-0.5 text-[10px] font-bold text-neutral-700 font-mono">
+                    <span className="text-emerald-700">{a.assetTag}</span>
+                    <span className="text-neutral-500 font-sans font-normal truncate max-w-[100px]">{a.name}</span>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Destination Barangay Selection */}
@@ -496,7 +550,11 @@ export const TransferModal: React.FC<TransferModalProps> = ({
               className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 sm:py-2 text-xs font-bold shadow-md transition active:scale-95 flex-1 sm:flex-initial"
             >
               <Printer className="h-4 w-4" />
-              <span>Confirm & Generate A5</span>
+              <span>
+                {isBatch
+                  ? `Confirm Batch Dispatch (${activeAssets.length} Items) & Generate A5`
+                  : 'Confirm & Generate A5'}
+              </span>
             </button>
           </div>
         </form>

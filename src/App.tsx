@@ -37,7 +37,8 @@ import {
   Plus, 
   MapIcon, 
   Database,
-  Building2 
+  Building2,
+  ArrowRight 
 } from './components/HugeIcons';
 
 export function App() {
@@ -316,6 +317,9 @@ export function App() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [addPresetLocationId, setAddPresetLocationId] = useState<string | undefined>(undefined);
   const [isScanOpen, setIsScanOpen] = useState(false);
+  // Continuous Multi-Item Mobile Scan & Batch Dispatch Cart
+  const [scannedBatch, setScannedBatch] = useState<AssetItem[]>([]);
+  const [batchTransferAssets, setBatchTransferAssets] = useState<AssetItem[]>([]);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isAuditOpen, setIsAuditOpen] = useState(false);
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(() => supabaseService.getLocalAuditLogs());
@@ -496,6 +500,102 @@ export function App() {
     // Auto-open official A5 checklist receipt upon borrow confirmation
     setActiveChecklistRecord(newTransfer);
     setIsReceiptOpen(true);
+  };
+
+  // Confirm Batch Dispatch for multiple assets scanned via mobile or desktop
+  const handleConfirmBatchTransfer = (
+    assetIds: string[],
+    toLocationId: string,
+    purpose: string,
+    dispatchedBy: string,
+    receivedBy: string,
+    notes: string,
+    checklistData?: {
+      eventName: string;
+      requestingOffice: string;
+      borrowerName: string;
+      borrowedAt: string;
+      borrowedItemsList: BorrowChecklistItem[];
+    }
+  ) => {
+    const destLoc = locations.find((l) => l.id === toLocationId);
+    const sharedRefNo = `TR-PQUE-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const timestamp = checklistData?.borrowedAt || new Date().toISOString();
+
+    const transferringAssets = assets.filter((a) => assetIds.includes(a.id));
+
+    const transferRecords: AssetTransferRecord[] = transferringAssets.map((item, idx) => {
+      const originLoc = locations.find((l) => l.id === item.currentLocationId);
+      return {
+        id: `tr-${Date.now()}-${idx}`,
+        referenceNo: sharedRefNo,
+        assetId: item.id,
+        fromLocationId: originLoc?.id || '',
+        toLocationId,
+        fromLocationName: originLoc?.name || 'Central HIMU IT Depot',
+        toLocationName: destLoc?.name || 'Destination',
+        dispatchedBy,
+        dispatchedAt: timestamp,
+        receivedBy: receivedBy || undefined,
+        status: 'in_transit',
+        purpose,
+        notes,
+        eventName: checklistData?.eventName,
+        requestingOffice: checklistData?.requestingOffice,
+        borrowerName: checklistData?.borrowerName || receivedBy,
+        borrowedItemsList: checklistData?.borrowedItemsList,
+      };
+    });
+
+    // Bulk update assets in active state
+    setAssets((prev) =>
+      prev.map((item) => {
+        const record = transferRecords.find((r) => r.assetId === item.id);
+        if (record) {
+          return {
+            ...item,
+            status: 'in_transit',
+            custodianName: receivedBy ? receivedBy : `In Transit via ${dispatchedBy}`,
+            history: [record, ...item.history],
+          };
+        }
+        return item;
+      })
+    );
+
+    // Sync all transfer records to Supabase
+    transferRecords.forEach((record) => {
+      supabaseService.recordDispatch(record, {
+        locationId: toLocationId,
+        status: 'in_transit',
+        custodianName: receivedBy ? receivedBy : `In Transit via ${dispatchedBy}`,
+      });
+    });
+
+    // Record in System Audit Trail
+    logAudit(
+      'ASSET_DISPATCHED',
+      'DISPATCH',
+      `Batch Dispatched ${transferringAssets.length} items to ${destLoc?.name || 'Destination'} for ${purpose} (Ref: ${sharedRefNo})`,
+      {
+        locationName: destLoc?.name,
+        referenceNo: sharedRefNo,
+        metadata: {
+          batchCount: transferringAssets.length,
+          assetTags: transferringAssets.map((a) => a.assetTag).join(', '),
+        },
+      }
+    );
+
+    // Clear batch queues
+    setScannedBatch([]);
+    setBatchTransferAssets([]);
+
+    // Auto-open 1:1 physical A5 slip for this batch
+    if (transferRecords.length > 0) {
+      setActiveChecklistRecord(transferRecords[0]);
+      setIsReceiptOpen(true);
+    }
   };
 
   // Open A5 Receipt modal for a specific history record
@@ -1541,13 +1641,61 @@ export function App() {
           {/* 5. Scan QR / Barcode */}
           <button
             onClick={() => setIsScanOpen(true)}
-            className="flex flex-1 flex-col items-center justify-center gap-1 py-1 px-1 text-neutral-500 hover:text-neutral-900 font-medium rounded-2xl transition active:scale-95"
+            className="flex flex-1 flex-col items-center justify-center gap-1 py-1 px-1 text-neutral-500 hover:text-neutral-900 font-medium rounded-2xl transition active:scale-95 relative"
           >
-            <QrCode className="h-4.5 w-4.5 text-neutral-500" />
+            <div className="relative">
+              <QrCode className="h-4.5 w-4.5 text-neutral-500" />
+              {scannedBatch.length > 0 && (
+                <span className="absolute -top-1 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-emerald-600 text-[8px] font-bold text-white font-mono animate-pulse">
+                  {scannedBatch.length}
+                </span>
+              )}
+            </div>
             <span className="text-[10px]">Scan</span>
           </button>
         </div>
       </nav>
+
+      {/* Floating Batch Dispatch Cart Indicator (Mobile & Desktop) */}
+      {scannedBatch.length > 0 && !isScanOpen && !isTransferOpen && (
+        <div className="fixed bottom-20 md:bottom-6 right-3 left-3 md:left-auto md:w-96 z-40 bg-neutral-900/95 text-white backdrop-blur-md rounded-2xl p-3 shadow-2xl border border-neutral-700/80 flex items-center justify-between gap-3 animate-in slide-in-from-bottom duration-200">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-emerald-500 text-xs font-black text-neutral-950 font-mono shrink-0">
+              {scannedBatch.length}
+            </span>
+            <div className="min-w-0">
+              <span className="text-xs font-bold block truncate">
+                {scannedBatch.length} {scannedBatch.length === 1 ? 'Item' : 'Items'} Ready to Transfer
+              </span>
+              <span className="text-[10px] text-neutral-400 block truncate font-mono">
+                {scannedBatch.map((i) => i.assetTag).slice(0, 3).join(', ')}
+                {scannedBatch.length > 3 ? ` +${scannedBatch.length - 3} more` : ''}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => setIsScanOpen(true)}
+              className="rounded-xl bg-white/10 hover:bg-white/20 px-2.5 py-1.5 text-[11px] font-semibold text-white transition active:scale-95 cursor-pointer"
+            >
+              + Scan More
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setBatchTransferAssets(scannedBatch);
+                setIsTransferOpen(true);
+              }}
+              className="rounded-xl bg-emerald-500 hover:bg-emerald-400 px-3 py-1.5 text-[11px] font-bold text-neutral-950 shadow-md transition active:scale-95 cursor-pointer flex items-center gap-1"
+            >
+              <span>Dispatch</span>
+              <ArrowRight className="h-3 w-3" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Lazy-loaded Modals wrapped in ErrorBoundary and Suspense */}
       <ErrorBoundary>
@@ -1555,12 +1703,17 @@ export function App() {
           {isTransferOpen && (
             <TransferModal
               isOpen={isTransferOpen}
-              onClose={() => setIsTransferOpen(false)}
+              onClose={() => {
+                setIsTransferOpen(false);
+                setBatchTransferAssets([]);
+              }}
               asset={activeAsset}
+              batchAssets={batchTransferAssets.length > 0 ? batchTransferAssets : undefined}
               locations={locations}
               defaultDispatcherName={currentUser.name}
               officers={officerNames}
               onConfirmTransfer={handleConfirmTransfer}
+              onConfirmBatchTransfer={handleConfirmBatchTransfer}
             />
           )}
 
@@ -1594,6 +1747,12 @@ export function App() {
               isOpen={isScanOpen}
               onClose={() => setIsScanOpen(false)}
               assets={assets}
+              scannedBatch={scannedBatch}
+              onUpdateScannedBatch={setScannedBatch}
+              onProceedToBatchTransfer={(batch: AssetItem[]) => {
+                setBatchTransferAssets(batch);
+                setIsTransferOpen(true);
+              }}
               onFoundAsset={(found: AssetItem) => {
                 setActiveAsset(found);
                 setIsDetailOpen(true);
