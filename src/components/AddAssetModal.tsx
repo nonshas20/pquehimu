@@ -28,6 +28,8 @@ export const AddAssetModal: React.FC<AddAssetModalProps> = ({
     initialLocationId || locations[0]?.id || ''
   );
 
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   React.useEffect(() => {
     if (initialLocationId) {
       setCurrentLocationId(initialLocationId);
@@ -41,20 +43,28 @@ export const AddAssetModal: React.FC<AddAssetModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !serialNumber.trim()) return;
+    if (!name.trim()) {
+      setErrorMessage('Please provide an Asset Name / Title.');
+      return;
+    }
+    if (!serialNumber.trim()) {
+      setErrorMessage('Please provide a Hardware Serial Number.');
+      return;
+    }
 
+    setErrorMessage(null);
     onAddAsset({
-      name,
+      name: name.trim(),
       category,
-      brandModel: brandModel || name,
-      serialNumber,
-      assetTag,
+      brandModel: brandModel.trim() || name.trim(),
+      serialNumber: serialNumber.trim(),
+      assetTag: assetTag.trim(),
       currentLocationId,
       status: 'in_service',
-      custodianName: custodianName || 'Unassigned',
-      custodianRole: custodianRole || 'Health Center Staff',
+      custodianName: custodianName.trim() || 'Unassigned',
+      custodianRole: custodianRole.trim() || 'Health Center Staff',
       acquisitionDate: new Date().toISOString().split('T')[0],
-      notes,
+      notes: notes.trim(),
     });
 
     onClose();
@@ -88,6 +98,12 @@ export const AddAssetModal: React.FC<AddAssetModalProps> = ({
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="mt-3 space-y-3.5 text-xs flex-1 overflow-y-auto pr-0.5">
+          {errorMessage && (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs font-semibold text-rose-800 animate-in fade-in">
+              ⚠️ {errorMessage}
+            </div>
+          )}
+
           <div>
             <label className="block font-semibold text-neutral-700 mb-1">
               Asset Name / Title <span className="text-rose-500">*</span>
@@ -180,6 +196,15 @@ export const AddAssetModal: React.FC<AddAssetModalProps> = ({
                 </option>
               ))}
             </select>
+            {currentLocationId === 'loc-himu-hq' ? (
+              <p className="mt-1 text-[11px] text-emerald-700 font-medium">
+                ⚡ <strong>Staging Depot Item:</strong> Will appear in the map's Staging Depot drawer ready to be dispatched or dragged across Parañaque.
+              </p>
+            ) : (
+              <p className="mt-1 text-[11px] text-blue-700 font-medium">
+                🏢 <strong>Direct Facility Assignment:</strong> Hardware will be stationed at {locations.find((l) => l.id === currentLocationId)?.name}.
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">

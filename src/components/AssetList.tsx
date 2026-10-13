@@ -35,6 +35,9 @@ interface AssetListProps {
   onSelectCategory: (cat: AssetCategory | 'ALL') => void;
   selectedStatus: AssetStatus | 'ALL';
   onSelectStatus: (st: AssetStatus | 'ALL') => void;
+  totalCount?: number;
+  selectedLocationName?: string | null;
+  onResetFilters?: () => void;
 }
 
 export const AssetList: React.FC<AssetListProps> = ({
@@ -48,6 +51,9 @@ export const AssetList: React.FC<AssetListProps> = ({
   onSelectCategory,
   selectedStatus,
   onSelectStatus,
+  totalCount,
+  selectedLocationName,
+  onResetFilters,
 }) => {
   const [copiedSerial, setCopiedSerial] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
@@ -230,26 +236,60 @@ export const AssetList: React.FC<AssetListProps> = ({
 
       {/* Empty State */}
       {assets.length === 0 ? (
-        <div className="rounded-3xl bg-white border border-neutral-200/90 p-12 text-center shadow-xs">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-neutral-100 text-neutral-400 shadow-2xs">
-            <Archive className="h-7 w-7" />
+        totalCount !== undefined && totalCount > 0 ? (
+          <div className="rounded-3xl bg-white border border-neutral-200/90 p-8 sm:p-12 text-center shadow-xs">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 border border-amber-200 shadow-2xs">
+              <Archive className="h-7 w-7" />
+            </div>
+            <h3 className="mt-4 text-base font-bold text-neutral-900">
+              {selectedLocationName ? `No IT Equipment Stationed at ${selectedLocationName}` : 'No Equipment Matching Current Filter'}
+            </h3>
+            <p className="mt-1 text-xs text-neutral-500 max-w-md mx-auto leading-relaxed">
+              There {totalCount === 1 ? 'is' : 'are'} <strong className="font-bold text-neutral-800">{totalCount}</strong> equipment item{totalCount === 1 ? '' : 's'} registered in the system. Clear your station filter or select another barangay to view hardware.
+            </p>
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+              {onResetFilters && (
+                <button
+                  type="button"
+                  onClick={onResetFilters}
+                  className="inline-flex items-center gap-1.5 rounded-2xl bg-neutral-900 px-4 py-2.5 text-xs font-semibold text-white shadow-md hover:bg-neutral-800 transition active:scale-95 cursor-pointer"
+                >
+                  <span>View All Parañaque Equipment ({totalCount})</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={onOpenAddModal}
+                className="inline-flex items-center gap-1.5 rounded-2xl bg-white border border-neutral-200 px-4 py-2.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 transition active:scale-95 cursor-pointer"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Register Hardware Here</span>
+              </button>
+            </div>
           </div>
-          <h3 className="mt-4 text-base font-bold text-neutral-900">
-            No IT Equipment Registered
-          </h3>
-          <p className="mt-1 text-xs text-neutral-500 max-w-md mx-auto leading-relaxed">
-            The system is clean and ready for real data. Begin cataloging printers, routers, switches, and computers across Parañaque's 16 barangays.
-          </p>
-          <div className="mt-5">
-            <button
-              onClick={onOpenAddModal}
-              className="inline-flex items-center gap-1.5 rounded-2xl bg-neutral-900 px-4 py-2.5 text-xs font-semibold text-white shadow-md hover:bg-neutral-800 transition active:scale-95"
-            >
-              <Plus className="h-4 w-4" />
-              <span>Register First Hardware Item</span>
-            </button>
+        ) : (
+          <div className="rounded-3xl bg-white border border-neutral-200/90 p-12 text-center shadow-xs">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-neutral-100 text-neutral-400 shadow-2xs">
+              <Archive className="h-7 w-7" />
+            </div>
+            <h3 className="mt-4 text-base font-bold text-neutral-900">
+              No IT Equipment Registered
+            </h3>
+            <p className="mt-1 text-xs text-neutral-500 max-w-md mx-auto leading-relaxed">
+              The system is clean and ready for real data. Begin cataloging printers, routers, switches, and computers across Parañaque's 16 barangays.
+            </p>
+            <div className="mt-5">
+              <button
+                type="button"
+                onClick={onOpenAddModal}
+                className="inline-flex items-center gap-1.5 rounded-2xl bg-neutral-900 px-4 py-2.5 text-xs font-semibold text-white shadow-md hover:bg-neutral-800 transition active:scale-95 cursor-pointer"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Register First Hardware Item</span>
+              </button>
+            </div>
           </div>
-        </div>
+        )
       ) : showTable ? (
         <div className="overflow-hidden rounded-3xl bg-white border border-neutral-200/90 shadow-xs">
             <table className="min-w-full divide-y divide-black/[0.04] text-left text-xs">

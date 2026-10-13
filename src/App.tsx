@@ -904,14 +904,18 @@ export function App() {
   };
 
   const handleAddAsset = (newAssetData: Omit<AssetItem, 'id' | 'history'>) => {
+    const assetId = `ast-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const transferId = `tr-init-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const refNo = `TR-PQUE-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
     const newAsset: AssetItem = {
       ...newAssetData,
-      id: `ast-${Date.now()}`,
+      id: assetId,
       history: [
         {
-          id: `tr-init-${Date.now()}`,
-          referenceNo: `TR-PQUE-${new Date().getFullYear()}-0001`,
-          assetId: `ast-${Date.now()}`,
+          id: transferId,
+          referenceNo: refNo,
+          assetId: assetId,
           fromLocationId: 'loc-himu-hq',
           toLocationId: newAssetData.currentLocationId,
           fromLocationName: 'HIMU Central IT Office (Parañaque City Hall)',
@@ -927,6 +931,12 @@ export function App() {
     };
 
     setAssets((prev) => [newAsset, ...prev]);
+
+    // Automatically highlight and select the assigned location so it is immediately visible in registry & map
+    setSelectedLocationId(newAsset.currentLocationId);
+    setSelectedCategory('ALL');
+    setSelectedStatus('ALL');
+    setSearchQuery('');
 
     // Sync new asset to Supabase cloud
     supabaseService.createAsset(newAsset);
@@ -1426,6 +1436,14 @@ export function App() {
               onSelectCategory={setSelectedCategory}
               selectedStatus={selectedStatus}
               onSelectStatus={setSelectedStatus}
+              totalCount={assets.length}
+              selectedLocationName={locations.find((l) => l.id === selectedLocationId)?.name || null}
+              onResetFilters={() => {
+                setSelectedLocationId(null);
+                setSelectedCategory('ALL');
+                setSelectedStatus('ALL');
+                setSearchQuery('');
+              }}
             />
           </div>
         </div>
