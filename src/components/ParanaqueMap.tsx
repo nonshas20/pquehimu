@@ -171,6 +171,18 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
     }
   };
 
+  // When selected location changes to a barangay, switch drawer and pan map to that barangay
+  useEffect(() => {
+    if (selectedLocationId && selectedLocationId !== 'loc-himu-hq') {
+      setActiveTab('BARANGAY');
+      setIsPanelOpen(true);
+      const poly = polygonLayersRef.current.get(selectedLocationId);
+      if (poly && mapRef.current) {
+        mapRef.current.panTo(poly.getBounds().getCenter(), { animate: true, duration: 0.5 });
+      }
+    }
+  }, [selectedLocationId]);
+
   // Selected Location and its assets
   const selectedLocation = useMemo(() => {
     return locations.find((l) => l.id === selectedLocationId) || null;
