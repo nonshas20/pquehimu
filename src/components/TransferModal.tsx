@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { AssetItem, BarangayLocation, BorrowChecklistItem } from '../types/inventory';
 import { DISPATCH_OFFICERS } from '../types/inventory';
-import { X, ArrowRight, Printer, Plus, Trash, Check } from './HugeIcons';
+import { X, ArrowRight, Printer, Plus, Trash } from './HugeIcons';
 
 interface TransferModalProps {
   isOpen: boolean;
@@ -96,30 +96,15 @@ export const TransferModal: React.FC<TransferModalProps> = ({
     return now.toISOString().slice(0, 16); // YYYY-MM-DDTHH:MM
   });
 
-  // Standard Accessories Quick Add Toggles
-  const [includeExtensions, setIncludeExtensions] = useState<boolean>(() =>
-    activeAssets.some((a) => a.category === 'Printer')
-  );
-  const [includeRouter, setIncludeRouter] = useState<boolean>(false);
-
   // Helper to build initial item rows
   const createDefaultItems = (targets: AssetItem[]): BorrowChecklistItem[] => {
     if (!targets.length) return [];
-    const list: BorrowChecklistItem[] = targets.map((t) => ({
+    return targets.map((t) => ({
       itemEquipment: (t.name || t.brandModel || 'IT Equipment').toUpperCase(),
       serialNo: t.serialNumber || 'N/A',
       quantity: 1,
       remarks: t.category === 'Printer' ? 'WITH POWER AND CABLE' : 'WITH POWER',
     }));
-    if (targets.some((t) => t.category === 'Printer')) {
-      list.push({
-        itemEquipment: '2 EXTENSION CORDS',
-        serialNo: 'N/A',
-        quantity: 2,
-        remarks: 'HEAVY DUTY',
-      });
-    }
-    return list;
   };
 
   // Items Borrowed Checklist Rows (Matching 1-to-1 with A5 table)
@@ -130,52 +115,9 @@ export const TransferModal: React.FC<TransferModalProps> = ({
     if (activeAssets.length > 0) {
       const eligible = locations.filter((l) => !activeAssets.every((a) => a.currentLocationId === l.id));
       setToLocationId(eligible[0]?.id || '');
-      setIncludeExtensions(activeAssets.some((a) => a.category === 'Printer'));
-      setIncludeRouter(false);
       setItemsList(createDefaultItems(activeAssets));
     }
   }, [asset?.id, batchAssets?.length, locations]);
-
-  // Non-destructive accessory toggles that preserve user edits and custom rows
-  const handleToggleExtensions = (checked: boolean) => {
-    setIncludeExtensions(checked);
-    if (checked) {
-      setItemsList((prev) => {
-        if (prev.some((item) => item.itemEquipment.toUpperCase().includes('EXTENSION'))) return prev;
-        return [
-          ...prev,
-          {
-            itemEquipment: '2 EXTENSION CORDS',
-            serialNo: 'N/A',
-            quantity: 2,
-            remarks: 'HEAVY DUTY',
-          },
-        ];
-      });
-    } else {
-      setItemsList((prev) => prev.filter((item) => !item.itemEquipment.toUpperCase().includes('EXTENSION')));
-    }
-  };
-
-  const handleToggleRouter = (checked: boolean) => {
-    setIncludeRouter(checked);
-    if (checked) {
-      setItemsList((prev) => {
-        if (prev.some((item) => item.itemEquipment.toUpperCase().includes('ROUTER'))) return prev;
-        return [
-          ...prev,
-          {
-            itemEquipment: 'D-LINK WI-FI 6 ROUTER',
-            serialNo: 'N/A',
-            quantity: 1,
-            remarks: 'WITH POWER ADAPTER',
-          },
-        ];
-      });
-    } else {
-      setItemsList((prev) => prev.filter((item) => !item.itemEquipment.toUpperCase().includes('ROUTER')));
-    }
-  };
 
   if (!isOpen || activeAssets.length === 0) return null;
 
@@ -469,52 +411,6 @@ export const TransferModal: React.FC<TransferModalProps> = ({
                   <Plus className="h-3.5 w-3.5" />
                   <span>Add Item Row</span>
                 </button>
-              </div>
-
-              {/* Quick Accessories Checkbox Pills */}
-              <div className="rounded-xl bg-neutral-50/90 border border-neutral-200/80 p-2.5 sm:p-3">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 block mb-2">
-                  Quick Accessories Bundles:
-                </span>
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleToggleExtensions(!includeExtensions)}
-                    className={`inline-flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-semibold border transition active:scale-95 cursor-pointer ${
-                      includeExtensions
-                        ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-2xs ring-1 ring-emerald-400'
-                        : 'bg-white border-neutral-200 text-neutral-600 hover:border-neutral-300'
-                    }`}
-                  >
-                    <div
-                      className={`flex h-4 w-4 items-center justify-center rounded-md border ${
-                        includeExtensions ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-neutral-300 bg-white'
-                      }`}
-                    >
-                      {includeExtensions && <Check className="h-3 w-3" />}
-                    </div>
-                    <span>Include 2x Extension Cords (Heavy Duty)</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleToggleRouter(!includeRouter)}
-                    className={`inline-flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-semibold border transition active:scale-95 cursor-pointer ${
-                      includeRouter
-                        ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-2xs ring-1 ring-emerald-400'
-                        : 'bg-white border-neutral-200 text-neutral-600 hover:border-neutral-300'
-                    }`}
-                  >
-                    <div
-                      className={`flex h-4 w-4 items-center justify-center rounded-md border ${
-                        includeRouter ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-neutral-300 bg-white'
-                      }`}
-                    >
-                      {includeRouter && <Check className="h-3 w-3" />}
-                    </div>
-                    <span>Include Wi-Fi 6 Router</span>
-                  </button>
-                </div>
               </div>
 
               {/* Items Card List (Adaptive Mobile & Desktop Card Layout) */}
