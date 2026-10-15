@@ -80,12 +80,16 @@ CREATE TABLE IF NOT EXISTS app_users (
   password TEXT NOT NULL DEFAULT 'password123',
   role TEXT NOT NULL DEFAULT 'IT_OFFICER',
   email TEXT,
+  avatar_url TEXT,
+  cover_photo_url TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 -- Ensure columns exist if table was already created in an earlier run
 ALTER TABLE app_users ADD COLUMN IF NOT EXISTS username TEXT;
 ALTER TABLE app_users ADD COLUMN IF NOT EXISTS password TEXT NOT NULL DEFAULT 'password123';
+ALTER TABLE app_users ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+ALTER TABLE app_users ADD COLUMN IF NOT EXISTS cover_photo_url TEXT;
 ALTER TABLE app_users ALTER COLUMN email DROP NOT NULL;
 
 -- 7. AUDIT LOGS TABLE (Commission on Audit COA-Compliant Immutable Ledger)

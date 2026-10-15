@@ -126,6 +126,30 @@ export function App() {
     }
   }, [users]);
 
+  // Global Team Cover Photo (managed by Admin, default for all officers)
+  const [globalCoverPhoto, setGlobalCoverPhoto] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem('himu_global_cover_photo');
+    } catch {
+      return null;
+    }
+  });
+
+  const handleUpdateGlobalCoverPhoto = async (photoUrl: string | null): Promise<boolean> => {
+    try {
+      if (photoUrl) {
+        localStorage.setItem('himu_global_cover_photo', photoUrl);
+      } else {
+        localStorage.removeItem('himu_global_cover_photo');
+      }
+      setGlobalCoverPhoto(photoUrl);
+      return true;
+    } catch (e) {
+      console.error('Failed to save global cover photo', e);
+      return false;
+    }
+  };
+
   // Locations: 16 Real Parañaque Barangays + HIMU Depot
   const [locations, setLocations] = useState<BarangayLocation[]>(PARANAQUE_LOCATIONS);
 
@@ -293,6 +317,12 @@ export function App() {
     if (updatedUser.password && !isPasswordHashed(updatedUser.password)) {
       const securePassword = await hashPassword(updatedUser.password);
       userToSave = { ...updatedUser, password: securePassword };
+    } else if (!updatedUser.password) {
+      // Retain existing password if blank
+      const existingUser = users.find((u) => u.id === updatedUser.id);
+      if (existingUser?.password) {
+        userToSave = { ...updatedUser, password: existingUser.password };
+      }
     }
 
     setUsers((prev) => prev.map((u) => (u.id === userToSave.id ? userToSave : u)));
@@ -1490,30 +1520,51 @@ export function App() {
       />
 
       {/* Full-Width 21:9 HIMU Team Background Header with 3D Parallax Effect */}
-      <div className="no-print relative w-full overflow-hidden bg-neutral-950 aspect-[21/9] min-h-[260px] sm:min-h-[380px] lg:min-h-[480px] max-h-[580px] shadow-xs">
-        <picture>
-          <source
-            type="image/webp"
-            srcSet="/himu-team-banner-800.webp 800w, /himu-team-banner-1920.webp 1920w, /himu-team-banner.webp 2880w"
-            sizes="100vw"
-          />
-          <img
-            ref={heroImageRef}
-            src="/himu-team-banner-1920.webp"
-            srcSet="/himu-team-banner-800.webp 800w, /himu-team-banner-1920.webp 1920w, /himu-team-banner.webp 2880w"
-            sizes="100vw"
-            alt="HIMU IT Operations Team"
-            loading="eager"
-            fetchPriority="high"
-            decoding="async"
-            style={{
-              transform: 'translate3d(0, 0px, 0) scale(1.06)',
-              willChange: 'transform',
-            }}
-            className="absolute inset-0 h-[125%] -top-[12%] w-full object-cover object-[center_28%] select-none pointer-events-none"
-          />
-        </picture>
-      </div>
+      {(() => {
+        const activeCoverPhoto = currentUser.coverPhotoUrl || globalCoverPhoto || '/himu-team-banner-1920.webp';
+        return (
+          <div className="no-print relative w-full overflow-hidden bg-neutral-950 aspect-[21/9] min-h-[260px] sm:min-h-[380px] lg:min-h-[480px] max-h-[580px] shadow-xs">
+            {activeCoverPhoto === '/himu-team-banner-1920.webp' ? (
+              <picture>
+                <source
+                  type="image/webp"
+                  srcSet="/himu-team-banner-800.webp 800w, /himu-team-banner-1920.webp 1920w, /himu-team-banner.webp 2880w"
+                  sizes="100vw"
+                />
+                <img
+                  ref={heroImageRef}
+                  src="/himu-team-banner-1920.webp"
+                  srcSet="/himu-team-banner-800.webp 800w, /himu-team-banner-1920.webp 1920w, /himu-team-banner.webp 2880w"
+                  sizes="100vw"
+                  alt="HIMU IT Operations Team"
+                  loading="eager"
+                  fetchPriority="high"
+                  decoding="async"
+                  style={{
+                    transform: 'translate3d(0, 0px, 0) scale(1.06)',
+                    willChange: 'transform',
+                  }}
+                  className="absolute inset-0 h-[125%] -top-[12%] w-full object-cover object-[center_28%] select-none pointer-events-none"
+                />
+              </picture>
+            ) : (
+              <img
+                ref={heroImageRef}
+                src={activeCoverPhoto}
+                alt="HIMU Operations Cover"
+                loading="eager"
+                fetchPriority="high"
+                decoding="async"
+                style={{
+                  transform: 'translate3d(0, 0px, 0) scale(1.06)',
+                  willChange: 'transform',
+                }}
+                className="absolute inset-0 h-[125%] -top-[12%] w-full object-cover object-center select-none pointer-events-none"
+              />
+            )}
+          </div>
+        );
+      })()}
 
       {/* Main Content Container with Stat Cards Overlapping Banner */}
       <main className="no-print mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 space-y-6">
@@ -1875,6 +1926,8 @@ export function App() {
               onUpdateUser={handleUpdateUser}
               onDeleteUser={handleDeleteUser}
               onLogout={handleLogout}
+              globalCoverPhoto={globalCoverPhoto}
+              onUpdateGlobalCoverPhoto={handleUpdateGlobalCoverPhoto}
             />
           )}
 

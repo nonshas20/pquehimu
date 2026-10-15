@@ -257,17 +257,26 @@ export const Header: React.FC<HeaderProps> = ({
                   : 'border border-white/25 bg-black/40 backdrop-blur-md text-white hover:bg-black/60'
               }`}
             >
-              <div className={`flex h-6 w-6 items-center justify-center rounded-lg transition-colors ${
-                currentUser.role === 'ADMIN'
-                  ? isScrolled ? 'bg-purple-100 text-purple-700' : 'bg-purple-500/40 text-purple-200 border border-purple-400/30'
-                  : isScrolled ? 'bg-blue-100 text-blue-700' : 'bg-blue-500/40 text-blue-200 border border-blue-400/30'
-              }`}>
-                {currentUser.role === 'ADMIN' ? (
-                  <ShieldCheck className="h-3.5 w-3.5" />
-                ) : (
-                  <UserCheck className="h-3.5 w-3.5" />
-                )}
-              </div>
+              {/* Circular Avatar or Role Badge */}
+              {currentUser.avatarUrl ? (
+                <img
+                  src={currentUser.avatarUrl}
+                  alt={currentUser.name}
+                  className="h-6 w-6 sm:h-7 sm:w-7 rounded-full object-cover ring-2 ring-emerald-500/70 shadow-xs shrink-0"
+                />
+              ) : (
+                <div className={`flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full transition-colors shrink-0 ${
+                  currentUser.role === 'ADMIN'
+                    ? isScrolled ? 'bg-purple-100 text-purple-700' : 'bg-purple-500/40 text-purple-200 border border-purple-400/30'
+                    : isScrolled ? 'bg-blue-100 text-blue-700' : 'bg-blue-500/40 text-blue-200 border border-blue-400/30'
+                }`}>
+                  {currentUser.role === 'ADMIN' ? (
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                  ) : (
+                    <UserCheck className="h-3.5 w-3.5" />
+                  )}
+                </div>
+              )}
               <div className="hidden xl:block min-w-0">
                 <div className={`truncate text-[11px] font-bold max-w-[120px] transition-colors duration-300 ${
                   isScrolled ? 'text-neutral-800' : 'text-white'

@@ -67,6 +67,8 @@ interface DbUser {
   password?: string;
   role: string;
   email?: string | null;
+  avatar_url?: string | null;
+  cover_photo_url?: string | null;
   created_at?: string;
 }
 
@@ -81,6 +83,8 @@ export const mapDbUser = (db: DbUser): AppUser => ({
   password: db.password || 'password123',
   role: db.role as AppUser['role'],
   email: db.email || undefined,
+  avatarUrl: db.avatar_url || undefined,
+  coverPhotoUrl: db.cover_photo_url || undefined,
 });
 
 export const mapDbLocation = (db: DbLocation): BarangayLocation => ({
@@ -428,18 +432,38 @@ export const supabaseService = {
    */
   async createAppUser(user: AppUser): Promise<boolean> {
     try {
-      const { error } = await supabase.from('app_users').insert([
-        {
-          id: user.id,
-          name: user.name,
-          username: user.username.trim().toLowerCase(),
-          password: user.password || 'password123',
-          role: user.role,
-          email: user.email || null,
-        },
-      ]);
+      const payload: Record<string, any> = {
+        id: user.id,
+        name: user.name,
+        username: user.username.trim().toLowerCase(),
+        password: user.password || 'password123',
+        role: user.role,
+        email: user.email || null,
+        avatar_url: user.avatarUrl || null,
+        cover_photo_url: user.coverPhotoUrl || null,
+      };
+
+      const { error } = await supabase.from('app_users').insert([payload]);
 
       if (error) {
+        // Fallback if columns avatar_url / cover_photo_url are not yet migrated
+        if (error.message?.includes('avatar_url') || error.message?.includes('cover_photo_url')) {
+          console.warn('[Supabase] Missing image columns, retrying basic user creation');
+          const basicPayload = {
+            id: user.id,
+            name: user.name,
+            username: user.username.trim().toLowerCase(),
+            password: user.password || 'password123',
+            role: user.role,
+            email: user.email || null,
+          };
+          const { error: retryErr } = await supabase.from('app_users').insert([basicPayload]);
+          if (retryErr) {
+            console.error('[Supabase] Error creating user on retry:', retryErr);
+            return false;
+          }
+          return true;
+        }
         console.error('[Supabase] Error creating user:', error);
         return false;
       }
@@ -455,13 +479,7 @@ export const supabaseService = {
    */
   async updateAppUser(user: AppUser): Promise<boolean> {
     try {
-      const payload: {
-        name: string;
-        username: string;
-        role: string;
-        password?: string;
-        email?: string | null;
-      } = {
+      const payload: Record<string, any> = {
         name: user.name,
         username: user.username.trim().toLowerCase(),
         role: user.role,
@@ -475,12 +493,40 @@ export const supabaseService = {
         payload.email = user.email || null;
       }
 
+      if (user.avatarUrl !== undefined) {
+        payload.avatar_url = user.avatarUrl || null;
+      }
+
+      if (user.coverPhotoUrl !== undefined) {
+        payload.cover_photo_url = user.coverPhotoUrl || null;
+      }
+
       const { error } = await supabase
         .from('app_users')
         .update(payload)
         .eq('id', user.id);
 
       if (error) {
+        // Fallback if columns avatar_url / cover_photo_url are not yet migrated
+        if (error.message?.includes('avatar_url') || error.message?.includes('cover_photo_url')) {
+          console.warn('[Supabase] Missing image columns, retrying basic user update');
+          const basicPayload: Record<string, any> = {
+            name: user.name,
+            username: user.username.trim().toLowerCase(),
+            role: user.role,
+          };
+          if (user.password) basicPayload.password = user.password;
+          if (user.email !== undefined) basicPayload.email = user.email || null;
+          const { error: retryErr } = await supabase
+            .from('app_users')
+            .update(basicPayload)
+            .eq('id', user.id);
+          if (retryErr) {
+            console.error('[Supabase] Error updating user on retry:', retryErr);
+            return false;
+          }
+          return true;
+        }
         console.error('[Supabase] Error updating user:', error);
         return false;
       }

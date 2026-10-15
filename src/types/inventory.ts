@@ -7,6 +7,8 @@ export interface AppUser {
   password?: string;
   role: UserRole;
   email?: string;
+  avatarUrl?: string;
+  coverPhotoUrl?: string;
 }
 
 export type AssetCategory =
