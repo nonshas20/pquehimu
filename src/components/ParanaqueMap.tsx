@@ -23,6 +23,7 @@ import {
   Send,
   Printer,
   Trash,
+  ArrowRight,
   MapIcon
 } from './HugeIcons';
 import {
@@ -50,6 +51,7 @@ interface ParanaqueMapProps {
   onPrintA5ForAsset?: (asset: AssetItem, customEventTitle?: string) => void;
   onPrintA5ForBarangay?: (locationId: string, customEventTitle?: string) => void;
   onDeleteBorrow?: (assetId: string) => void;
+  onPermanentlyDeleteAsset?: (assetId: string) => void;
 }
 
 const ESRI_LIGHT_TILE_URL =
@@ -82,6 +84,7 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
   onPrintA5ForAsset,
   onPrintA5ForBarangay,
   onDeleteBorrow,
+  onPermanentlyDeleteAsset,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -102,6 +105,9 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
   
   // Configurable Profiling Event Title for Map Borrows (Defaults to PhilHealth YAKAP)
   const [activeProfilingTitle, setActiveProfilingTitle] = useState('PHILHEALTH YAKAP PROFILING');
+
+  // Confirmation Modal state for Delete vs Return to Depot
+  const [assetActionTarget, setAssetActionTarget] = useState<AssetItem | null>(null);
 
   // Drag-and-Drop & Mobile Tap-to-Deploy State
   const [draggingAsset, setDraggingAsset] = useState<AssetItem | null>(null);
@@ -1547,15 +1553,15 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
                                       </button>
                                     )}
 
-                                    {onDeleteBorrow && (
+                                    {(onDeleteBorrow || onPermanentlyDeleteAsset) && (
                                       <button
                                         type="button"
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          onDeleteBorrow(asset.id);
+                                          setAssetActionTarget(asset);
                                         }}
                                         className="inline-flex items-center gap-1 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 px-2 py-0.5 text-[10px] font-bold transition active:scale-95 cursor-pointer"
-                                        title="Delete/cancel this borrow and return item to Depot staging"
+                                        title="Remove or delete this equipment"
                                       >
                                         <Trash size={12} />
                                         <span>Delete</span>
@@ -1679,6 +1685,101 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
           <span className="font-semibold text-neutral-600">PC</span>
         </div>
       </div>
+
+      {/* Equipment Removal & Deletion Confirmation Modal */}
+      {assetActionTarget && (
+        <div 
+          className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150"
+          onClick={() => setAssetActionTarget(null)}
+        >
+          <div 
+            className="relative w-full max-w-md rounded-3xl bg-white p-5 sm:p-6 shadow-2xl border border-neutral-200 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-rose-50 text-rose-600 border border-rose-200 shrink-0">
+                <Trash className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-sm sm:text-base font-bold text-neutral-900 leading-tight">
+                  Remove Equipment from Station
+                </h3>
+                <p className="text-xs text-neutral-500 mt-1">
+                  Choose what to do with <strong className="text-neutral-900 font-bold">{assetActionTarget.name}</strong> (SN: {assetActionTarget.serialNumber || 'N/A'}).
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAssetActionTarget(null)}
+                className="text-neutral-400 hover:text-neutral-700 p-1 rounded-lg transition cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-2.5 pt-1">
+              {onDeleteBorrow && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onDeleteBorrow(assetActionTarget.id);
+                    setAssetActionTarget(null);
+                  }}
+                  className="w-full text-left p-3.5 rounded-2xl border border-emerald-200 bg-emerald-50/50 hover:bg-emerald-50 hover:border-emerald-300 transition active:scale-[0.98] group cursor-pointer"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs font-bold text-emerald-950 flex items-center gap-1.5">
+                      <span>↩️ Return to Central Depot</span>
+                      <span className="text-[9px] font-extrabold bg-emerald-200/80 text-emerald-900 px-1.5 py-0.5 rounded uppercase">Recommended</span>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-emerald-600 group-hover:translate-x-0.5 transition-transform" />
+                  </div>
+                  <p className="text-[11px] text-emerald-800/80 mt-1 leading-relaxed">
+                    Cancels this dispatch and returns the hardware back to HIMU Central IT Depot for future staging.
+                  </p>
+                </button>
+              )}
+
+              {onPermanentlyDeleteAsset && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        `Are you sure you want to permanently delete "${assetActionTarget.name}" (SN: ${assetActionTarget.serialNumber || 'N/A'})? This removes it completely from Supabase and cannot be undone.`
+                      )
+                    ) {
+                      onPermanentlyDeleteAsset(assetActionTarget.id);
+                      setAssetActionTarget(null);
+                    }
+                  }}
+                  className="w-full text-left p-3.5 rounded-2xl border border-rose-200 bg-rose-50/40 hover:bg-rose-50 hover:border-rose-300 transition active:scale-[0.98] group cursor-pointer"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-rose-900 flex items-center gap-1.5">
+                      <span>🗑️ Delete Asset Permanently</span>
+                    </span>
+                    <ArrowRight className="h-4 w-4 text-rose-600 group-hover:translate-x-0.5 transition-transform" />
+                  </div>
+                  <p className="text-[11px] text-rose-800/80 mt-1 leading-relaxed">
+                    Completely deletes this hardware and its history records from the Supabase database.
+                  </p>
+                </button>
+              )}
+            </div>
+
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={() => setAssetActionTarget(null)}
+                className="w-full py-2.5 rounded-xl border border-neutral-200 text-xs font-semibold text-neutral-600 hover:bg-neutral-50 transition active:scale-[0.98] cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -8,7 +8,8 @@ import {
   Copy, 
   Check, 
   MapPin,
-  Printer 
+  Printer,
+  Trash
 } from './HugeIcons';
 
 interface AssetDetailModalProps {
@@ -19,6 +20,7 @@ interface AssetDetailModalProps {
   onOpenTransfer: (asset: AssetItem) => void;
   onAcknowledgeReceipt: (assetId: string) => void;
   onViewChecklist?: (record: AssetTransferRecord) => void;
+  onDeleteAsset?: (assetId: string) => void;
 }
 
 export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
@@ -29,6 +31,7 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
   onOpenTransfer,
   onAcknowledgeReceipt,
   onViewChecklist,
+  onDeleteAsset,
 }) => {
   const [copied, setCopied] = useState(false);
 
@@ -292,6 +295,27 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2 justify-end">
+            {onDeleteAsset && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      `Are you sure you want to permanently delete "${asset.name}" (SN: ${asset.serialNumber || 'N/A'})? This cannot be undone.`
+                    )
+                  ) {
+                    onDeleteAsset(asset.id);
+                    onClose();
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 px-3 py-2 text-xs font-bold transition active:scale-95 cursor-pointer"
+                title="Permanently delete asset from database"
+              >
+                <Trash className="h-3.5 w-3.5" />
+                <span>Delete</span>
+              </button>
+            )}
+
             <button
               onClick={onClose}
               className="rounded-xl border border-neutral-200 bg-white px-4 py-2.5 sm:py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 transition active:scale-95"

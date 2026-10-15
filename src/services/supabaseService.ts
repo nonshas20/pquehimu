@@ -457,10 +457,78 @@ export const supabaseService = {
   },
 
   /**
+   * Cancel / delete a dispatch transfer and return the asset to HIMU Central Depot:
+   * 1. Deletes the transfer record from `transfer_records` (or marks it returned if delete fails)
+   * 2. Updates the asset in `assets` to 'loc-himu-hq' and 'in_service'
+   */
+  async cancelBorrow(
+    recordId: string,
+    assetId: string,
+    hqLocationId = 'loc-himu-hq'
+  ): Promise<boolean> {
+    try {
+      const now = new Date().toISOString();
+
+      // 1. Delete or mark returned the transfer record
+      if (recordId) {
+        const { error: delError } = await supabase
+          .from('transfer_records')
+          .delete()
+          .eq('id', recordId);
+
+        if (delError) {
+          console.warn('[Supabase] Could not delete transfer record, marking returned instead:', delError.message);
+          await supabase
+            .from('transfer_records')
+            .update({ status: 'returned', returned_at: now })
+            .eq('id', recordId);
+        }
+      } else {
+        // Find latest active transfer and delete it
+        const { data: latest } = await supabase
+          .from('transfer_records')
+          .select('id')
+          .eq('asset_id', assetId)
+          .order('dispatched_at', { ascending: false })
+          .limit(1);
+
+        if (latest && latest.length > 0) {
+          await supabase.from('transfer_records').delete().eq('id', latest[0].id);
+        }
+      }
+
+      // 2. Return asset to Central HIMU Depot
+      const { error: assetError } = await supabase
+        .from('assets')
+        .update({
+          status: 'in_service',
+          current_location_id: hqLocationId,
+          custodian_name: 'HIMU Central Depot Staging',
+          updated_at: now,
+        })
+        .eq('id', assetId);
+
+      if (assetError) {
+        console.error('[Supabase] Error returning asset to HQ in cancelBorrow:', assetError);
+        return false;
+      }
+
+      return true;
+    } catch (err) {
+      console.error('[Supabase] Exception in cancelBorrow:', err);
+      return false;
+    }
+  },
+
+  /**
    * Delete an asset from Supabase (cascades to transfer records)
    */
   async deleteAsset(assetId: string): Promise<boolean> {
     try {
+      // 1. Delete associated transfer records first to prevent foreign key errors
+      await supabase.from('transfer_records').delete().eq('asset_id', assetId);
+
+      // 2. Delete asset from assets table
       const { error } = await supabase.from('assets').delete().eq('id', assetId);
       if (error) {
         console.error('[Supabase] Error deleting asset:', error);

@@ -992,9 +992,31 @@ export function App() {
     );
   };
 
-  // 1-Click Delete / Cancel Borrow (Restores asset back to HIMU Depot staging)
-  const handleDeleteOrUndoBorrow = (assetId: string) => {
+  // 1-Click Cancel Borrow (Restores asset back to HIMU Depot staging and syncs to Supabase)
+  const handleDeleteOrUndoBorrow = async (assetId: string) => {
     const target = assets.find((a) => a.id === assetId);
+    const latestRecord = target?.history && target.history.length > 0 ? target.history[0] : undefined;
+
+    // 1. Optimistic UI state update
+    setAssets((prev) =>
+      prev.map((item) => {
+        if (item.id === assetId) {
+          const previousHistory = item.history.length > 1 ? item.history.slice(1) : [];
+          return {
+            ...item,
+            currentLocationId: 'loc-himu-hq',
+            status: 'in_service',
+            custodianName: 'HIMU Central Depot Staging',
+            history: previousHistory,
+          };
+        }
+        return item;
+      })
+    );
+
+    // 2. Persist to Supabase cloud
+    await supabaseService.cancelBorrow(latestRecord?.id || '', assetId, 'loc-himu-hq');
+
     if (target) {
       logAudit(
         'ASSET_UPDATED',
@@ -1008,22 +1030,30 @@ export function App() {
         }
       );
     }
+  };
 
-    setAssets((prev) =>
-      prev.map((item) => {
-        if (item.id === assetId) {
-          const previousHistory = item.history.length > 1 ? item.history.slice(1) : item.history;
-          return {
-            ...item,
-            currentLocationId: 'loc-himu-hq',
-            status: 'in_service',
-            custodianName: 'HIMU Central Depot Staging',
-            history: previousHistory,
-          };
+  // Permanently Delete Asset from Supabase and local inventory
+  const handlePermanentlyDeleteAsset = async (assetId: string) => {
+    const target = assets.find((a) => a.id === assetId);
+
+    // 1. Optimistic UI state update
+    setAssets((prev) => prev.filter((item) => item.id !== assetId));
+
+    // 2. Persist deletion to Supabase cloud
+    await supabaseService.deleteAsset(assetId);
+
+    if (target) {
+      logAudit(
+        'ASSET_DELETED',
+        'INVENTORY',
+        `Permanently deleted equipment ${target.name} (Tag: ${target.assetTag}, SN: ${target.serialNumber})`,
+        {
+          assetId,
+          assetName: target.name,
+          serialNumber: target.serialNumber,
         }
-        return item;
-      })
-    );
+      );
+    }
   };
 
   // Print official A5 Borrow Slip for a single asset directly from the map
@@ -1392,6 +1422,7 @@ export function App() {
                   onPrintA5ForAsset={handlePrintA5ForAsset}
                   onPrintA5ForBarangay={handlePrintA5ForBarangay}
                   onDeleteBorrow={handleDeleteOrUndoBorrow}
+                  onPermanentlyDeleteAsset={handlePermanentlyDeleteAsset}
                 />
               </Suspense>
             </ErrorBoundary>
@@ -1624,6 +1655,7 @@ export function App() {
               onOpenTransfer={handleOpenTransfer}
               onAcknowledgeReceipt={handleAcknowledgeReceipt}
               onViewChecklist={handleOpenReceiptForRecord}
+              onDeleteAsset={handlePermanentlyDeleteAsset}
             />
           )}
 
