@@ -1089,6 +1089,22 @@ export function App() {
   };
 
   const handleAddAsset = (newAssetData: Omit<AssetItem, 'id' | 'history'>) => {
+    // Duplicate serial check to prevent double entry
+    const cleanSerial = newAssetData.serialNumber?.trim().toLowerCase();
+    const isPlaceholder = !cleanSerial || cleanSerial === 'n/a' || cleanSerial === 'none' || cleanSerial === 'na';
+
+    if (!isPlaceholder) {
+      const existing = assets.find(
+        (a) => a.serialNumber && a.serialNumber.trim().toLowerCase() === cleanSerial
+      );
+      if (existing) {
+        alert(
+          `Registration Blocked: Serial number "${newAssetData.serialNumber}" is already registered to ${existing.name} (${existing.assetTag}). Double entry is prevented.`
+        );
+        return;
+      }
+    }
+
     const assetId = `ast-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
     const transferId = `tr-init-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
     const refNo = `TR-PQUE-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -1820,6 +1836,7 @@ export function App() {
                 setAddPresetLocationId(undefined);
               }}
               locations={locations}
+              existingAssets={assets}
               onAddAsset={handleAddAsset}
               initialLocationId={addPresetLocationId}
             />
