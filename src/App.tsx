@@ -1373,6 +1373,8 @@ export function App() {
           <StatsOverview
             assets={assets}
             totalLocationsCount={locations.length}
+            activeStatusFilter={selectedStatus}
+            onSelectStatusFilter={setSelectedStatus}
           />
         </div>
 
