@@ -190,11 +190,11 @@ export const supabaseService = {
       // If table exists but empty, return empty array so user can enter real items
       if (!assetsData) return [];
 
-      // 2. Fetch all transfer records
+      // 2. Fetch all transfer records (order by created_at desc so latest recorded action is always first)
       const { data: transfersData, error: transfersError } = await supabase
         .from('transfer_records')
         .select('*')
-        .order('dispatched_at', { ascending: false });
+        .order('created_at', { ascending: false });
 
       if (transfersError) {
         console.warn('[Supabase] Failed to fetch transfers:', transfersError.message);

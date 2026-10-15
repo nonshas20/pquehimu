@@ -156,20 +156,33 @@ export function App() {
   // Cloud sync status with Supabase
   const [syncStatus, setSyncStatus] = useState<'connected' | 'syncing' | 'offline'>('syncing');
 
-  // Helper to reconcile any asset where latest active transfer was to a station but currentLocationId was out of sync
+  // Helper to reconcile any asset location and status with latest transfer records
   const reconcileAssetLocations = (items: AssetItem[]): AssetItem[] => {
     return items.map((item) => {
       if (item.history && item.history.length > 0) {
         const latest = item.history[0];
-        if (
-          latest.toLocationId &&
-          latest.status !== 'returned' &&
-          latest.toLocationId !== item.currentLocationId
-        ) {
-          return {
-            ...item,
-            currentLocationId: latest.toLocationId,
-          };
+        // 1. If latest recorded transfer is in_transit, guarantee location is destination and status is in_transit
+        if (latest.status === 'in_transit' && latest.toLocationId) {
+          if (item.currentLocationId !== latest.toLocationId || item.status !== 'in_transit') {
+            return {
+              ...item,
+              currentLocationId: latest.toLocationId,
+              status: 'in_transit',
+            };
+          }
+          return item;
+        }
+
+        // 2. If latest recorded transfer is returned, guarantee location is returned to Central Depot and in_service
+        if (latest.status === 'returned') {
+          if (item.currentLocationId !== 'loc-himu-hq' || item.status === 'in_transit') {
+            return {
+              ...item,
+              currentLocationId: 'loc-himu-hq',
+              status: 'in_service',
+            };
+          }
+          return item;
         }
       }
       return item;

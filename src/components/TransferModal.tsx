@@ -110,10 +110,25 @@ export const TransferModal: React.FC<TransferModalProps> = ({
     return officerList[0] || 'JOHN SHANNON O. RODRIGUEZ';
   });
 
-  const [borrowedAt, setBorrowedAt] = useState<string>(() => {
-    const now = new Date();
-    return now.toISOString().slice(0, 16); // YYYY-MM-DDTHH:MM
-  });
+// Helper to format Date to local YYYY-MM-DDTHH:MM for datetime-local input
+const formatLocalDateTimeInput = (date: Date = new Date()): string => {
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  const year = date.getFullYear();
+  const month = pad(date.getMonth() + 1);
+  const day = pad(date.getDate());
+  const hours = pad(date.getHours());
+  const minutes = pad(date.getMinutes());
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
+// Helper to parse datetime-local input value to ISO UTC string
+const parseLocalDateTimeToIso = (localStr: string): string => {
+  if (!localStr) return new Date().toISOString();
+  const parsed = new Date(localStr);
+  return isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
+};
+
+  const [borrowedAt, setBorrowedAt] = useState<string>(() => formatLocalDateTimeInput());
 
   // Helper to build initial item rows from scanned / passed assets
   const createDefaultItems = (targets: AssetItem[]): BorrowChecklistItem[] => {
@@ -275,7 +290,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
       eventName: finalEventName,
       requestingOffice: finalOffice,
       borrowerName: finalBorrower,
-      borrowedAt: new Date(borrowedAt).toISOString(),
+      borrowedAt: parseLocalDateTimeToIso(borrowedAt),
       borrowedItemsList: validChecklistItems,
     };
 
