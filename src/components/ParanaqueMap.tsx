@@ -42,6 +42,7 @@ interface ParanaqueMapProps {
   selectedLocationId: string | null;
   onSelectLocation: (locationId: string | null) => void;
   onOpenTransfer?: (asset: AssetItem) => void;
+  onOpenTransferForLocation?: (locationId: string) => void;
   onOpenAddModal?: (locationId?: string) => void;
   onDeployKit?: (locationId: string) => void;
   onDeployAllKits?: () => void;
@@ -73,6 +74,7 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
   selectedLocationId,
   onSelectLocation,
   onOpenTransfer,
+  onOpenTransferForLocation,
   onOpenAddModal,
   onDeployKit,
   onDeployAllKits,
@@ -1429,10 +1431,23 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
                           No Hardware Stationed Here
                         </h4>
                         <p className="mt-1 text-[11px] text-neutral-500 leading-relaxed max-w-xs mx-auto">
-                          Drag hardware from the <strong>Depot Staging</strong> tab directly onto this Barangay, or deploy a standard health kit.
+                          Select <strong>Dispatch Hardware from Depot</strong> below or drag equipment directly onto this Barangay.
                         </p>
 
-                        {onDeployKit && (
+                        {onOpenTransferForLocation ? (
+                          <div className="mt-3">
+                            <button
+                              onClick={() => onOpenTransferForLocation(selectedLocation.id)}
+                              className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition active:scale-95 cursor-pointer"
+                            >
+                              <Package className="h-4 w-4" />
+                              <span>Dispatch Hardware from Depot</span>
+                            </button>
+                            <p className="mt-1 text-[10px] text-neutral-400">
+                              Pick printers, routers, extension cords, or SIM cards
+                            </p>
+                          </div>
+                        ) : onDeployKit ? (
                           <div className="mt-3">
                             <button
                               onClick={() => onDeployKit(selectedLocation.id)}
@@ -1445,7 +1460,7 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
                               1 Printer + 1 Wi-Fi 6 Router + 2 Extension Cords
                             </p>
                           </div>
-                        )}
+                        ) : null}
                       </div>
                     ) : (
                       selectedLocAssets.map((asset) => {
@@ -1597,7 +1612,16 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
                       </button>
                     )}
 
-                    {onDeployKit && selectedLocAssets.length > 0 && (
+                    {onOpenTransferForLocation && selectedLocAssets.length > 0 ? (
+                      <button
+                        onClick={() => onOpenTransferForLocation(selectedLocation.id)}
+                        title="Dispatch equipment from Central Depot to this barangay"
+                        className="inline-flex items-center justify-center gap-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-2 text-xs font-bold transition active:scale-95 shadow-2xs cursor-pointer"
+                      >
+                        <Package className="h-3.5 w-3.5" />
+                        <span>+ Dispatch</span>
+                      </button>
+                    ) : onDeployKit && selectedLocAssets.length > 0 ? (
                       <button
                         onClick={() => onDeployKit(selectedLocation.id)}
                         title="Deploy standard health kit to this barangay"
@@ -1606,7 +1630,7 @@ export const ParanaqueMap: React.FC<ParanaqueMapProps> = ({
                         <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
                         <span>+ Kit</span>
                       </button>
-                    )}
+                    ) : null}
                   </div>
                 </>
               ) : (

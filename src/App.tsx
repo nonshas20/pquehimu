@@ -10,7 +10,7 @@ import type {
   AuditActionType
 } from './types/inventory';
 import { DISPATCH_OFFICERS } from './types/inventory';
-import { PARANAQUE_LOCATIONS, INITIAL_ASSETS, DEFAULT_USERS } from './data/mockData';
+import { PARANAQUE_LOCATIONS, DEFAULT_USERS } from './data/mockData';
 import { Header } from './components/Header';
 import { StatsOverview } from './components/StatsOverview';
 import { BarangaySelector } from './components/BarangaySelector';
@@ -176,27 +176,41 @@ export function App() {
     });
   };
 
-  // Assets: Clean initial slate with Supabase sync + localStorage persistence
+  // Assets: Clean initial slate with Supabase sync + localStorage persistence (Zero mock data)
   const [assets, setAssets] = useState<AssetItem[]>(() => {
     try {
+      const isLegacyMock = (a: AssetItem) =>
+        a.id.startsWith('ast-prn-') ||
+        a.id.startsWith('ast-lp-') ||
+        a.id.startsWith('ast-net-') ||
+        a.id.startsWith('ast-des-') ||
+        a.id.startsWith('ast-srv-') ||
+        a.id.startsWith('ast-rtr-');
+
       const savedV2 = localStorage.getItem('himu_assets_pque_v2');
       if (savedV2) {
         const parsed = JSON.parse(savedV2);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return reconcileAssetLocations(parsed);
+          const realAssets = parsed.filter((a: AssetItem) => !isLegacyMock(a));
+          if (realAssets.length > 0) {
+            return reconcileAssetLocations(realAssets);
+          }
         }
       }
       const savedV1 = localStorage.getItem('himu_assets_pque_v1');
       if (savedV1) {
         const parsedV1 = JSON.parse(savedV1);
         if (Array.isArray(parsedV1) && parsedV1.length > 0) {
-          return reconcileAssetLocations(parsedV1);
+          const realAssetsV1 = parsedV1.filter((a: AssetItem) => !isLegacyMock(a));
+          if (realAssetsV1.length > 0) {
+            return reconcileAssetLocations(realAssetsV1);
+          }
         }
       }
     } catch (e) {
       console.error('Failed to load localStorage', e);
     }
-    return INITIAL_ASSETS;
+    return []; // No mock data! Real fleet is loaded dynamically from Supabase
   });
 
   // Fetch live Supabase data on mount and subscribe to real-time changes
@@ -385,6 +399,7 @@ export function App() {
   // Modals state
   const [activeAsset, setActiveAsset] = useState<AssetItem | null>(null);
   const [isTransferOpen, setIsTransferOpen] = useState(false);
+  const [transferDestinationLocationId, setTransferDestinationLocationId] = useState<string | undefined>(undefined);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [addPresetLocationId, setAddPresetLocationId] = useState<string | undefined>(undefined);
@@ -481,14 +496,13 @@ export function App() {
     setIsTransferOpen(true);
   };
 
-  const handleOpenTransferForLocation = (_locationId: string) => {
+  const handleOpenTransferForLocation = (locationId: string) => {
     // Find an item stationed at HIMU Central depot, or any asset ready for deployment
     const staged = assets.find((a) => a.currentLocationId === 'loc-himu-hq' && a.status === 'in_service');
-    const targetAsset = staged || assets[0];
-    if (targetAsset) {
-      setActiveAsset(targetAsset);
-      setIsTransferOpen(true);
-    }
+    const targetAsset = staged || assets[0] || null;
+    setActiveAsset(targetAsset);
+    setTransferDestinationLocationId(locationId);
+    setIsTransferOpen(true);
   };
 
   const handleOpenDetail = (asset: AssetItem) => {
@@ -1189,272 +1203,6 @@ export function App() {
     setIsAddOpen(true);
   };
 
-  // Quick Deploy Standard Barangay IT Kit (1 Printer, 1 Router, 2 Extension Cords)
-  const handleDeployHealthKit = (locationId: string) => {
-    const targetLoc = locations.find((l) => l.id === locationId);
-    if (!targetLoc) return;
-
-    const ts = Date.now();
-    const year = new Date().getFullYear();
-
-    const newKitItems: AssetItem[] = [
-      {
-        id: `ast-prn-${ts}`,
-        assetTag: `HIMU-PRN-${year}-${Math.floor(100 + Math.random() * 900)}`,
-        name: 'Epson EcoTank L3210 All-in-One Ink Tank Printer',
-        category: 'Printer',
-        brandModel: 'Epson EcoTank L3210 (Print / Scan / Copy)',
-        serialNumber: `SN-EPS-${year}-${Math.floor(1000 + Math.random() * 9000)}`,
-        currentLocationId: locationId,
-        status: 'in_service',
-        custodianName: `${targetLoc.name} Health Center Nurse Station`,
-        custodianRole: 'Clinic Nurse / EMR Encoder',
-        acquisitionDate: new Date().toISOString().split('T')[0],
-        notes: 'High-volume tank printer for PhilHealth forms, maternal records & prescriptions.',
-        history: [
-          {
-            id: `tr-init-${ts}-1`,
-            referenceNo: `TR-PQUE-${year}-${Math.floor(1000 + Math.random() * 9000)}`,
-            assetId: `ast-prn-${ts}`,
-            fromLocationId: 'loc-himu-hq',
-            toLocationId: locationId,
-            fromLocationName: 'HIMU Central IT Office (Parañaque City Hall)',
-            toLocationName: targetLoc.name,
-            dispatchedBy: currentOfficerName,
-            dispatchedAt: new Date().toISOString(),
-            status: 'received',
-            purpose: 'Standard Barangay Health Center IT Kit Deployment',
-          },
-        ],
-      },
-      {
-        id: `ast-rtr-${ts}`,
-        assetTag: `HIMU-RTR-${year}-${Math.floor(100 + Math.random() * 900)}`,
-        name: 'TP-Link Archer AX55 Wi-Fi 6 Gigabit Router',
-        category: 'Network Router',
-        brandModel: 'TP-Link Archer AX55 (AX3000 Dual-Band Gigabit)',
-        serialNumber: `SN-TPL-${year}-${Math.floor(1000 + Math.random() * 9000)}`,
-        currentLocationId: locationId,
-        status: 'in_service',
-        custodianName: `${targetLoc.name} IT Station`,
-        custodianRole: 'Barangay IT Coordinator',
-        acquisitionDate: new Date().toISOString().split('T')[0],
-        notes: 'Dedicated EMR clinical VLAN with high-gain antennas for health station tablet sync.',
-        history: [
-          {
-            id: `tr-init-${ts}-2`,
-            referenceNo: `TR-PQUE-${year}-${Math.floor(1000 + Math.random() * 9000)}`,
-            assetId: `ast-rtr-${ts}`,
-            fromLocationId: 'loc-himu-hq',
-            toLocationId: locationId,
-            fromLocationName: 'HIMU Central IT Office (Parañaque City Hall)',
-            toLocationName: targetLoc.name,
-            dispatchedBy: currentOfficerName,
-            dispatchedAt: new Date().toISOString(),
-            status: 'received',
-            purpose: 'Standard Barangay Health Center IT Kit Deployment',
-          },
-        ],
-      },
-      {
-        id: `ast-ext-${ts}-1`,
-        assetTag: `HIMU-EXT-${year}-${Math.floor(100 + Math.random() * 900)}`,
-        name: 'Omni 5-Gang Heavy-Duty Surge Protector Power Strip (5M)',
-        category: 'Extension Cord / Power',
-        brandModel: 'Omni WS-500 Heavy Duty 2500W (5 Meters)',
-        serialNumber: `SN-OMN-${year}-${Math.floor(1000 + Math.random() * 9000)}`,
-        currentLocationId: locationId,
-        status: 'in_service',
-        custodianName: `${targetLoc.name} Triage Desk`,
-        custodianRole: 'Health Center Custodian',
-        acquisitionDate: new Date().toISOString().split('T')[0],
-        notes: 'Surge protected multi-gang strip for workstation, printer & barcode scanner.',
-        history: [
-          {
-            id: `tr-init-${ts}-3`,
-            referenceNo: `TR-PQUE-${year}-${Math.floor(1000 + Math.random() * 9000)}`,
-            assetId: `ast-ext-${ts}-1`,
-            fromLocationId: 'loc-himu-hq',
-            toLocationId: locationId,
-            fromLocationName: 'HIMU Central IT Office (Parañaque City Hall)',
-            toLocationName: targetLoc.name,
-            dispatchedBy: currentOfficerName,
-            dispatchedAt: new Date().toISOString(),
-            status: 'received',
-            purpose: 'Standard Barangay Health Center IT Kit Deployment',
-          },
-        ],
-      },
-      {
-        id: `ast-ext-${ts}-2`,
-        assetTag: `HIMU-EXT-${year}-${Math.floor(100 + Math.random() * 900)}`,
-        name: 'Omni 3-Gang Heavy-Duty Extension Cord (3M)',
-        category: 'Extension Cord / Power',
-        brandModel: 'Omni WS-300 Heavy Duty (3 Meters)',
-        serialNumber: `SN-OMN-${year}-${Math.floor(1000 + Math.random() * 9000)}`,
-        currentLocationId: locationId,
-        status: 'in_service',
-        custodianName: `${targetLoc.name} Consultation Desk`,
-        custodianRole: 'Health Center Custodian',
-        acquisitionDate: new Date().toISOString().split('T')[0],
-        notes: 'Power extension for physician consultation diagnostic tablet & lamp.',
-        history: [
-          {
-            id: `tr-init-${ts}-4`,
-            referenceNo: `TR-PQUE-${year}-${Math.floor(1000 + Math.random() * 9000)}`,
-            assetId: `ast-ext-${ts}-2`,
-            fromLocationId: 'loc-himu-hq',
-            toLocationId: locationId,
-            fromLocationName: 'HIMU Central IT Office (Parañaque City Hall)',
-            toLocationName: targetLoc.name,
-            dispatchedBy: currentOfficerName,
-            dispatchedAt: new Date().toISOString(),
-            status: 'received',
-            purpose: 'Standard Barangay Health Center IT Kit Deployment',
-          },
-        ],
-      },
-    ];
-
-    setAssets((prev) => [...newKitItems, ...prev]);
-
-    // Sync deployed health kit items to Supabase cloud
-    newKitItems.forEach((item) => {
-      supabaseService.createAsset(item);
-    });
-  };
-
-  // 1-Click Deploy to All 16 Barangays
-  const handleDeployAllBarangaysKit = () => {
-    const barangayLocations = locations.filter((l) => l.type === 'barangay');
-    const allItems: AssetItem[] = [];
-    const year = new Date().getFullYear();
-
-    barangayLocations.forEach((loc, index) => {
-      const ts = Date.now() + index * 10;
-      allItems.push(
-        {
-          id: `ast-prn-${ts}`,
-          assetTag: `HIMU-PRN-${year}-${100 + index}`,
-          name: 'Epson EcoTank L3210 All-in-One Ink Tank Printer',
-          category: 'Printer',
-          brandModel: 'Epson EcoTank L3210 (Print / Scan / Copy)',
-          serialNumber: `SN-EPS-${year}-${2000 + index}`,
-          currentLocationId: loc.id,
-          status: 'in_service',
-          custodianName: `${loc.name} Health Center Nurse Station`,
-          custodianRole: 'Clinic Nurse / EMR Encoder',
-          acquisitionDate: new Date().toISOString().split('T')[0],
-          notes: 'High-volume tank printer for PhilHealth forms, maternal records & prescriptions.',
-          history: [
-            {
-              id: `tr-init-${ts}-1`,
-              referenceNo: `TR-PQUE-${year}-${3000 + index}`,
-              assetId: `ast-prn-${ts}`,
-              fromLocationId: 'loc-himu-hq',
-              toLocationId: loc.id,
-              fromLocationName: 'HIMU Central IT Office (Parañaque City Hall)',
-              toLocationName: loc.name,
-              dispatchedBy: currentOfficerName,
-              dispatchedAt: new Date().toISOString(),
-              status: 'received',
-              purpose: 'City-wide Standard Health Center IT Kit Deployment',
-            },
-          ],
-        },
-        {
-          id: `ast-rtr-${ts}`,
-          assetTag: `HIMU-RTR-${year}-${100 + index}`,
-          name: 'TP-Link Archer AX55 Wi-Fi 6 Gigabit Router',
-          category: 'Network Router',
-          brandModel: 'TP-Link Archer AX55 (AX3000 Dual-Band Gigabit)',
-          serialNumber: `SN-TPL-${year}-${4000 + index}`,
-          currentLocationId: loc.id,
-          status: 'in_service',
-          custodianName: `${loc.name} IT Station`,
-          custodianRole: 'Barangay IT Coordinator',
-          acquisitionDate: new Date().toISOString().split('T')[0],
-          notes: 'Dedicated EMR clinical VLAN with high-gain antennas for health station tablet sync.',
-          history: [
-            {
-              id: `tr-init-${ts}-2`,
-              referenceNo: `TR-PQUE-${year}-${5000 + index}`,
-              assetId: `ast-rtr-${ts}`,
-              fromLocationId: 'loc-himu-hq',
-              toLocationId: loc.id,
-              fromLocationName: 'HIMU Central IT Office (Parañaque City Hall)',
-              toLocationName: loc.name,
-              dispatchedBy: currentOfficerName,
-              dispatchedAt: new Date().toISOString(),
-              status: 'received',
-              purpose: 'City-wide Standard Health Center IT Kit Deployment',
-            },
-          ],
-        },
-        {
-          id: `ast-ext-${ts}-1`,
-          assetTag: `HIMU-EXT-${year}-${100 + index}-A`,
-          name: 'Omni 5-Gang Heavy-Duty Surge Protector Power Strip (5M)',
-          category: 'Extension Cord / Power',
-          brandModel: 'Omni WS-500 Heavy Duty 2500W (5 Meters)',
-          serialNumber: `SN-OMN-${year}-${6000 + index}`,
-          currentLocationId: loc.id,
-          status: 'in_service',
-          custodianName: `${loc.name} Triage Desk`,
-          custodianRole: 'Health Center Custodian',
-          acquisitionDate: new Date().toISOString().split('T')[0],
-          notes: 'Surge protected multi-gang strip for workstation, printer & barcode scanner.',
-          history: [
-            {
-              id: `tr-init-${ts}-3`,
-              referenceNo: `TR-PQUE-${year}-${7000 + index}`,
-              assetId: `ast-ext-${ts}-1`,
-              fromLocationId: 'loc-himu-hq',
-              toLocationId: loc.id,
-              fromLocationName: 'HIMU Central IT Office (Parañaque City Hall)',
-              toLocationName: loc.name,
-              dispatchedBy: currentOfficerName,
-              dispatchedAt: new Date().toISOString(),
-              status: 'received',
-              purpose: 'City-wide Standard Health Center IT Kit Deployment',
-            },
-          ],
-        },
-        {
-          id: `ast-ext-${ts}-2`,
-          assetTag: `HIMU-EXT-${year}-${100 + index}-B`,
-          name: 'Omni 3-Gang Heavy-Duty Extension Cord (3M)',
-          category: 'Extension Cord / Power',
-          brandModel: 'Omni WS-300 Heavy Duty (3 Meters)',
-          serialNumber: `SN-OMN-${year}-${8000 + index}`,
-          currentLocationId: loc.id,
-          status: 'in_service',
-          custodianName: `${loc.name} Consultation Desk`,
-          custodianRole: 'Health Center Custodian',
-          acquisitionDate: new Date().toISOString().split('T')[0],
-          notes: 'Power extension for physician consultation diagnostic tablet & lamp.',
-          history: [
-            {
-              id: `tr-init-${ts}-4`,
-              referenceNo: `TR-PQUE-${year}-${9000 + index}`,
-              assetId: `ast-ext-${ts}-2`,
-              fromLocationId: 'loc-himu-hq',
-              toLocationId: loc.id,
-              fromLocationName: 'HIMU Central IT Office (Parañaque City Hall)',
-              toLocationName: loc.name,
-              dispatchedBy: currentOfficerName,
-              dispatchedAt: new Date().toISOString(),
-              status: 'received',
-              purpose: 'City-wide Standard Health Center IT Kit Deployment',
-            },
-          ],
-        }
-      );
-    });
-
-    setAssets(allItems);
-  };
-
   // Decoupled hero parallax driven directly by ref and requestAnimationFrame (no root re-render)
   const heroImageRef = useRef<HTMLImageElement>(null);
 
@@ -1639,8 +1387,7 @@ export function App() {
                   onSelectLocation={setSelectedLocationId}
                   onOpenTransfer={handleOpenTransfer}
                   onOpenAddModal={handleOpenAddForLocation}
-                  onDeployKit={handleDeployHealthKit}
-                  onDeployAllKits={handleDeployAllBarangaysKit}
+                  onOpenTransferForLocation={handleOpenTransferForLocation}
                   onQuickRelocate={handleQuickRelocateAsset}
                   onPrintA5ForAsset={handlePrintA5ForAsset}
                   onPrintA5ForBarangay={handlePrintA5ForBarangay}
@@ -1854,10 +1601,12 @@ export function App() {
               onClose={() => {
                 setIsTransferOpen(false);
                 setBatchTransferAssets([]);
+                setTransferDestinationLocationId(undefined);
               }}
               asset={activeAsset}
               batchAssets={batchTransferAssets.length > 0 ? batchTransferAssets : undefined}
               allAssets={assets}
+              initialDestinationLocationId={transferDestinationLocationId}
               locations={locations}
               defaultDispatcherName={currentUser.name}
               officers={officerNames}

@@ -20,6 +20,7 @@ interface TransferModalProps {
   asset: AssetItem | null;
   batchAssets?: AssetItem[];
   allAssets?: AssetItem[];
+  initialDestinationLocationId?: string;
   locations: BarangayLocation[];
   defaultDispatcherName?: string;
   officers?: string[];
@@ -61,6 +62,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
   asset,
   batchAssets,
   allAssets = [],
+  initialDestinationLocationId,
   locations,
   defaultDispatcherName,
   officers,
@@ -76,6 +78,9 @@ export const TransferModal: React.FC<TransferModalProps> = ({
   const eligibleDestinations = locations.filter((l) => !activeAssets.every((a) => a.currentLocationId === l.id));
 
   const [toLocationId, setToLocationId] = useState<string>(() => {
+    if (initialDestinationLocationId && locations.some((l) => l.id === initialDestinationLocationId)) {
+      return initialDestinationLocationId;
+    }
     return eligibleDestinations[0]?.id || '';
   });
 
@@ -127,12 +132,16 @@ export const TransferModal: React.FC<TransferModalProps> = ({
 
   // Reset form state cleanly when a different asset or batch is selected
   useEffect(() => {
-    if (activeAssets.length > 0) {
+    if (initialDestinationLocationId && locations.some((l) => l.id === initialDestinationLocationId)) {
+      setToLocationId(initialDestinationLocationId);
+    } else if (activeAssets.length > 0) {
       const eligible = locations.filter((l) => !activeAssets.every((a) => a.currentLocationId === l.id));
       setToLocationId(eligible[0]?.id || '');
+    }
+    if (activeAssets.length > 0) {
       setItemsList(createDefaultItems(activeAssets));
     }
-  }, [asset?.id, batchAssets?.length, locations]);
+  }, [asset?.id, batchAssets?.length, locations, initialDestinationLocationId]);
 
   // ---------------------------------------------------------------------------
   // Central Depot Hardware Search & Dropdown Picker State
