@@ -44,6 +44,7 @@ export interface BorrowChecklistItem {
   serialNo?: string;
   quantity: number | string;
   remarks?: string;
+  assetId?: string;
 }
 
 export interface AssetTransferRecord {

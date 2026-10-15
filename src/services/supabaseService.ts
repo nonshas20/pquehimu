@@ -336,6 +336,75 @@ export const supabaseService = {
   },
 
   /**
+   * Record multiple equipment dispatches atomically in batch:
+   * 1. Updates all assets' location, status, and custodian in one query
+   * 2. Inserts all transfer records
+   */
+  async recordBatchDispatch(
+    records: AssetTransferRecord[],
+    assetUpdate: {
+      locationId: string;
+      status: AssetItem['status'];
+      custodianName: string;
+    }
+  ): Promise<boolean> {
+    if (!records || records.length === 0) return true;
+    try {
+      const assetIds = records.map((r) => r.assetId);
+      const now = new Date().toISOString();
+
+      // 1. Bulk update all target assets in one query
+      const { error: assetError } = await supabase
+        .from('assets')
+        .update({
+          current_location_id: assetUpdate.locationId,
+          status: assetUpdate.status,
+          custodian_name: assetUpdate.custodianName,
+          updated_at: now,
+        })
+        .in('id', assetIds);
+
+      if (assetError) {
+        console.error('[Supabase] Error bulk-updating assets on batch dispatch:', assetError);
+      }
+
+      // 2. Bulk insert transfer records
+      const dbTransfers: DbTransfer[] = records.map((record) => ({
+        id: record.id,
+        reference_no: record.referenceNo,
+        asset_id: record.assetId,
+        from_location_id: record.fromLocationId || null,
+        to_location_id: record.toLocationId || null,
+        from_location_name: record.fromLocationName,
+        to_location_name: record.toLocationName,
+        dispatched_by: record.dispatchedBy,
+        dispatched_at: record.dispatchedAt,
+        received_by: record.receivedBy || null,
+        received_at: record.receivedAt || null,
+        status: record.status,
+        purpose: record.purpose,
+        notes: record.notes || null,
+        event_name: record.eventName || null,
+        requesting_office: record.requestingOffice || null,
+        borrower_name: record.borrowerName || null,
+        borrowed_items_list: record.borrowedItemsList || null,
+        returned_at: record.returnedAt || null,
+        returned_checked_by: record.returnedCheckedBy || null,
+      }));
+
+      const { error: transferError } = await supabase.from('transfer_records').insert(dbTransfers);
+      if (transferError) {
+        console.error('[Supabase] Error bulk-inserting transfer records:', transferError);
+      }
+
+      return true;
+    } catch (err) {
+      console.error('[Supabase] Exception in recordBatchDispatch:', err);
+      return false;
+    }
+  },
+
+  /**
    * Mark an equipment borrow as returned to HIMU Central Depot:
    * 1. Updates the transfer record with returned_at and returned_checked_by
    * 2. Returns the asset to 'loc-himu-hq' and sets status to 'in_service'

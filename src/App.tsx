@@ -241,7 +241,7 @@ export function App() {
     const unsubscribe = supabaseService.subscribeToChanges(async () => {
       const freshAssets = await supabaseService.getAssets();
       if (isMounted && freshAssets !== null) {
-        setAssets(freshAssets);
+        setAssets(reconcileAssetLocations(freshAssets));
         setSyncStatus('connected');
       }
 
@@ -655,13 +655,11 @@ export function App() {
     // Auto-focus map and station drawer on destination barangay
     setSelectedLocationId(toLocationId);
 
-    // Sync all transfer records to Supabase
-    transferRecords.forEach((record) => {
-      supabaseService.recordDispatch(record, {
-        locationId: toLocationId,
-        status: 'in_transit',
-        custodianName: receivedBy ? receivedBy : `In Transit via ${dispatchedBy}`,
-      });
+    // Sync all transfer records to Supabase atomically
+    supabaseService.recordBatchDispatch(transferRecords, {
+      locationId: toLocationId,
+      status: 'in_transit',
+      custodianName: receivedBy ? receivedBy : `In Transit via ${dispatchedBy}`,
     });
 
     // Record in System Audit Trail
@@ -1859,6 +1857,7 @@ export function App() {
               }}
               asset={activeAsset}
               batchAssets={batchTransferAssets.length > 0 ? batchTransferAssets : undefined}
+              allAssets={assets}
               locations={locations}
               defaultDispatcherName={currentUser.name}
               officers={officerNames}
