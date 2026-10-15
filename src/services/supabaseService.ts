@@ -521,6 +521,43 @@ export const supabaseService = {
   },
 
   /**
+   * Update an existing equipment asset in Supabase
+   */
+  async updateAsset(asset: AssetItem): Promise<boolean> {
+    try {
+      const dbAsset: Partial<DbAsset> = {
+        name: asset.name,
+        category: asset.category,
+        brand_model: asset.brandModel,
+        serial_number: asset.serialNumber,
+        asset_tag: asset.assetTag,
+        current_location_id: asset.currentLocationId,
+        status: asset.status,
+        custodian_name: asset.custodianName,
+        custodian_role: asset.custodianRole || null,
+        acquisition_date: asset.acquisitionDate || null,
+        ip_address: asset.ipAddress || null,
+        mac_address: asset.macAddress || null,
+        notes: asset.notes || null,
+      };
+
+      const { error } = await supabase
+        .from('assets')
+        .update(dbAsset)
+        .eq('id', asset.id);
+
+      if (error) {
+        console.error('[Supabase] Error updating asset:', error);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error('[Supabase] Exception updating asset:', err);
+      return false;
+    }
+  },
+
+  /**
    * Delete an asset from Supabase (cascades to transfer records)
    */
   async deleteAsset(assetId: string): Promise<boolean> {

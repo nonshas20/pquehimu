@@ -21,7 +21,8 @@ import {
   Plus, 
   Archive, 
   LayoutGrid, 
-  TableIcon 
+  TableIcon,
+  Edit,
 } from './HugeIcons';
 
 interface AssetListProps {
@@ -30,6 +31,7 @@ interface AssetListProps {
   onOpenTransfer: (asset: AssetItem) => void;
   onOpenDetail: (asset: AssetItem) => void;
   onOpenAddModal: () => void;
+  onOpenEdit?: (asset: AssetItem) => void;
   onPrintA5ForAsset?: (asset: AssetItem) => void;
   selectedCategory: AssetCategory | 'ALL';
   onSelectCategory: (cat: AssetCategory | 'ALL') => void;
@@ -46,6 +48,7 @@ export const AssetList: React.FC<AssetListProps> = ({
   onOpenTransfer,
   onOpenDetail,
   onOpenAddModal,
+  onOpenEdit,
   onPrintA5ForAsset,
   selectedCategory,
   onSelectCategory,
@@ -394,6 +397,16 @@ export const AssetList: React.FC<AssetListProps> = ({
                               <span>A5 Slip</span>
                             </button>
                           )}
+                          {onOpenEdit && (
+                            <button
+                              onClick={() => onOpenEdit(asset)}
+                              title="Edit Equipment Details"
+                              className="inline-flex items-center gap-1 rounded-xl border border-black/5 bg-white px-2.5 py-1 text-xs font-semibold text-neutral-700 shadow-2xs hover:bg-neutral-100 hover:text-neutral-900 active:scale-95"
+                            >
+                              <Edit className="h-3.5 w-3.5 text-emerald-600" />
+                              <span>Edit</span>
+                            </button>
+                          )}
                           <button
                             onClick={() => onOpenDetail(asset)}
                             title="View Audit Trail"
@@ -472,7 +485,7 @@ export const AssetList: React.FC<AssetListProps> = ({
                   </div>
 
                   {/* Card Action Buttons: Native Touch Grid */}
-                  <div className={`mt-4 grid ${onPrintA5ForAsset ? 'grid-cols-3' : 'grid-cols-2'} gap-1.5 border-t border-black/[0.04] pt-3`} onClick={(e) => e.stopPropagation()}>
+                  <div className={`mt-4 grid ${onOpenEdit ? 'grid-cols-2' : (onPrintA5ForAsset ? 'grid-cols-3' : 'grid-cols-2')} gap-1.5 border-t border-black/[0.04] pt-3`} onClick={(e) => e.stopPropagation()}>
                     <button
                       onClick={() => onOpenTransfer(asset)}
                       className="inline-flex items-center justify-center gap-1 rounded-2xl border border-neutral-200 bg-white py-2.5 text-xs font-semibold text-neutral-800 transition hover:bg-neutral-50 active:scale-95 shadow-2xs min-h-[42px]"
@@ -487,6 +500,15 @@ export const AssetList: React.FC<AssetListProps> = ({
                       >
                         <Printer className="h-3.5 w-3.5 text-emerald-600" />
                         <span>A5 Slip</span>
+                      </button>
+                    )}
+                    {onOpenEdit && (
+                      <button
+                        onClick={() => onOpenEdit(asset)}
+                        className="inline-flex items-center justify-center gap-1 rounded-2xl border border-neutral-200 bg-white py-2.5 text-xs font-semibold text-neutral-800 transition hover:bg-neutral-50 active:scale-95 shadow-2xs min-h-[42px]"
+                      >
+                        <Edit className="h-3.5 w-3.5 text-emerald-600" />
+                        <span>Edit</span>
                       </button>
                     )}
                     <button

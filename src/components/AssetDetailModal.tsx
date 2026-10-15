@@ -9,7 +9,8 @@ import {
   Check, 
   MapPin,
   Printer,
-  Trash
+  Trash,
+  Edit,
 } from './HugeIcons';
 
 interface AssetDetailModalProps {
@@ -21,6 +22,7 @@ interface AssetDetailModalProps {
   onAcknowledgeReceipt: (assetId: string) => void;
   onViewChecklist?: (record: AssetTransferRecord) => void;
   onDeleteAsset?: (assetId: string) => void;
+  onOpenEdit?: (asset: AssetItem) => void;
 }
 
 export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
@@ -32,6 +34,7 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
   onAcknowledgeReceipt,
   onViewChecklist,
   onDeleteAsset,
+  onOpenEdit,
 }) => {
   const [copied, setCopied] = useState(false);
 
@@ -75,13 +78,29 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
               {asset.brandModel}
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="rounded-full p-2 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 transition active:scale-95 shrink-0"
-            aria-label="Close"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {onOpenEdit && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenEdit(asset);
+                }}
+                className="inline-flex items-center gap-1 rounded-xl bg-neutral-100 hover:bg-emerald-50 hover:text-emerald-700 text-neutral-700 px-2.5 py-1.5 text-xs font-bold transition active:scale-95 cursor-pointer"
+                title="Edit Equipment Record"
+              >
+                <Edit className="h-3.5 w-3.5 text-emerald-600" />
+                <span className="hidden sm:inline">Edit</span>
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="rounded-full p-2 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 transition active:scale-95 shrink-0"
+              aria-label="Close"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
         {/* Scrollable Body */}
@@ -316,9 +335,24 @@ export const AssetDetailModal: React.FC<AssetDetailModalProps> = ({
               </button>
             )}
 
+            {onOpenEdit && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenEdit(asset);
+                }}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-800 px-3.5 py-2.5 sm:py-2 text-xs font-bold transition active:scale-95 cursor-pointer shadow-2xs"
+                title="Edit equipment specifications & serial number"
+              >
+                <Edit className="h-3.5 w-3.5 text-emerald-600" />
+                <span>Edit</span>
+              </button>
+            )}
+
             <button
               onClick={onClose}
-              className="rounded-xl border border-neutral-200 bg-white px-4 py-2.5 sm:py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 transition active:scale-95"
+              className="rounded-xl border border-neutral-200 bg-white px-4 py-2.5 sm:py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 transition active:scale-95 cursor-pointer"
             >
               Close
             </button>

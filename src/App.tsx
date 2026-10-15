@@ -33,6 +33,7 @@ const QuickScanModal = lazyWithRetry(() => import('./components/QuickScanModal')
 const AuthModal = lazyWithRetry(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
 const BorrowChecklistReceiptModal = lazyWithRetry(() => import('./components/BorrowChecklistReceiptModal').then(m => ({ default: m.BorrowChecklistReceiptModal })));
 const AuditLogModal = lazyWithRetry(() => import('./components/AuditLogModal').then(m => ({ default: m.AuditLogModal })));
+const EditAssetModal = lazyWithRetry(() => import('./components/EditAssetModal').then(m => ({ default: m.EditAssetModal })));
 import { 
   Layers, 
   QrCode, 
@@ -414,6 +415,8 @@ export function App() {
   const [isTransferOpen, setIsTransferOpen] = useState(false);
   const [transferDestinationLocationId, setTransferDestinationLocationId] = useState<string | undefined>(undefined);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editingAsset, setEditingAsset] = useState<AssetItem | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [addPresetLocationId, setAddPresetLocationId] = useState<string | undefined>(undefined);
   const [isScanOpen, setIsScanOpen] = useState(false);
@@ -521,6 +524,11 @@ export function App() {
   const handleOpenDetail = (asset: AssetItem) => {
     setActiveAsset(asset);
     setIsDetailOpen(true);
+  };
+
+  const handleOpenEdit = (asset: AssetItem) => {
+    setEditingAsset(asset);
+    setIsEditOpen(true);
   };
 
   const handleConfirmTransfer = (
@@ -1241,6 +1249,32 @@ export function App() {
     );
   };
 
+  const handleSaveAsset = async (updatedAsset: AssetItem) => {
+    // 1. Optimistically update local React state
+    setAssets((prev) => prev.map((a) => (a.id === updatedAsset.id ? updatedAsset : a)));
+
+    // 2. If activeAsset is the one being edited, update it so detail modal reflects changes
+    if (activeAsset && activeAsset.id === updatedAsset.id) {
+      setActiveAsset(updatedAsset);
+    }
+
+    // 3. Persist to Supabase
+    await supabaseService.updateAsset(updatedAsset);
+
+    // 4. Record in Audit Log
+    logAudit(
+      'ASSET_UPDATED',
+      'INVENTORY',
+      `Edited details for ${updatedAsset.name} (SN: ${updatedAsset.serialNumber || 'N/A'}, Tag: ${updatedAsset.assetTag})`,
+      {
+        assetId: updatedAsset.id,
+        assetName: updatedAsset.name,
+        serialNumber: updatedAsset.serialNumber,
+        locationName: locations.find((l) => l.id === updatedAsset.currentLocationId)?.name,
+      }
+    );
+  };
+
   const handleOpenAddForLocation = (locationId?: string) => {
     setAddPresetLocationId(locationId);
     setIsAddOpen(true);
@@ -1476,6 +1510,7 @@ export function App() {
               onOpenTransfer={handleOpenTransfer}
               onOpenDetail={handleOpenDetail}
               onOpenAddModal={() => setIsAddOpen(true)}
+              onOpenEdit={handleOpenEdit}
               onPrintA5ForAsset={handlePrintA5ForAsset}
               selectedCategory={selectedCategory}
               onSelectCategory={setSelectedCategory}
@@ -1671,6 +1706,21 @@ export function App() {
               onAcknowledgeReceipt={handleAcknowledgeReceipt}
               onViewChecklist={handleOpenReceiptForRecord}
               onDeleteAsset={handlePermanentlyDeleteAsset}
+              onOpenEdit={handleOpenEdit}
+            />
+          )}
+
+          {isEditOpen && (
+            <EditAssetModal
+              isOpen={isEditOpen}
+              onClose={() => {
+                setIsEditOpen(false);
+                setEditingAsset(null);
+              }}
+              asset={editingAsset}
+              locations={locations}
+              existingAssets={assets}
+              onSaveAsset={handleSaveAsset}
             />
           )}
 
